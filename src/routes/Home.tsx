@@ -99,7 +99,7 @@ export default function Home() {
                 </p>
                 <p className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
                   <Small>and</Small>
-                  <Big>Studio Sessions</Big>
+                  <Big>Honor Choir</Big>
                 </p>
               </motion.div>
             </motion.div>

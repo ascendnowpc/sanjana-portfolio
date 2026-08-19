@@ -16,7 +16,8 @@ create table if not exists performances (
   subtitle     text not null,
   category     text not null
                  check (category in ('solo-concert', 'musical-theatre',
-                                     'studio-session', 'collaboration')),
+                                     'classical-repertoire', 'hindi-singing',
+                                     'honor-choir', 'collaboration')),
   year         int  not null,
   venue        text not null,
   city         text not null,
@@ -26,6 +27,8 @@ create table if not exists performances (
   runtime      text,
   poster       text not null,          -- path or CDN url
   video_src    text,                   -- optional; the UI degrades without it
+  preview_src  text,                   -- short silent loop for the index wall
+  aspect       real,                   -- width/height of the footage; 16:9 default
   featured     boolean not null default false,
   accent       text,                   -- hex; falls back to the category accent
   sort_index   int  not null default 0,
@@ -89,7 +92,7 @@ create or replace view performances_full as
 select
   p.slug, p.title, p.subtitle, p.category, p.year, p.venue, p.city,
   p.blurb, p.description, p.role, p.runtime, p.poster,
-  p.video_src, p.featured, p.accent,
+  p.video_src, p.preview_src, p.aspect, p.featured, p.accent,
   coalesce(
     (select jsonb_agg(g.url order by g.position)
        from gallery_images g where g.performance_slug = p.slug),

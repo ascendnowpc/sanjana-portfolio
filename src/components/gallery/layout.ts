@@ -10,8 +10,10 @@ export interface TileLayout {
   y: number
   /** Resting depth before travel is applied. */
   z: number
-  /** Tile width in px; height derives from the 16:9 poster. */
+  /** Tile width in px; height derives from `aspect`. */
   width: number
+  /** width / height the tile is cut to — the footage's own ratio. */
+  aspect: number
   /** Small per-tile rotation so the wall never looks like a spreadsheet. */
   tilt: number
   /** Phase offset for the idle float, so tiles don't bob in unison. */
@@ -29,6 +31,9 @@ export interface CloudOptions {
   minWidth: number
   maxWidth: number
 }
+
+/** The ratio tile widths are normalised against, and the fallback aspect. */
+const LANDSCAPE = 16 / 9
 
 export const DEFAULT_CLOUD: CloudOptions = {
   repeats: 3,
@@ -71,6 +76,16 @@ export function buildCloud(
       const slot = (i + (performance.featured ? -0.35 : 0.15)) / performances.length
       const z = -(rep * o.depth + slot * o.depth + (rnd() - 0.5) * 380)
 
+      // Tiles are cut to the footage's own ratio rather than a uniform 16:9,
+      // so portrait phone video is not centre-cropped into a letterbox strip.
+      // Widths are then normalised to equal *area*, not equal width: a 9:16
+      // tile drawn at full width would stand nearly twice as tall as its
+      // landscape neighbours and wreck the density of the wall.
+      const aspect = performance.aspect ?? LANDSCAPE
+      const base =
+        o.minWidth +
+        (o.maxWidth - o.minWidth) * (performance.featured ? 0.6 + rnd() * 0.4 : rnd())
+
       tiles.push({
         performance,
         key: `${performance.slug}-${rep}`,
@@ -78,9 +93,8 @@ export function buildCloud(
         // Flattened vertically — a wide wall reads better than a sphere.
         y: Math.sin(angle) * radius * 0.58,
         z,
-        width:
-          o.minWidth +
-          (o.maxWidth - o.minWidth) * (performance.featured ? 0.6 + rnd() * 0.4 : rnd()),
+        width: base * Math.sqrt(aspect / LANDSCAPE),
+        aspect,
         tilt: (rnd() - 0.5) * 5,
         phase: rnd() * Math.PI * 2,
       })

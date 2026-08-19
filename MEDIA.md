@@ -5,12 +5,13 @@ Images, video and audio are served from an R2 bucket in production and from
 so nothing in the content changes when you switch.
 
 ```
-content field         stored value                         served from
---------------------  -----------------------------------  ---------------------------
-poster                /media/posters/midnight-bloom.jpg     <R2 base>/media/posters/midnight-bloom.jpg
-videoSrc              /media/video/midnight-bloom.mp4       <R2 base>/media/video/midnight-bloom.mp4
-tracks[].audioSrc     /media/audio/mb-1.mp3                 <R2 base>/media/audio/mb-1.mp3
-portraits[]           /media/portraits/portrait-1.jpg       <R2 base>/media/portraits/portrait-1.jpg
+content field         stored value                          served from
+--------------------  ------------------------------------  ------------------------------
+poster                /media/posters/<slug>.jpg             <R2 base>/media/posters/<slug>.jpg
+videoSrc              /media/video/<slug>.mp4               <R2 base>/media/video/<slug>.mp4
+previewSrc            /media/preview/<slug>.mp4             <R2 base>/media/preview/<slug>.mp4
+tracks[].audioSrc     /media/audio/<track-id>.mp3           <R2 base>/media/audio/<track-id>.mp3
+portraits[]           /media/portraits/portrait-N.jpg       <R2 base>/media/portraits/portrait-N.jpg
 ```
 
 `src/lib/media.ts` is the only place that makes that decision. With
@@ -26,11 +27,45 @@ Drop the real files here, using these exact names:
 
 | What | Path | Notes |
 |---|---|---|
-| Performance still | `public/media/posters/<slug>.jpg` | 16:9. `<slug>` must match the `slug` in the content. |
-| Performance video | `public/media/video/<slug>.mp4` | H.264/AAC mp4 (or `.webm`). |
-| Track audio | `public/media/audio/<track-id>.mp3` | `<track-id>` matches `tracks[].id`, e.g. `mb-1`. |
+| Performance still | `public/media/posters/<slug>.jpg` | Any ratio — set `aspect` to match. `<slug>` must match the content `slug`. |
+| Performance video | `public/media/video/<slug>.mp4` | **H.264/AAC.** HEVC decodes only where the OS provides it (Safari, Chrome on Apple silicon) — Firefox and most Windows/Linux machines get nothing. |
+| Hover preview | `public/media/preview/<slug>.mp4` | ~8s, silent, 640px long side. See below. |
+| Track audio | `public/media/audio/<track-id>.mp3` | `<track-id>` matches `tracks[].id`. |
 | Portrait | `public/media/portraits/portrait-N.jpg` | 4:5, for the About strip. |
 | Gallery still | `public/media/posters/<name>.jpg` | Any name; referenced from `gallery[]`. |
+
+All three files for one entry share the slug, so renaming an entry means
+renaming the video, the preview and the poster together.
+
+### Why there are two video files per entry
+
+`videoSrc` is the full recording and is only ever fetched on a detail page.
+`previewSrc` is the short silent loop the index wall plays on hover — the wall
+mounts a `<video>` for whichever tile the cursor is over, so pointing that at a
+four-minute file would pull down tens of megabytes per hover. The previews for
+the current 36 entries total **5.7 MB**; the full recordings total **1.1 GB**.
+
+A tile with no `previewSrc` falls back to `videoSrc`, and an entry with neither
+falls back to a slow Ken Burns move on the poster.
+
+### Aspect ratio
+
+`aspect` (width ÷ height) is stored per entry because the archive is a mix of
+landscape and portrait phone footage. Tiles are cut to it, then normalised to
+equal *area* in `src/components/gallery/layout.ts`, so a 9:16 clip sits on the
+wall at the same visual weight as a 16:9 one instead of towering over it.
+Omit `aspect` and the tile falls back to 16:9.
+
+### Regenerating from source footage
+
+`scripts/ingest-video.mjs` does the whole conversion in one pass — it remuxes
+anything already web-safe, transcodes anything that is not (HEVC, >1280px,
+rotated), then writes the poster and the preview loop:
+
+```bash
+node scripts/ingest-video.mjs "~/Downloads/Solo Concerts" --category solo-concert
+node scripts/ingest-video.mjs --help
+```
 
 Then reference them in the content:
 
@@ -39,9 +74,13 @@ Then reference them in the content:
 - **Supabase content** — the same columns in the `performances` /
   `profile` tables (`video_src` in Postgres). See `DATABASE.md`.
 
-`videoSrc` is optional everywhere: tiles and the detail player fall back to a
-slow Ken Burns move on the poster when it is absent, so adding footage is
-purely additive.
+`videoSrc` and `previewSrc` are optional everywhere: tiles and the detail
+player fall back to a slow Ken Burns move on the poster when they are absent,
+so adding footage is purely additive.
+
+Media elements are plain `<video src>` with no `crossorigin` attribute, so
+cross-origin playback and seeking work off r2.dev without a CORS policy. Add
+one only if something starts fetching media with `fetch`/XHR.
 
 ---
 
@@ -127,6 +166,7 @@ Once everything is in R2 you can stop committing the binaries — add to
 
 ```
 public/media/video/
+public/media/preview/
 public/media/audio/
 ```
 
@@ -139,7 +179,7 @@ the ones worth removing.
 ## Verifying
 
 ```bash
-curl -I https://pub-7b43e56065be4b36a1057c48e7f327af.r2.dev/media/posters/midnight-bloom-live.jpg
+curl -I https://pub-7b43e56065be4b36a1057c48e7f327af.r2.dev/media/posters/honor-choir-2025-02.jpg
 ```
 
 Expect `200`, the right `content-type`, and

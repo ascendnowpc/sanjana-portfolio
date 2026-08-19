@@ -13,8 +13,9 @@ import { isSupabaseConfigured, sbSelect } from './supabase'
  */
 
 /** Row shape as it comes out of Postgres (snake_case, nested via the view). */
-interface PerformanceRow extends Omit<Performance, 'videoSrc'> {
+interface PerformanceRow extends Omit<Performance, 'videoSrc' | 'previewSrc'> {
   video_src?: string
+  preview_src?: string
 }
 
 let cache: Promise<Performance[]> | null = null
@@ -27,9 +28,10 @@ async function fetchPerformances(): Promise<Performance[]> {
       order: 'year.desc',
     })
     if (!rows.length) return PERFORMANCES
-    return rows.map(({ video_src, ...rest }) => ({
+    return rows.map(({ video_src, preview_src, ...rest }) => ({
       ...(rest as Performance),
       videoSrc: video_src,
+      previewSrc: preview_src,
     }))
   } catch (err) {
     console.warn('[content] falling back to bundled data:', err)

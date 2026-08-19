@@ -13,7 +13,6 @@ export type CategoryId =
   | 'hindi-singing'
   | 'honor-choir'
   | 'collaboration'
-  | 'studio-session'
 
 export interface Category {
   id: CategoryId
@@ -60,8 +59,14 @@ export interface Performance {
   role?: string
   runtime?: string
   poster: string
-  /** Optional mp4/webm. Tiles fall back to a Ken Burns poster when absent. */
+  /** Full recording. Played by the detail page; too heavy for a hover preview. */
   videoSrc?: string
+  /** Short silent loop used for the hover preview on the index wall. Falls
+   *  back to `videoSrc`, then to a Ken Burns move on the poster. */
+  previewSrc?: string
+  /** width / height of the footage. Tiles are cut to this so portrait phone
+   *  video is not centre-cropped into a letterbox strip. Defaults to 16:9. */
+  aspect?: number
   gallery: string[]
   credits: Credit[]
   tracks: Track[]
