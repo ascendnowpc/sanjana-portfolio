@@ -9,8 +9,11 @@
 export type CategoryId =
   | 'solo-concert'
   | 'musical-theatre'
-  | 'studio-session'
+  | 'classical-repertoire'
+  | 'hindi-singing'
+  | 'honor-choir'
   | 'collaboration'
+  | 'studio-session'
 
 export interface Category {
   id: CategoryId
