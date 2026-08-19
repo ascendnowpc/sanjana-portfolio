@@ -73,7 +73,7 @@ export function Cursor() {
       />
       <div
         ref={dotRef}
-        className="absolute h-1 w-1 rounded-full bg-bloom transition-opacity duration-300"
+        className="absolute h-1 w-1 rounded-full bg-gold transition-opacity duration-300"
       />
     </div>
   )

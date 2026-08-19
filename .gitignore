@@ -14,3 +14,4 @@ node_modules/.tmp
 # VITE_R2_PUBLIC_URL unset.
 public/media/video/
 public/media/preview/
+public/media/audio/

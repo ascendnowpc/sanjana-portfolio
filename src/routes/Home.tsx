@@ -17,7 +17,7 @@ const Big = ({ children }: { children: React.ReactNode }) => (
 
 /** Small connective word, sitting between the nouns. */
 const Small = ({ children }: { children: React.ReactNode }) => (
-  <span className="tracked on-scrim text-[clamp(0.5rem,0.9vw,0.72rem)] text-mist">
+  <span className="tracked on-scrim text-[clamp(0.5rem,0.9vw,0.72rem)] text-gold/70">
     {children}
   </span>
 )
@@ -112,13 +112,13 @@ export default function Home() {
         <p className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
           <Small>the</Small>
           <MagneticLink to="/work" className="pointer-events-auto">
-            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
+            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-gold">
               Work
             </span>
           </MagneticLink>
           <Small>and</Small>
           <MagneticLink to="/about" className="pointer-events-auto">
-            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
+            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-gold">
               About
             </span>
           </MagneticLink>
@@ -127,7 +127,7 @@ export default function Home() {
         <p className="flex items-baseline justify-center gap-x-3">
           <Small>or</Small>
           <MagneticLink to="/contact" className="pointer-events-auto">
-            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
+            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-gold">
               Contact
             </span>
           </MagneticLink>
@@ -141,8 +141,8 @@ export default function Home() {
         animate={{ opacity: focused ? 0 : 1 }}
         transition={{ duration: 0.6, delay: focused ? 0 : 1.6 }}
       >
-        <span className="label text-dust">Scroll or drag to travel</span>
-        <span className="breathe block h-6 w-px bg-gradient-to-b from-transparent via-bloom to-transparent" />
+        <span className="label text-dust">Drag to travel · sideways to turn</span>
+        <span className="breathe block h-6 w-px bg-gradient-to-b from-transparent via-gold to-transparent" />
       </motion.div>
 
       {/* Tiles are decorative for assistive tech (they duplicate down the

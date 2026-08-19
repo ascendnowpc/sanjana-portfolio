@@ -45,7 +45,7 @@ export function Preloader() {
               {PROFILE.name}
             </motion.p>
             <motion.span
-              className="mt-6 block h-px bg-bloom"
+              className="mt-6 block h-px bg-gradient-to-r from-bloom to-gold"
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: '100%', opacity: 1 }}
               transition={{ duration: 1.5, delay: 0.25 }}

@@ -9,8 +9,8 @@ content field         stored value                          served from
 --------------------  ------------------------------------  ------------------------------
 poster                /media/posters/<slug>.jpg             <R2 base>/media/posters/<slug>.jpg
 videoSrc              /media/video/<slug>.mp4               <R2 base>/media/video/<slug>.mp4
-previewSrc            /media/preview/<slug>.mp4             <R2 base>/media/preview/<slug>.mp4
-tracks[].audioSrc     /media/audio/<track-id>.mp3           <R2 base>/media/audio/<track-id>.mp3
+previewSrc            /media/preview/<slug>-480.mp4         <R2 base>/media/preview/<slug>-480.mp4
+tracks[].audioSrc     /media/audio/<slug>.mp3               <R2 base>/media/audio/<slug>.mp3
 portraits[]           /media/portraits/portrait-N.jpg       <R2 base>/media/portraits/portrait-N.jpg
 ```
 
@@ -29,24 +29,36 @@ Drop the real files here, using these exact names:
 |---|---|---|
 | Performance still | `public/media/posters/<slug>.jpg` | Any ratio — set `aspect` to match. `<slug>` must match the content `slug`. |
 | Performance video | `public/media/video/<slug>.mp4` | **H.264/AAC.** HEVC decodes only where the OS provides it (Safari, Chrome on Apple silicon) — Firefox and most Windows/Linux machines get nothing. |
-| Hover preview | `public/media/preview/<slug>.mp4` | ~8s, silent, 640px long side. See below. |
-| Track audio | `public/media/audio/<track-id>.mp3` | `<track-id>` matches `tracks[].id`. |
+| Index-wall preview | `public/media/preview/<slug>-480.mp4` | ~8s, silent, 480px, 15fps. Size is in the name on purpose — see below. |
+| Track audio | `public/media/audio/<slug>.mp3` | Lifted off the recording; drives the waveform player. |
 | Portrait | `public/media/portraits/portrait-N.jpg` | 4:5, for the About strip. |
 | Gallery still | `public/media/posters/<name>.jpg` | Any name; referenced from `gallery[]`. |
 
 All three files for one entry share the slug, so renaming an entry means
 renaming the video, the preview and the poster together.
 
-### Why there are two video files per entry
+### Why there are three media files per entry
 
-`videoSrc` is the full recording and is only ever fetched on a detail page.
-`previewSrc` is the short silent loop the index wall plays on hover — the wall
-mounts a `<video>` for whichever tile the cursor is over, so pointing that at a
-four-minute file would pull down tens of megabytes per hover. The previews for
-the current 36 entries total **5.7 MB**; the full recordings total **1.1 GB**.
+`videoSrc` is the full recording, fetched only on a detail page.
 
-A tile with no `previewSrc` falls back to `videoSrc`, and an entry with neither
-falls back to a slow Ken Burns move on the poster.
+`previewSrc` is the loop the index wall plays. **Every tile in frame plays at
+once** — around 54 of them on a laptop screen — so the binding constraint is
+concurrent *decode*, not download. That is why the cut is 480px at 15fps
+rather than something prettier: roughly a third of the decode cost of 640/30.
+All 36 together are 2.4 MB, against 1.1 GB of full recordings.
+
+The `-480` suffix is load-bearing. Objects carry an immutable one-year cache
+header, so re-cutting a preview at a new size must land under a **new key** or
+browsers and Cloudflare's edge keep serving the old, heavier file. Bump the
+suffix whenever the cut changes.
+
+`tracks[].audioSrc` is the soundtrack lifted off the recording, so the
+waveform player on the detail page has something real to play. It is extracted
+from the original source rather than the transcode, so the remuxed files avoid
+a second lossy generation. 96 MB across the 36 entries.
+
+A tile with no `previewSrc` falls back to `videoSrc`, and an entry with
+neither falls back to a slow Ken Burns move on the poster.
 
 ### Aspect ratio
 
@@ -169,6 +181,8 @@ public/media/video/
 public/media/preview/
 public/media/audio/
 ```
+
+That is ~1.2 GB between them. Posters and portraits stay committed.
 
 Keep posters and portraits in the repo if you want the site to still render
 offline with `VITE_R2_PUBLIC_URL` unset; they are small. Video and audio are
