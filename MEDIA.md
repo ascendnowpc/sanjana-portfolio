@@ -47,19 +47,18 @@ purely additive.
 
 ## One-time R2 setup
 
-1. **Enable R2** in the Cloudflare dashboard (R2 → *Enable*). It requires a
-   payment method on file even on the free tier; nothing else works until
-   this is done.
+1. ~~**Enable R2**~~ — done.
 
-2. **Create the bucket** — dashboard, or:
+2. ~~**Create the bucket**~~ — done: **`sanjana-portfolio-media`**
+   (Standard storage, ENAM). To recreate it elsewhere, or under another name
+   that you then pass as `R2_BUCKET` (see step 5):
 
    ```bash
    npx wrangler r2 bucket create sanjana-portfolio-media
    ```
 
-   Use a different name and pass it as `R2_BUCKET` (see step 5).
-
-3. **Make it publicly readable.** Bucket → *Settings* → *Public access*:
+3. **Make it publicly readable.** *(still to do — the bucket is private until
+   you do this, and every image will 404.)* Bucket → *Settings* → *Public access*:
 
    - **Custom domain** (recommended) — e.g. `media.sanjana.example` on a zone
      in the same account. Gives you cache control and a stable hostname.
