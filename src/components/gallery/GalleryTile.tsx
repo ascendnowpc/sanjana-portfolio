@@ -8,6 +8,8 @@ interface Props {
   /** Populated by the gallery so its rAF loop can write transforms directly. */
   register: (key: string, refs: TileRefs | null) => void
   active: boolean
+  /** The gallery hands a decoder to the nearest few tiles; this is one. */
+  playing: boolean
   onSelect: (tile: TileLayout, el: HTMLElement) => void
 }
 
@@ -30,12 +32,14 @@ export interface TileRefs {
  * written by the gallery's loop through the registered refs rather than by
  * re-rendering.
  */
-function GalleryTileBase({ tile, register, active, onSelect }: Props) {
+function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const shadeRef = useRef<HTMLDivElement>(null)
   const p = tile.performance
   const accent = p.accent ?? CATEGORY_MAP[p.category].accent
   const preview = p.previewSrc ?? p.videoSrc
+  // Hovering always earns footage even if the tile missed the ambient cut.
+  const showVideo = Boolean(preview) && (playing || active)
 
   // Registered once on mount; the gallery's rAF loop owns these nodes from
   // then on. Child refs are attached before the parent effect runs, so both
@@ -96,15 +100,17 @@ function GalleryTileBase({ tile, register, active, onSelect }: Props) {
           }}
         />
 
-        {/* The short silent loop, not the full recording: hovering the wall
-            must not pull down a four-minute file. Falls back to `videoSrc`
-            for any entry that has no preview cut yet. */}
-        {preview && active && (
+        {/* Always the short silent loop, never the full recording: half a
+            dozen of these run at once, and pointing them at four-minute files
+            would pull hundreds of megabytes through the wall. Falls back to
+            `videoSrc` for any entry with no preview cut yet. */}
+        {showVideo && (
           <video
-            // Mounting only happens on hover, so the element existing is
-            // already the "we want this now" signal — preload="none" would
-            // leave Chrome at readyState 0 and nothing would ever play. The
-            // explicit play() covers autoplay being declined on the attribute.
+            // The element only exists when the gallery has decided this tile
+            // should be moving, so its existence is already the "load now"
+            // signal — preload="none" would leave it at readyState 0 forever.
+            // The explicit play() covers autoplay being declined on the
+            // attribute, which Safari does more readily than Chrome.
             ref={(el) => void el?.play().catch(() => {})}
             src={mediaUrl(preview)}
             className="absolute inset-0 h-full w-full object-cover"

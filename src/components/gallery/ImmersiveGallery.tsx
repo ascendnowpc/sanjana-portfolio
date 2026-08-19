@@ -14,6 +14,24 @@ const PERSPECTIVE = 1400
 /** Ambient forward drift, in px per 60fps frame. */
 const DRIFT = 1.1
 
+/**
+ * How many tiles play footage at once.
+ *
+ * Every playing tile is an independent video decode, so this cannot be "all of
+ * them" — 70-odd concurrent decoders will stall the compositor, and Safari in
+ * particular gets unhappy well before that. The nearest few carry the motion:
+ * they are the largest things on screen, so the wall reads as alive while the
+ * far tiles stay cheap stills.
+ */
+const MAX_PLAYING = 6
+const MAX_PLAYING_MOBILE = 2
+
+/** Depth band worth spending a decoder on — see the opacity ramp below. */
+const PLAY_FAR = 0.15
+const PLAY_NEAR = 0.86
+/** Below this on-screen width a tile is too small for motion to register. */
+const PLAY_MIN_WIDTH = 90
+
 interface Props {
   performances: Performance[]
   /** Fires when the focused tile changes, so the hero copy can follow it. */
@@ -36,11 +54,19 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
   const [hovered, setHovered] = useState<string | null>(null)
   const hoveredRef = useRef<string | null>(null)
 
+  /** Keys of the tiles currently running footage. Mirrored in a ref so the
+   *  loop can diff against it without re-subscribing. */
+  const [playing, setPlaying] = useState<ReadonlySet<string>>(() => new Set())
+  const playingRef = useRef<ReadonlySet<string>>(playing)
+
   const isMobile = useIsMobile()
   const reduced = usePrefersReducedMotion()
   const { zoomTo } = useTransition()
 
   const repeats = isMobile ? 1 : 2
+  // Reduced-motion users get stills only: six autoplaying videos is precisely
+  // what that preference is asking us not to do.
+  const maxPlaying = reduced ? 0 : isMobile ? MAX_PLAYING_MOBILE : MAX_PLAYING
   const cloud = useMemo(
     () =>
       buildCloud(performances, {
@@ -180,6 +206,46 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       setFocus(best)
     }
 
+    /**
+     * Hand the decoders to the tiles nearest the camera.
+     *
+     * Travel is global, so every tile's depth advances at the same rate and
+     * this ranking barely changes between passes — a tile keeps playing until
+     * it wraps to the back of the tunnel and a new one takes its slot. That
+     * stability is what keeps the churn (and the re-renders) low enough to do
+     * this at all, so no extra hysteresis is needed.
+     */
+    const updatePlaying = () => {
+      if (maxPlaying === 0) {
+        if (playingRef.current.size) {
+          playingRef.current = new Set()
+          setPlaying(playingRef.current)
+        }
+        return
+      }
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const near: { key: string; depth: number }[] = []
+
+      registry.current.forEach(({ root, tile, depth }) => {
+        if (depth < PLAY_FAR || depth > PLAY_NEAR) return
+        const r = root.getBoundingClientRect()
+        if (r.width < PLAY_MIN_WIDTH) return
+        // A tile that has flown past the edge of the viewport is still in the
+        // registry and still near the camera; it is not worth a decoder.
+        if (r.right < 0 || r.left > vw || r.bottom < 0 || r.top > vh) return
+        near.push({ key: tile.key, depth })
+      })
+
+      near.sort((a, b) => b.depth - a.depth)
+      const next = near.slice(0, maxPlaying)
+
+      const prev = playingRef.current
+      if (next.length === prev.size && next.every((n) => prev.has(n.key))) return
+      playingRef.current = new Set(next.map((n) => n.key))
+      setPlaying(playingRef.current)
+    }
+
     const setFocus = (key: string | null) => {
       if (hoveredRef.current === key) return
       hoveredRef.current = key
@@ -191,6 +257,11 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     const frame = (now: number) => {
       // Read phase first — layout is still clean from the last paint.
       if (++hitFrame % 3 === 0) updateFocus()
+      // Frame 2 rather than 1: this runs in the read phase, so it sees the
+      // depths written at the end of the *previous* frame, and on frame 1
+      // every entry.depth is still its initial 0. After that, rarely — the
+      // set only turns over as tiles wrap past the camera.
+      if (hitFrame === 2 || hitFrame % 20 === 0) updatePlaying()
 
       const dt = last ? Math.min(64, now - last) : 16.667
       last = now
@@ -255,7 +326,7 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
 
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
-  }, [repeats, reduced, pointer])
+  }, [repeats, reduced, pointer, maxPlaying])
 
   return (
     <div
@@ -273,6 +344,7 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
             tile={tile}
             register={register}
             active={hovered === tile.key}
+            playing={playing.has(tile.key)}
             onSelect={handleSelect}
           />
         ))}
