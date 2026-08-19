@@ -14,16 +14,34 @@ export const CATEGORIES: Category[] = [
     accent: '#f0a23c',
   },
   {
+    id: 'classical-repertoire',
+    label: 'Classical Repertoire',
+    blurb: 'Art song, aria and the trained-voice repertoire.',
+    accent: '#7f9dbb',
+  },
+  {
+    id: 'hindi-singing',
+    label: 'Hindi Singing',
+    blurb: 'Playback, ghazal and film repertoire.',
+    accent: '#2fd6b8',
+  },
+  {
+    id: 'honor-choir',
+    label: 'Honor Choir',
+    blurb: 'Selected ensemble work — one voice inside many.',
+    accent: '#3f7dfb',
+  },
+  {
+    id: 'collaboration',
+    label: 'Duet/Group Performances',
+    blurb: 'Duets, ensembles and one-night-only rooms.',
+    accent: '#f0568f',
+  },
+  {
     id: 'studio-session',
     label: 'Studio Sessions',
     blurb: 'Original writing, session vocals, and the takes that made the record.',
     accent: '#8b5cf6',
-  },
-  {
-    id: 'collaboration',
-    label: 'Collaborations',
-    blurb: 'Guest features, ensembles, and one-night-only rooms.',
-    accent: '#f0568f',
   },
 ]
 
