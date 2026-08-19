@@ -17,7 +17,7 @@ export const CATEGORIES: Category[] = [
     id: 'classical-repertoire',
     label: 'Classical Repertoire',
     blurb: 'Art song, aria and the trained-voice repertoire.',
-    accent: '#f2c14e',
+    accent: '#7f9dbb',
   },
   {
     id: 'hindi-singing',

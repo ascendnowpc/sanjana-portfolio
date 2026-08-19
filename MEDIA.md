@@ -90,9 +90,43 @@ Then reference them in the content:
 player fall back to a slow Ken Burns move on the poster when they are absent,
 so adding footage is purely additive.
 
-Media elements are plain `<video src>` with no `crossorigin` attribute, so
-cross-origin playback and seeking work off r2.dev without a CORS policy. Add
-one only if something starts fetching media with `fetch`/XHR.
+### CORS is required — do not remove it
+
+Plain `<video src>` playback needs no CORS. **Audio does**, because the
+waveform player routes the `<audio>` element through a Web Audio
+`AnalyserNode`, and `createMediaElementSource()` on a cross-origin file
+fetched without CORS produces **silence** — the element still reports as
+playing, the clock still advances, and nothing throws. Media is served from
+r2.dev, a different origin from the site, so this is not a hypothetical.
+
+Two halves, both needed:
+
+1. The `<audio>` element sets `crossOrigin="anonymous"`
+   (`src/components/audio/WaveformPlayer.tsx`).
+2. The bucket returns `Access-Control-Allow-Origin`. The policy lives in
+   `infra/r2-cors.json` and is applied with:
+
+   ```bash
+   npx wrangler r2 bucket cors set sanjana-portfolio-media --file infra/r2-cors.json
+   npx wrangler r2 bucket cors list sanjana-portfolio-media   # verify
+   ```
+
+Origins are `*`, which grants nothing extra: the bucket is already
+world-readable over r2.dev, and CORS only governs cross-origin *script*
+access to bytes anyone can already fetch. `Range` is in the allowed headers
+and `Content-Range`/`Accept-Ranges` in the exposed ones, or seeking breaks.
+
+Verify with:
+
+```bash
+curl -sI -H 'Origin: https://example.test' \
+  https://pub-7b43e56065be4b36a1057c48e7f327af.r2.dev/media/audio/hindi-singing-2025-01.mp3 \
+  | grep -i access-control
+```
+
+If the policy is ever lost, the engine degrades rather than going silent: it
+catches the failure and plays the element straight to the speakers, losing
+only the analyser's reaction to the waveform.
 
 ---
 

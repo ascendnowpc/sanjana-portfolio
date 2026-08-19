@@ -141,10 +141,24 @@ export function useAudioEngine({ src, duration, seed }: Options) {
       if (!el) return
       if (!el.dataset.piped) {
         // A media element can only ever be piped into the graph once.
-        const node = ctx.createMediaElementSource(el)
-        node.connect(masterRef.current!)
-        el.dataset.piped = '1'
+        //
+        // Routing through the analyser is what makes the visualiser react to
+        // the actual take, but it is also the one thing that can turn audible
+        // playback into silence: a cross-origin file fetched without CORS
+        // taints the graph and Web Audio emits nothing. If the node cannot be
+        // built, leave the element unpiped — it then plays straight to the
+        // speakers and the visualiser falls back to its static shape.
+        // Being heard matters more than reacting.
+        try {
+          const node = ctx.createMediaElementSource(el)
+          node.connect(masterRef.current!)
+          el.dataset.piped = '1'
+        } catch (err) {
+          console.warn('[audio] analyser unavailable, playing direct:', err)
+          el.dataset.piped = 'direct'
+        }
       }
+      el.volume = volume
       el.currentTime = offsetRef.current
       await el.play()
     } else {
@@ -152,7 +166,7 @@ export function useAudioEngine({ src, duration, seed }: Options) {
       startVoices()
     }
     setPlaying(true)
-  }, [ensureCtx, mode, startVoices])
+  }, [ensureCtx, mode, startVoices, volume])
 
   const pause = useCallback(() => {
     if (mode === 'file') {

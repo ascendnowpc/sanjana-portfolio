@@ -315,6 +315,15 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
         <audio
           ref={engine.audioRef}
           src={mediaUrl(track.audioSrc)}
+          // Load-bearing, and silently so. The engine pipes this element
+          // through an AnalyserNode, and Web Audio outputs *silence* for a
+          // cross-origin source fetched without CORS — the element still
+          // "plays", the clock still advances, and nothing errors. Media
+          // lives on R2, a different origin from the site, so without this
+          // the player looks perfect and makes no sound.
+          // The bucket must serve Access-Control-Allow-Origin to match; see
+          // infra/r2-cors.json and MEDIA.md.
+          crossOrigin="anonymous"
           preload="metadata"
           onEnded={() => select(index + 1)}
         />
