@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef } from 'react'
 import type { TileLayout } from './layout'
-import { mediaUrl } from '@/lib/utils'
+import { mediaUrl } from '@/lib/media'
 import { CATEGORY_MAP } from '@/data/categories'
 
 interface Props {

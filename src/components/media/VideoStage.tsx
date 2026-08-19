@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { mediaUrl } from '@/lib/utils'
+import { mediaUrl } from '@/lib/media'
 
 interface Props {
   poster: string

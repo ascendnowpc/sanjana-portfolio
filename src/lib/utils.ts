@@ -45,15 +45,3 @@ export function totalRuntime(durations: number[]) {
   const total = durations.reduce((a, b) => a + b, 0)
   return `${Math.round(total / 60)} min`
 }
-
-/**
- * Media paths are stored relative ("/media/..."). When VITE_MEDIA_BASE_URL is
- * set, relative paths are rehomed onto that CDN; absolute URLs pass through.
- */
-export function mediaUrl(path: string | undefined): string | undefined {
-  if (!path) return undefined
-  if (/^(https?:)?\/\//.test(path) || path.startsWith('data:')) return path
-  const base = import.meta.env.VITE_MEDIA_BASE_URL
-  if (!base) return path
-  return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
-}

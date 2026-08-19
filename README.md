@@ -102,8 +102,11 @@ public/media/audio/<track-id>.mp3    optional
 public/media/portraits/portrait-N.jpg  4:5, for the About strip
 ```
 
-Or host them anywhere and set `VITE_MEDIA_BASE_URL` — relative paths get
-rewritten onto that CDN, absolute URLs pass through untouched.
+Those same paths double as object keys in Cloudflare R2. Set
+`VITE_R2_PUBLIC_URL` and `npm run media:upload` pushes `public/media/` to the
+bucket, after which every path above is served from R2 instead of the bundle —
+no content edits. Absolute URLs in the content pass through untouched.
+**See [MEDIA.md](MEDIA.md) for the full R2 walkthrough.**
 
 **`videoSrc` is omitted everywhere on purpose.** Tiles and the detail page both
 degrade to a slow Ken Burns move on the poster when it is missing, so the site

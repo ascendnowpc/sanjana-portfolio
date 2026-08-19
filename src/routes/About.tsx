@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { PROFILE } from '@/data/site'
 import { Reveal } from '@/components/ui/Reveal'
 import { Marquee } from '@/components/ui/Marquee'
-import { mediaUrl } from '@/lib/utils'
+import { mediaUrl } from '@/lib/media'
 
 /** Italic serif word inside the poster-weight headline. */
 const Em = ({ children }: { children: React.ReactNode }) => (
