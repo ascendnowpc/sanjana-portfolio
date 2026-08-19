@@ -5,16 +5,10 @@ export interface TileLayout {
   performance: Performance
   /** Stable key — the same performance appears at several depths. */
   key: string
-  /** Resting position on the cylinder wall, relative to the viewport centre.
-   *  The loop recomputes these each frame from `angle` + the live orbit, so
-   *  they are only the t=0 values. */
+  /** Position on the wall, in px, relative to the viewport centre. Fixed:
+   *  the wall travels forward and pans, it does not rotate. */
   x: number
   y: number
-  /** Where the tile sits around the cylinder, in radians. Orbit is added to
-   *  this per frame, which is what swings the wall left and right. */
-  angle: number
-  /** Distance from the axis, in px. */
-  radius: number
   /** Resting depth before travel is applied. */
   z: number
   /** Tile width in px; height derives from `aspect`. */
@@ -42,9 +36,8 @@ export interface CloudOptions {
 /** The ratio tile widths are normalised against, and the fallback aspect. */
 const LANDSCAPE = 16 / 9
 
-/** Flattens the ring into a wide wall rather than a sphere. The gallery loop
- *  reapplies this when it recomputes positions from the live orbit. */
-export const VERTICAL_SQUASH = 0.58
+/** Flattens the ring into a wide wall rather than a sphere. */
+const VERTICAL_SQUASH = 0.58
 
 export const DEFAULT_CLOUD: CloudOptions = {
   repeats: 3,
@@ -103,8 +96,6 @@ export function buildCloud(
         x: Math.cos(angle) * radius,
         // Flattened vertically — a wide wall reads better than a sphere.
         y: Math.sin(angle) * radius * VERTICAL_SQUASH,
-        angle,
-        radius,
         z,
         width: base * Math.sqrt(aspect / LANDSCAPE),
         aspect,

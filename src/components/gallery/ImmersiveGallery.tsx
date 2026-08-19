@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Performance } from '@/types/content'
-import {
-  buildCloud,
-  DEFAULT_CLOUD,
-  VERTICAL_SQUASH,
-  type TileLayout,
-} from './layout'
+import { buildCloud, DEFAULT_CLOUD, type TileLayout } from './layout'
 import { GalleryTile, type TileRefs } from './GalleryTile'
 import { usePointer } from '@/hooks/usePointer'
 import { useIsMobile, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
@@ -18,11 +13,20 @@ const FRONT = 620
 const PERSPECTIVE = 1400
 /** Ambient forward drift, in px per 60fps frame. */
 const DRIFT = 1.1
-/** Ambient sideways swing, in radians per 60fps frame. Slow enough to read as
- *  the room turning rather than a carousel — a full revolution takes ~2min. */
-const ORBIT_DRIFT = 0.0008
-/** Radians per px of horizontal drag / wheel. */
-const ORBIT_PER_PX = 0.0022
+/**
+ * Sideways steering is a straight translation of the wall, not a rotation.
+ *
+ * Rotating the ring made the tiles swing around the viewer like a carousel,
+ * which fought the straight-line travel that gives the tunnel its depth. The
+ * wall now only ever slides — forward on its own, sideways when steered — so
+ * every tile keeps moving parallel to its neighbours.
+ *
+ * There is no ambient sideways drift: left untouched, the index looks exactly
+ * as it did before steering existed.
+ */
+const PAN_PER_PX = 1.35
+/** Clamp, so the wall can be nudged aside but never steered off screen. */
+const PAN_LIMIT = 620
 
 /**
  * Every tile in frame plays.
@@ -98,9 +102,9 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
 
   const travel = useRef(0)
   const targetTravel = useRef(0)
-  /** Rotation of the whole ring about its vertical axis, in radians. */
-  const orbit = useRef(0)
-  const targetOrbit = useRef(0)
+  /** Horizontal offset of the whole wall, in px. */
+  const pan = useRef(0)
+  const targetPan = useRef(0)
   const pointer = usePointer(0.07)
   /** Distance dragged since pointerdown — a drag must not open a page. */
   const dragDistance = useRef(0)
@@ -135,11 +139,15 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     const el = containerRef.current
     if (!el) return
 
-    // Trackpads report both axes, so a two-finger sideways swipe steers the
-    // ring while a vertical one flies down the tunnel.
+    // Trackpads report both axes, so a two-finger sideways swipe slides the
+    // wall across while a vertical one flies down the tunnel.
     const onWheel = (e: WheelEvent) => {
       targetTravel.current += e.deltaY * 1.5
-      targetOrbit.current += e.deltaX * ORBIT_PER_PX
+      targetPan.current = clamp(
+        targetPan.current - e.deltaX * PAN_PER_PX,
+        -PAN_LIMIT,
+        PAN_LIMIT,
+      )
     }
 
     let dragging = false
@@ -162,7 +170,11 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       // would still register as a click and open a page.
       dragDistance.current += Math.abs(dx) + Math.abs(dy)
       targetTravel.current += dy * 2.6
-      targetOrbit.current -= dx * ORBIT_PER_PX
+      targetPan.current = clamp(
+        targetPan.current + dx * PAN_PER_PX,
+        -PAN_LIMIT,
+        PAN_LIMIT,
+      )
       lastX = e.clientX
       lastY = e.clientY
     }
@@ -172,8 +184,10 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown') targetTravel.current += 700
       if (e.key === 'ArrowUp' || e.key === 'PageUp') targetTravel.current -= 700
-      if (e.key === 'ArrowLeft') targetOrbit.current -= 0.28
-      if (e.key === 'ArrowRight') targetOrbit.current += 0.28
+      if (e.key === 'ArrowLeft')
+        targetPan.current = clamp(targetPan.current + 220, -PAN_LIMIT, PAN_LIMIT)
+      if (e.key === 'ArrowRight')
+        targetPan.current = clamp(targetPan.current - 220, -PAN_LIMIT, PAN_LIMIT)
     }
 
     el.addEventListener('wheel', onWheel, { passive: true })
@@ -302,14 +316,10 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       const f = dt / 16.667
 
       // Ambient drift halts while a tile is focused, so reading is easy.
-      if (!hoveredRef.current && !reduced) {
-        targetTravel.current += DRIFT * f
-        targetOrbit.current += ORBIT_DRIFT * f
-      }
+      if (!hoveredRef.current && !reduced) targetTravel.current += DRIFT * f
       travel.current +=
         (targetTravel.current - travel.current) * (1 - Math.pow(1 - 0.075, f))
-      orbit.current +=
-        (targetOrbit.current - orbit.current) * (1 - Math.pow(1 - 0.075, f))
+      pan.current += (targetPan.current - pan.current) * (1 - Math.pow(1 - 0.075, f))
 
       const pt = pointer.step()
       const t = now / 1000
@@ -328,22 +338,18 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         // container: near tiles slide further than far ones, which is the
         // depth cue a single container translate cannot give.
         const shift = 0.4 + depth * 1.2
-        // Position is recomputed from the angle each frame rather than read
-        // off the tile, so the whole ring can swing about its axis. This is
-        // what gives the wall left/right travel instead of only forward.
-        const a = tile.angle + orbit.current
-        const ox = Math.cos(a) * tile.radius
-        const oy = Math.sin(a) * tile.radius * VERTICAL_SQUASH
-        const px = ox - pt.x * 58 * shift
-        const py = oy + float - pt.y * 36 * shift
+        // Steering slides the wall sideways as a whole; tiles keep their
+        // fixed places on it, so everything moves in parallel.
+        const px = tile.x + pan.current - pt.x * 58 * shift
+        const py = tile.y + float - pt.y * 36 * shift
 
         root.style.transform =
           `perspective(${PERSPECTIVE}px) ` +
           `translate3d(${px}px, ${py}px, ${wrapped + FRONT}px) ` +
           // rotateY/rotateX by position curves the flat wall into a cylinder
           // wrapped around the viewer — the look from the reference site.
-          `rotateY(${ox * 0.014 - pt.x * 5}deg) ` +
-          `rotateX(${-oy * 0.012 + pt.y * 3.2}deg) ` +
+          `rotateY(${tile.x * 0.014 - pt.x * 5}deg) ` +
+          `rotateX(${-tile.y * 0.012 + pt.y * 3.2}deg) ` +
           `rotateZ(${tile.tilt}deg)`
 
         // Without a shared 3D context, paint order is DOM order — so depth has
