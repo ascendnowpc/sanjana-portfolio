@@ -141,7 +141,7 @@ export default function Home() {
         animate={{ opacity: focused ? 0 : 1 }}
         transition={{ duration: 0.6, delay: focused ? 0 : 1.6 }}
       >
-        <span className="label text-dust">Drag to travel · sideways to turn</span>
+        <span className="label text-dust">Drag to travel · sideways to pan</span>
         <span className="breathe block h-6 w-px bg-gradient-to-b from-transparent via-bloom to-transparent" />
       </motion.div>
 
