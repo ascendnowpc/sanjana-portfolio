@@ -35,6 +35,7 @@ function GalleryTileBase({ tile, register, active, onSelect }: Props) {
   const shadeRef = useRef<HTMLDivElement>(null)
   const p = tile.performance
   const accent = p.accent ?? CATEGORY_MAP[p.category].accent
+  const preview = p.previewSrc ?? p.videoSrc
 
   // Registered once on mount; the gallery's rAF loop owns these nodes from
   // then on. Child refs are attached before the parent effect runs, so both
@@ -69,7 +70,7 @@ function GalleryTileBase({ tile, register, active, onSelect }: Props) {
         onClick={(e) => onSelect(tile, e.currentTarget)}
         className="group relative block w-full cursor-pointer overflow-hidden bg-ink outline outline-white/5"
         style={{
-          aspectRatio: '16 / 9',
+          aspectRatio: tile.aspect,
           transition: 'transform 700ms var(--ease-out-expo), box-shadow 500ms',
           transform: active ? 'scale(1.045)' : 'scale(1)',
           boxShadow: active
@@ -86,8 +87,8 @@ function GalleryTileBase({ tile, register, active, onSelect }: Props) {
           className="h-full w-full object-cover"
           style={{
             transition: 'transform 5s var(--ease-out-expo), filter 600ms',
-            // Slow Ken Burns push stands in for the hover-preview video until
-            // real footage is attached (see `videoSrc` in the content model).
+            // Runs under the preview loop, and carries the hover on its own
+            // for any entry with no footage attached yet.
             transform: active ? 'scale(1.14)' : 'scale(1.01)',
             // Filters force their own paint pass, so only the hovered tile
             // pays for one.
@@ -95,15 +96,23 @@ function GalleryTileBase({ tile, register, active, onSelect }: Props) {
           }}
         />
 
-        {p.videoSrc && active && (
+        {/* The short silent loop, not the full recording: hovering the wall
+            must not pull down a four-minute file. Falls back to `videoSrc`
+            for any entry that has no preview cut yet. */}
+        {preview && active && (
           <video
-            src={mediaUrl(p.videoSrc)}
+            // Mounting only happens on hover, so the element existing is
+            // already the "we want this now" signal — preload="none" would
+            // leave Chrome at readyState 0 and nothing would ever play. The
+            // explicit play() covers autoplay being declined on the attribute.
+            ref={(el) => void el?.play().catch(() => {})}
+            src={mediaUrl(preview)}
             className="absolute inset-0 h-full w-full object-cover"
             autoPlay
             muted
             loop
             playsInline
-            preload="none"
+            preload="auto"
           />
         )}
 

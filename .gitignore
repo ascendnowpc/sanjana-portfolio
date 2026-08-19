@@ -8,3 +8,9 @@ dist-ssr
 *.log
 .vite
 node_modules/.tmp
+
+# Video lives in R2 (see MEDIA.md) — 1.1 GB of it, so it stays out of git.
+# Posters and portraits stay committed so the site still renders stills with
+# VITE_R2_PUBLIC_URL unset.
+public/media/video/
+public/media/preview/

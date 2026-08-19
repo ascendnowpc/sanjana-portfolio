@@ -37,12 +37,6 @@ export const CATEGORIES: Category[] = [
     blurb: 'Duets, ensembles and one-night-only rooms.',
     accent: '#f0568f',
   },
-  {
-    id: 'studio-session',
-    label: 'Studio Sessions',
-    blurb: 'Original writing, session vocals, and the takes that made the record.',
-    accent: '#8b5cf6',
-  },
 ]
 
 export const CATEGORY_MAP = Object.fromEntries(

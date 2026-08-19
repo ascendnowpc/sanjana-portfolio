@@ -32,17 +32,22 @@ export default function WorkDetail() {
   const category = CATEGORY_MAP[current.category]
   const accent = current.accent ?? category.accent
 
+  // Archive entries carry a year, a runtime and little else until the venue
+  // and personnel are filled in, so every optional row drops out rather than
+  // rendering an empty definition.
   const meta = [
     { label: 'Year', value: String(current.year) },
     { label: 'Venue', value: current.venue },
     { label: 'City', value: current.city },
     current.role ? { label: 'Role', value: current.role } : null,
     current.runtime ? { label: 'Runtime', value: current.runtime } : null,
-    {
-      label: 'Recording',
-      value: totalRuntime(current.tracks.map((t) => t.duration)),
-    },
-  ].filter(Boolean) as { label: string; value: string }[]
+    current.tracks.length
+      ? {
+          label: 'Recording',
+          value: totalRuntime(current.tracks.map((t) => t.duration)),
+        }
+      : null,
+  ].filter((m): m is { label: string; value: string } => Boolean(m?.value))
 
   return (
     <article className="min-h-screen bg-void">
@@ -94,44 +99,50 @@ export default function WorkDetail() {
               <p className="max-w-2xl text-lg leading-[1.75] font-light text-mist md:text-xl">
                 {current.blurb}
               </p>
-              <p className="mt-8 max-w-2xl text-sm leading-[1.9] font-light text-mist/80">
-                {current.description}
-              </p>
+              {current.description && (
+                <p className="mt-8 max-w-2xl text-sm leading-[1.9] font-light text-mist/80">
+                  {current.description}
+                </p>
+              )}
             </Reveal>
 
             {/* ---------------- audio ---------------- */}
-            <Reveal delay={0.1}>
-              <div
-                id="recording"
-                className="mt-24 scroll-mt-32 border-t border-edge/50 pt-14"
-              >
-                <WaveformPlayer
-                  tracks={current.tracks}
-                  accent={accent}
-                  label={`Listen — ${current.venue}`}
-                />
-              </div>
-            </Reveal>
+            {current.tracks.length > 0 && (
+              <Reveal delay={0.1}>
+                <div
+                  id="recording"
+                  className="mt-24 scroll-mt-32 border-t border-edge/50 pt-14"
+                >
+                  <WaveformPlayer
+                    tracks={current.tracks}
+                    accent={accent}
+                    label={current.venue ? `Listen — ${current.venue}` : 'Listen'}
+                  />
+                </div>
+              </Reveal>
+            )}
 
             {/* ---------------- credits ---------------- */}
-            <Reveal delay={0.1}>
-              <div className="mt-24 border-t border-edge/50 pt-14">
-                <p className="label mb-8 text-dust">Credits</p>
-                <ul className="grid gap-x-12 gap-y-5 sm:grid-cols-2">
-                  {current.credits.map((c) => (
-                    <li
-                      key={`${c.role}-${c.name}`}
-                      className="flex items-baseline justify-between gap-6 border-b border-edge/40 pb-3"
-                    >
-                      <span className="text-xs tracking-wider text-dust uppercase">
-                        {c.role}
-                      </span>
-                      <span className="text-sm font-light text-chalk">{c.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </Reveal>
+            {current.credits.length > 0 && (
+              <Reveal delay={0.1}>
+                <div className="mt-24 border-t border-edge/50 pt-14">
+                  <p className="label mb-8 text-dust">Credits</p>
+                  <ul className="grid gap-x-12 gap-y-5 sm:grid-cols-2">
+                    {current.credits.map((c) => (
+                      <li
+                        key={`${c.role}-${c.name}`}
+                        className="flex items-baseline justify-between gap-6 border-b border-edge/40 pb-3"
+                      >
+                        <span className="text-xs tracking-wider text-dust uppercase">
+                          {c.role}
+                        </span>
+                        <span className="text-sm font-light text-chalk">{c.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            )}
           </div>
         </div>
 
