@@ -57,14 +57,18 @@ purely additive.
    npx wrangler r2 bucket create sanjana-portfolio-media
    ```
 
-3. **Make it publicly readable.** *(still to do — the bucket is private until
-   you do this, and every image will 404.)* Bucket → *Settings* → *Public access*:
+3. ~~**Make it publicly readable**~~ — done, via the r2.dev subdomain:
 
-   - **Custom domain** (recommended) — e.g. `media.sanjana.example` on a zone
-     in the same account. Gives you cache control and a stable hostname.
-   - **r2.dev subdomain** — zero setup, gives a
-     `https://pub-<hash>.r2.dev` URL. Rate-limited by Cloudflare and not
-     meant for production traffic; fine to start with.
+   ```
+   https://pub-7b43e56065be4b36a1057c48e7f327af.r2.dev
+   ```
+
+   Note that r2.dev is **rate-limited by Cloudflare and not intended for
+   production traffic**. Before launch, attach a custom domain (Bucket →
+   *Settings* → *Public access* → *Custom domain*, e.g.
+   `media.sanjana.example` on a zone in the same account) and change
+   `VITE_R2_PUBLIC_URL` to it. Nothing else needs to change — the object keys
+   stay the same.
 
 4. **Add CORS** if you serve video/audio from a different hostname than the
    site. Bucket → *Settings* → *CORS policy*:
@@ -88,7 +92,7 @@ purely additive.
    variables — Vercel/Netlify/Pages project settings):
 
    ```
-   VITE_R2_PUBLIC_URL=https://media.sanjana.example
+   VITE_R2_PUBLIC_URL=https://pub-7b43e56065be4b36a1057c48e7f327af.r2.dev
    R2_BUCKET=sanjana-portfolio-media
    ```
 
@@ -135,7 +139,7 @@ the ones worth removing.
 ## Verifying
 
 ```bash
-curl -I https://media.sanjana.example/media/posters/midnight-bloom-live.jpg
+curl -I https://pub-7b43e56065be4b36a1057c48e7f327af.r2.dev/media/posters/midnight-bloom-live.jpg
 ```
 
 Expect `200`, the right `content-type`, and
