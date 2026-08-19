@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Performance } from '@/types/content'
-import { buildCloud, DEFAULT_CLOUD, type TileLayout } from './layout'
+import {
+  buildCloud,
+  DEFAULT_CLOUD,
+  VERTICAL_SQUASH,
+  type TileLayout,
+} from './layout'
 import { GalleryTile, type TileRefs } from './GalleryTile'
 import { usePointer } from '@/hooks/usePointer'
 import { useIsMobile, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
@@ -13,24 +18,36 @@ const FRONT = 620
 const PERSPECTIVE = 1400
 /** Ambient forward drift, in px per 60fps frame. */
 const DRIFT = 1.1
+/** Ambient sideways swing, in radians per 60fps frame. Slow enough to read as
+ *  the room turning rather than a carousel — a full revolution takes ~2min. */
+const ORBIT_DRIFT = 0.0008
+/** Radians per px of horizontal drag / wheel. */
+const ORBIT_PER_PX = 0.0022
 
 /**
- * How many tiles play footage at once.
+ * Every tile in frame plays.
  *
- * Every playing tile is an independent video decode, so this cannot be "all of
- * them" — 70-odd concurrent decoders will stall the compositor, and Safari in
- * particular gets unhappy well before that. The nearest few carry the motion:
- * they are the largest things on screen, so the wall reads as alive while the
- * far tiles stay cheap stills.
+ * A 1456×839 viewport puts ~59 tiles on screen, so this has to clear that or
+ * it silently becomes a budget and some visible tiles stay frozen. It is a
+ * backstop against a pathological viewport, not a quality knob.
+ *
+ * This is only affordable because the previews are cut for it: 480px at 15fps
+ * is roughly a third of the decode cost of the 640px/30fps cut they replaced,
+ * and all 36 together are 2.4 MB. Tiles off the edge are still skipped — a
+ * decoder spent on something invisible buys nothing.
+ *
+ * If this ever costs too many frames on weaker hardware, turning it down is
+ * the single-line fix: the set is depth-ranked, so the furthest and faintest
+ * tiles are the ones that lose their decoder first.
  */
-const MAX_PLAYING = 6
-const MAX_PLAYING_MOBILE = 2
+const MAX_PLAYING = 72
+const MAX_PLAYING_MOBILE = 8
 
 /** Depth band worth spending a decoder on — see the opacity ramp below. */
-const PLAY_FAR = 0.15
-const PLAY_NEAR = 0.86
+const PLAY_FAR = 0.1
+const PLAY_NEAR = 0.94
 /** Below this on-screen width a tile is too small for motion to register. */
-const PLAY_MIN_WIDTH = 90
+const PLAY_MIN_WIDTH = 60
 
 interface Props {
   performances: Performance[]
@@ -64,8 +81,8 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
   const { zoomTo } = useTransition()
 
   const repeats = isMobile ? 1 : 2
-  // Reduced-motion users get stills only: six autoplaying videos is precisely
-  // what that preference is asking us not to do.
+  // Reduced-motion users get stills only: a frame full of autoplaying video is
+  // precisely what that preference is asking us not to do.
   const maxPlaying = reduced ? 0 : isMobile ? MAX_PLAYING_MOBILE : MAX_PLAYING
   const cloud = useMemo(
     () =>
@@ -81,6 +98,9 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
 
   const travel = useRef(0)
   const targetTravel = useRef(0)
+  /** Rotation of the whole ring about its vertical axis, in radians. */
+  const orbit = useRef(0)
+  const targetOrbit = useRef(0)
   const pointer = usePointer(0.07)
   /** Distance dragged since pointerdown — a drag must not open a page. */
   const dragDistance = useRef(0)
@@ -115,14 +135,19 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     const el = containerRef.current
     if (!el) return
 
+    // Trackpads report both axes, so a two-finger sideways swipe steers the
+    // ring while a vertical one flies down the tunnel.
     const onWheel = (e: WheelEvent) => {
       targetTravel.current += e.deltaY * 1.5
+      targetOrbit.current += e.deltaX * ORBIT_PER_PX
     }
 
     let dragging = false
+    let lastX = 0
     let lastY = 0
     const onDown = (e: PointerEvent) => {
       dragging = true
+      lastX = e.clientX
       lastY = e.clientY
       dragDistance.current = 0
     }
@@ -131,9 +156,14 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     // Listening on window covers dragging past the edge just as well.
     const onMove = (e: PointerEvent) => {
       if (!dragging) return
+      const dx = e.clientX - lastX
       const dy = e.clientY - lastY
-      dragDistance.current += Math.abs(dy)
+      // Both axes count toward the drag threshold, or a purely sideways drag
+      // would still register as a click and open a page.
+      dragDistance.current += Math.abs(dx) + Math.abs(dy)
       targetTravel.current += dy * 2.6
+      targetOrbit.current -= dx * ORBIT_PER_PX
+      lastX = e.clientX
       lastY = e.clientY
     }
     const onUp = () => {
@@ -142,6 +172,8 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown') targetTravel.current += 700
       if (e.key === 'ArrowUp' || e.key === 'PageUp') targetTravel.current -= 700
+      if (e.key === 'ArrowLeft') targetOrbit.current -= 0.28
+      if (e.key === 'ArrowRight') targetOrbit.current += 0.28
     }
 
     el.addEventListener('wheel', onWheel, { passive: true })
@@ -207,13 +239,15 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     }
 
     /**
-     * Hand the decoders to the tiles nearest the camera.
+     * Every tile visible in the frame runs its loop.
      *
-     * Travel is global, so every tile's depth advances at the same rate and
-     * this ranking barely changes between passes — a tile keeps playing until
-     * it wraps to the back of the tunnel and a new one takes its slot. That
-     * stability is what keeps the churn (and the re-renders) low enough to do
-     * this at all, so no extra hysteresis is needed.
+     * Ranked by depth only so that if the cap ever bites, it is the furthest
+     * (smallest, most heavily shaded) tiles that lose their decoder rather
+     * than whatever happened to be iterated last.
+     *
+     * Membership changes slowly — tiles enter and leave the frame at drift
+     * speed — so the re-render this triggers stays rare even though the set
+     * is now large.
      */
     const updatePlaying = () => {
       if (maxPlaying === 0) {
@@ -268,9 +302,14 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       const f = dt / 16.667
 
       // Ambient drift halts while a tile is focused, so reading is easy.
-      if (!hoveredRef.current && !reduced) targetTravel.current += DRIFT * f
+      if (!hoveredRef.current && !reduced) {
+        targetTravel.current += DRIFT * f
+        targetOrbit.current += ORBIT_DRIFT * f
+      }
       travel.current +=
         (targetTravel.current - travel.current) * (1 - Math.pow(1 - 0.075, f))
+      orbit.current +=
+        (targetOrbit.current - orbit.current) * (1 - Math.pow(1 - 0.075, f))
 
       const pt = pointer.step()
       const t = now / 1000
@@ -289,16 +328,22 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         // container: near tiles slide further than far ones, which is the
         // depth cue a single container translate cannot give.
         const shift = 0.4 + depth * 1.2
-        const px = tile.x - pt.x * 58 * shift
-        const py = tile.y + float - pt.y * 36 * shift
+        // Position is recomputed from the angle each frame rather than read
+        // off the tile, so the whole ring can swing about its axis. This is
+        // what gives the wall left/right travel instead of only forward.
+        const a = tile.angle + orbit.current
+        const ox = Math.cos(a) * tile.radius
+        const oy = Math.sin(a) * tile.radius * VERTICAL_SQUASH
+        const px = ox - pt.x * 58 * shift
+        const py = oy + float - pt.y * 36 * shift
 
         root.style.transform =
           `perspective(${PERSPECTIVE}px) ` +
           `translate3d(${px}px, ${py}px, ${wrapped + FRONT}px) ` +
           // rotateY/rotateX by position curves the flat wall into a cylinder
           // wrapped around the viewer — the look from the reference site.
-          `rotateY(${tile.x * 0.014 - pt.x * 5}deg) ` +
-          `rotateX(${-tile.y * 0.012 + pt.y * 3.2}deg) ` +
+          `rotateY(${ox * 0.014 - pt.x * 5}deg) ` +
+          `rotateX(${-oy * 0.012 + pt.y * 3.2}deg) ` +
           `rotateZ(${tile.tilt}deg)`
 
         // Without a shared 3D context, paint order is DOM order — so depth has
@@ -359,6 +404,20 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         }}
       />
       <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(4,7,15,0.85)_100%)]" />
+
+      {/* Warm counterweight. The wall is overwhelmingly cold — blue stage
+          light on a near-black ground — so a low gold wash rising from the
+          floor keeps the frame from reading as monochrome, and pairs with
+          the cyan rather than competing with it. Screen blend so it lifts
+          the tiles instead of veiling them. */}
+      <div
+        className="pointer-events-none absolute inset-0 z-10 mix-blend-screen"
+        style={{
+          background:
+            'radial-gradient(ellipse 85% 60% at 50% 112%, rgba(242,193,78,0.16), transparent 68%),' +
+            'radial-gradient(ellipse 55% 45% at 8% 6%, rgba(242,193,78,0.07), transparent 70%)',
+        }}
+      />
 
       {/* Edge scrims: the wall runs behind the wordmark and the bottom links,
           and a bright tile drifting past must never eat them. */}

@@ -4,9 +4,10 @@
  * wants per entry: a web-safe mp4, a poster still, and a short silent loop
  * for the index wall.
  *
- *   public/media/video/<slug>.mp4      full recording  (detail page)
- *   public/media/preview/<slug>.mp4    ~8s, silent     (hover preview)
- *   public/media/posters/<slug>.jpg    still           (tile + fallback)
+ *   public/media/video/<slug>.mp4        full recording   (detail page)
+ *   public/media/preview/<slug>-480.mp4  ~8s, silent      (index wall)
+ *   public/media/audio/<slug>.mp3        full soundtrack  (waveform player)
+ *   public/media/posters/<slug>.jpg      still            (tile + fallback)
  *
  * Anything already web-safe is remuxed rather than re-encoded, so footage that
  * arrives as a modest H.264 file keeps its original quality and costs a
@@ -88,8 +89,20 @@ for (const bin of ['ffmpeg', 'ffprobe']) {
 const OUT = {
   video: 'public/media/video',
   preview: 'public/media/preview',
+  audio: 'public/media/audio',
   poster: 'public/media/posters',
 }
+
+/**
+ * Suffix on preview filenames, naming the cut.
+ *
+ * The bucket serves an immutable one-year cache header, so re-cutting a
+ * preview at a different size has to land under a *new* key — otherwise
+ * browsers and Cloudflare's edge go on serving the old, heavier file. Bump
+ * this whenever PREVIEW_WIDTH or PREVIEW_FPS changes.
+ */
+const PREVIEW_WIDTH = 480
+const PREVIEW_FPS = 15
 if (!dryRun) for (const d of Object.values(OUT)) mkdirSync(d, { recursive: true })
 
 /** Video stream facts, with the rotation flag resolved into display dims. */
@@ -230,11 +243,22 @@ files.forEach((item, i) => {
   const seek = String(out.duration * 0.35)
 
   run(['-ss', seek, '-i', dst, '-frames:v', '1', '-q:v', '3', path.join(OUT.poster, `${slug}.jpg`)])
+
+  // Every tile in frame plays its preview at once, so these are cut small and
+  // slow on purpose: decode cost, not file size, is the limit here.
   run([
     '-ss', seek, '-t', String(previewSecs), '-i', dst, '-an',
-    '-vf', scaleFilter(640),
-    '-c:v', 'libx264', '-crf', '30', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
-    '-movflags', '+faststart', path.join(OUT.preview, `${slug}.mp4`),
+    '-vf', `${scaleFilter(PREVIEW_WIDTH)},fps=${PREVIEW_FPS}`,
+    '-c:v', 'libx264', '-crf', '32', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
+    '-profile:v', 'main', '-movflags', '+faststart',
+    path.join(OUT.preview, `${slug}-${PREVIEW_WIDTH}.mp4`),
+  ])
+
+  // Soundtrack for the waveform player, taken from the original rather than
+  // the transcode so remuxed sources avoid a second lossy generation.
+  run([
+    '-i', full, '-vn', '-c:a', 'libmp3lame', '-b:a', '128k', '-ar', '44100',
+    '-ac', '2', path.join(OUT.audio, `${slug}.mp3`),
   ])
 
   const mins = Math.floor(out.duration / 60)
@@ -248,6 +272,8 @@ files.forEach((item, i) => {
     aspect: Number((out.width / out.height).toFixed(4)),
     portrait: out.height > out.width,
     mb: Number((statSync(dst).size / 1e6).toFixed(1)),
+    previewSrc: `/media/preview/${slug}-${PREVIEW_WIDTH}.mp4`,
+    audioSrc: `/media/audio/${slug}.mp3`,
   })
 })
 

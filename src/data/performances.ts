@@ -10,16 +10,24 @@ import type { Performance } from '@/types/content'
  *
  * `title`, `subtitle` and `blurb` were written from a frame sampled out of
  * each clip: they describe what is visibly on screen and nothing more.
- * `description`, `venue`, `city`, `credits` and `tracks` are deliberately
- * left empty rather than guessed — the detail page drops each of those
- * sections when it is empty, so filling them in is purely additive.
+ * `description`, `venue`, `city` and `credits` are deliberately left empty
+ * rather than guessed — the detail page drops each of those sections when it
+ * is empty, so filling them in is purely additive.
+ *
+ * Each entry carries one track: the audio lifted straight off the recording,
+ * so the waveform player has something real to play. Split it into named
+ * songs by adding more entries with their own offsets.
  *
  * TODO(sanjana): replace the descriptive titles with the real programme
  * names, and add venue / city / repertoire per entry.
  */
 
 const video = (slug: string) => `/media/video/${slug}.mp4`
-const preview = (slug: string) => `/media/preview/${slug}.mp4`
+const audio = (slug: string) => `/media/audio/${slug}.mp3`
+// Cut size is in the filename: the bucket sends an immutable one-year
+// cache header, so a re-cut preview has to arrive under a new key or
+// browsers and the edge keep serving the old, heavier file.
+const preview = (slug: string) => `/media/preview/${slug}-480.mp4`
 const poster = (slug: string) => `/media/posters/${slug}.jpg`
 
 export const PERFORMANCES: Performance[] = [
@@ -43,7 +51,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '6:21',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'classical-repertoire-2023-01-1',
+        title: 'Classical Set, Blue Backdrop',
+        duration: 381,
+        audioSrc: audio('classical-repertoire-2023-01'),
+      },
+    ],
   },
 
   /* ---------------- Duet/Group Performances ---------------- */
@@ -64,7 +79,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('collaboration-2018-01')],
     runtime: '2:09',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'collaboration-2018-01-1',
+        title: 'Four Voices, 2018',
+        duration: 129,
+        audioSrc: audio('collaboration-2018-01'),
+      },
+    ],
   },
   {
     slug: 'collaboration-2023-02',
@@ -83,7 +105,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('collaboration-2023-02')],
     runtime: '3:59',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'collaboration-2023-02-1',
+        title: 'Trio at the Stand',
+        duration: 239,
+        audioSrc: audio('collaboration-2023-02'),
+      },
+    ],
   },
   {
     slug: 'collaboration-2024-03',
@@ -102,7 +131,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('collaboration-2024-03')],
     runtime: '3:57',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'collaboration-2024-03-1',
+        title: 'Duet Under Magenta',
+        duration: 237,
+        audioSrc: audio('collaboration-2024-03'),
+      },
+    ],
   },
   {
     slug: 'collaboration-2024-04',
@@ -121,7 +157,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('collaboration-2024-04')],
     runtime: '3:15',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'collaboration-2024-04-1',
+        title: 'Trio, Three Mics',
+        duration: 173,
+        audioSrc: audio('collaboration-2024-04'),
+      },
+    ],
   },
   {
     slug: 'collaboration-2025-05',
@@ -140,7 +183,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('collaboration-2025-05')],
     runtime: '3:05',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'collaboration-2025-05-1',
+        title: 'Trio, Red Curtain',
+        duration: 185,
+        audioSrc: audio('collaboration-2025-05'),
+      },
+    ],
   },
   {
     slug: 'collaboration-2025-06',
@@ -159,7 +209,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('collaboration-2025-06')],
     runtime: '3:58',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'collaboration-2025-06-1',
+        title: 'Class of 2025 — Duet',
+        duration: 238,
+        audioSrc: audio('collaboration-2025-06'),
+      },
+    ],
   },
   {
     slug: 'collaboration-2025-07',
@@ -179,7 +236,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '4:27',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'collaboration-2025-07-1',
+        title: 'Class of 2025 — Group Set',
+        duration: 267,
+        audioSrc: audio('collaboration-2025-07'),
+      },
+    ],
   },
 
   /* ---------------- Hindi Singing ---------------- */
@@ -200,7 +264,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('hindi-singing-2025-01')],
     runtime: '1:18',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'hindi-singing-2025-01-1',
+        title: 'Class of 2025 — Hindi Solo',
+        duration: 75,
+        audioSrc: audio('hindi-singing-2025-01'),
+      },
+    ],
   },
 
   /* ---------------- Honor Choir ---------------- */
@@ -221,7 +292,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('honor-choir-2025-01')],
     runtime: '0:41',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'honor-choir-2025-01-1',
+        title: 'ACMIS Festival — Massed Choir',
+        duration: 41,
+        audioSrc: audio('honor-choir-2025-01'),
+      },
+    ],
   },
   {
     slug: 'honor-choir-2025-02',
@@ -241,7 +319,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '4:06',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'honor-choir-2025-02-1',
+        title: 'ACMIS Festival — Full Ensemble',
+        duration: 246,
+        audioSrc: audio('honor-choir-2025-02'),
+      },
+    ],
   },
   {
     slug: 'honor-choir-2025-03',
@@ -260,7 +345,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('honor-choir-2025-03')],
     runtime: '1:06',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'honor-choir-2025-03-1',
+        title: 'Honor Choir in Black',
+        duration: 65,
+        audioSrc: audio('honor-choir-2025-03'),
+      },
+    ],
   },
   // NOTE: source date is an export stamp, not the recording date.
   {
@@ -280,7 +372,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('honor-choir-2026-04')],
     runtime: '1:47',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'honor-choir-2026-04-1',
+        title: 'ACMIS Honor Choir — Risers',
+        duration: 107,
+        audioSrc: audio('honor-choir-2026-04'),
+      },
+    ],
   },
 
   /* ---------------- Musical Theatre ---------------- */
@@ -302,7 +401,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2022-01')],
     runtime: '3:39',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2022-01-1',
+        title: 'Beauty and the Beast — Company',
+        duration: 219,
+        audioSrc: audio('musical-theatre-2022-01'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2022-02',
@@ -322,7 +428,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2022-02')],
     runtime: '2:46',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2022-02-1',
+        title: 'Beauty and the Beast — Under the Lights',
+        duration: 166,
+        audioSrc: audio('musical-theatre-2022-02'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2022-03',
@@ -342,7 +455,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2022-03')],
     runtime: '0:57',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2022-03-1',
+        title: 'Beauty and the Beast — Villagers',
+        duration: 57,
+        audioSrc: audio('musical-theatre-2022-03'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2022-04',
@@ -363,7 +483,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '0:54',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2022-04-1',
+        title: 'Beauty and the Beast — The Rose',
+        duration: 54,
+        audioSrc: audio('musical-theatre-2022-04'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2023-05',
@@ -382,7 +509,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2023-05')],
     runtime: '2:45',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2023-05-1',
+        title: 'Spotlight Solo',
+        duration: 165,
+        audioSrc: audio('musical-theatre-2023-05'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2024-06',
@@ -403,7 +537,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '4:51',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2024-06-1',
+        title: 'Princess Medley',
+        duration: 291,
+        audioSrc: audio('musical-theatre-2024-06'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2024-07',
@@ -423,7 +564,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2024-07')],
     runtime: '1:49',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2024-07-1',
+        title: 'Super Senior Prom — Solo at the Mic',
+        duration: 109,
+        audioSrc: audio('musical-theatre-2024-07'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2024-08',
@@ -443,7 +591,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2024-08')],
     runtime: '1:11',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2024-08-1',
+        title: 'Super Senior Prom — Onstage Duo',
+        duration: 71,
+        audioSrc: audio('musical-theatre-2024-08'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2024-09',
@@ -463,7 +618,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2024-09')],
     runtime: '2:15',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2024-09-1',
+        title: 'Super Senior Prom — Company Number',
+        duration: 135,
+        audioSrc: audio('musical-theatre-2024-09'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2024-10',
@@ -483,7 +645,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('musical-theatre-2024-10')],
     runtime: '2:57',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2024-10-1',
+        title: 'Super Senior Prom — Four-Part Number',
+        duration: 177,
+        audioSrc: audio('musical-theatre-2024-10'),
+      },
+    ],
   },
   {
     slug: 'musical-theatre-2024-11',
@@ -504,7 +673,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '4:25',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'musical-theatre-2024-11-1',
+        title: 'Super Senior Prom — Full Stage',
+        duration: 265,
+        audioSrc: audio('musical-theatre-2024-11'),
+      },
+    ],
   },
 
   /* ---------------- Solo Concerts ---------------- */
@@ -525,7 +701,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2018-01')],
     runtime: '0:50',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2018-01-1',
+        title: 'Salon Room, Navy Gown',
+        duration: 50,
+        audioSrc: audio('solo-concert-2018-01'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2018-02',
@@ -545,7 +728,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '3:13',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2018-02-1',
+        title: 'Denim Overalls',
+        duration: 193,
+        audioSrc: audio('solo-concert-2018-02'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2018-03',
@@ -564,7 +754,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2018-03')],
     runtime: '3:04',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2018-03-1',
+        title: 'From the House',
+        duration: 184,
+        audioSrc: audio('solo-concert-2018-03'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2019-04',
@@ -583,7 +780,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2019-04')],
     runtime: '1:34',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2019-04-1',
+        title: 'With Accompanist',
+        duration: 94,
+        audioSrc: audio('solo-concert-2019-04'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2020-05',
@@ -602,7 +806,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2020-05')],
     runtime: '3:44',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2020-05-1',
+        title: 'Indoors, Mid-Phrase',
+        duration: 224,
+        audioSrc: audio('solo-concert-2020-05'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2022-06',
@@ -621,7 +832,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2022-06')],
     runtime: '3:52',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2022-06-1',
+        title: 'Music Stand, Floral Dress',
+        duration: 232,
+        audioSrc: audio('solo-concert-2022-06'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2023-07',
@@ -641,7 +859,14 @@ export const PERFORMANCES: Performance[] = [
     runtime: '4:27',
     featured: true,
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2023-07-1',
+        title: 'Open Air, Marquee Stage',
+        duration: 267,
+        audioSrc: audio('solo-concert-2023-07'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2023-08',
@@ -660,7 +885,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2023-08')],
     runtime: '3:08',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2023-08-1',
+        title: 'Piano Behind, Voice Front',
+        duration: 188,
+        audioSrc: audio('solo-concert-2023-08'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2024-09',
@@ -679,7 +911,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2024-09')],
     runtime: '1:32',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2024-09-1',
+        title: 'Blue Curtain, Grand Piano',
+        duration: 92,
+        audioSrc: audio('solo-concert-2024-09'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2025-10',
@@ -698,7 +937,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2025-10')],
     runtime: '2:23',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2025-10-1',
+        title: 'Handheld Mic, Red Curtain',
+        duration: 143,
+        audioSrc: audio('solo-concert-2025-10'),
+      },
+    ],
   },
   {
     slug: 'solo-concert-2025-11',
@@ -717,7 +963,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2025-11')],
     runtime: '3:07',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2025-11-1',
+        title: 'Floor-Length Gown',
+        duration: 187,
+        audioSrc: audio('solo-concert-2025-11'),
+      },
+    ],
   },
   // NOTE: source date is an export stamp, not the recording date.
   {
@@ -737,7 +990,14 @@ export const PERFORMANCES: Performance[] = [
     gallery: [poster('solo-concert-2026-12')],
     runtime: '1:19',
     credits: [],
-    tracks: [],
+    tracks: [
+      {
+        id: 'solo-concert-2026-12-1',
+        title: 'Earliest Footage',
+        duration: 79,
+        audioSrc: audio('solo-concert-2026-12'),
+      },
+    ],
   },
 ]
 
