@@ -7,7 +7,8 @@ import { usePerformances } from '@/hooks/useContent'
 import { useTransition } from '@/components/layout/TransitionProvider'
 import { Reveal } from '@/components/ui/Reveal'
 import { SplitText } from '@/components/ui/SplitText'
-import { cn, mediaUrl } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { mediaUrl } from '@/lib/media'
 
 type Filter = CategoryId | 'all'
 

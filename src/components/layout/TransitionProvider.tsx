@@ -9,6 +9,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
+import { mediaUrl } from '@/lib/media'
 
 interface ZoomState {
   rect: DOMRect
@@ -17,7 +18,8 @@ interface ZoomState {
 }
 
 interface TransitionApi {
-  /** Fly `el` up to fill the viewport, then route to `to`. */
+  /** Fly `el` up to fill the viewport, then route to `to`. `poster` is a
+   *  stored media key; it is resolved here so callers stay source-agnostic. */
   zoomTo: (el: HTMLElement, poster: string, title: string, to: string) => void
 }
 
@@ -91,7 +93,7 @@ export function TransitionProvider({ children }: { children: ReactNode }) {
               transition={{ duration: 0.68, ease: [0.16, 1, 0.3, 1] }}
             >
               <img
-                src={zoom.poster}
+                src={mediaUrl(zoom.poster)}
                 alt=""
                 className="h-full w-full object-cover"
               />

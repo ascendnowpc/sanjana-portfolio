@@ -6,7 +6,8 @@ import { CATEGORY_MAP } from '@/data/categories'
 import { VideoStage } from '@/components/media/VideoStage'
 import { WaveformPlayer } from '@/components/audio/WaveformPlayer'
 import { Reveal } from '@/components/ui/Reveal'
-import { mediaUrl, totalRuntime } from '@/lib/utils'
+import { totalRuntime } from '@/lib/utils'
+import { mediaUrl } from '@/lib/media'
 
 export default function WorkDetail() {
   const { slug = '' } = useParams()

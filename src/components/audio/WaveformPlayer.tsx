@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Track } from '@/types/content'
 import { useAudioEngine } from '@/hooks/useAudioEngine'
-import { clamp, formatTime, hashString, mediaUrl, seededRandom } from '@/lib/utils'
+import { clamp, formatTime, hashString, seededRandom } from '@/lib/utils'
+import { mediaUrl } from '@/lib/media'
 
 const BAR_COUNT = 96
 
