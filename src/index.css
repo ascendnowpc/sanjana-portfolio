@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Design tokens — a midnight/ice palette taken from the Billie Eilish
+   reference: near-black blues as ground, one cold cyan as the only
+   light source, violet + ember reserved for category accents.
+------------------------------------------------------------------- */
+@theme {
+  --color-void: #04070f;
+  --color-ink: #070c18;
+  --color-abyss: #0b1120;
+  --color-slate-deep: #131d2f;
+  --color-edge: #1d2a3f;
+
+  --color-bloom: #4fd8e8;
+  --color-halo: #9df3ff;
+  --color-surge: #3f7dfb;
+  --color-violet-glow: #8b5cf6;
+  --color-ember: #f0a23c;
+  --color-rose-stage: #f0568f;
+
+  --color-chalk: #e8f1f8;
+  --color-mist: #8ea6c0;
+  --color-dust: #55647a;
+
+  --font-display: "Cormorant Garamond", "Times New Roman", serif;
+  --font-poster: "Anton", "Arial Narrow", sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background: var(--color-void);
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-void);
+    color: var(--color-chalk);
+    font-family: var(--font-body);
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-bloom);
+    color: var(--color-void);
+  }
+
+  /* Slim, dark scrollbar so it disappears into the design. */
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-void);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-edge);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-bloom);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--color-bloom);
+    outline-offset: 3px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Utilities
+------------------------------------------------------------------- */
+
+/* The wide-tracked, small-caps label used throughout the reference site. */
+@utility tracked {
+  font-family: var(--font-display);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+}
+
+@utility tracked-tight {
+  font-family: var(--font-display);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+@utility label {
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+
+
+/* For copy that sits directly on the moving wall — far tiles still drift
+   through the centre, and the scrim alone is not enough to hold contrast. */
+@utility on-scrim {
+  text-shadow:
+    0 1px 26px rgba(4, 7, 15, 0.96),
+    0 0 10px rgba(4, 7, 15, 0.92);
+}
+
+@utility text-glow {
+  text-shadow:
+    0 0 24px color-mix(in oklab, var(--color-bloom) 45%, transparent),
+    0 0 72px color-mix(in oklab, var(--color-bloom) 20%, transparent);
+}
+
+@utility edge-fade {
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+
+/* ------------------------------------------------------------------
+   Ambience — film grain + scanlines, layered over everything.
+------------------------------------------------------------------- */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: -50%;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain-shift 700ms steps(2) infinite;
+}
+
+.scanlines::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  pointer-events: none;
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    rgba(0, 0, 0, 0.35) 2px 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+@keyframes grain-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-3%, 2%); }
+  50% { transform: translate(2%, -3%); }
+  75% { transform: translate(-2%, -2%); }
+  100% { transform: translate(3%, 1%); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.06); }
+}
+
+@keyframes drift-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes bar-pulse {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(320%); }
+}
+
+.marquee-track {
+  animation: drift-marquee 34s linear infinite;
+  will-change: transform;
+}
+
+.breathe {
+  animation: breathe 7s var(--ease-in-out-soft) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .grain::after,
+  .marquee-track,
+  .breathe {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
