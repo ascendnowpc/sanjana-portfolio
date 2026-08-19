@@ -2,13 +2,8 @@
 
 /* ------------------------------------------------------------------
    Design tokens — a midnight/ice palette taken from the Billie Eilish
-   reference: near-black blues as ground, one cold cyan as the primary
+   reference: near-black blues as ground, one cold cyan as the only
    light source, violet + ember reserved for category accents.
-
-   Gold is the deliberate complement to that cyan (they sit opposite on
-   the wheel), and carries the warm half of the palette: stage-light
-   hues against the cold blue of the room. It is a counterweight, not a
-   second theme — cyan still leads, gold answers.
 ------------------------------------------------------------------- */
 @theme {
   --color-void: #04070f;
@@ -19,8 +14,6 @@
 
   --color-bloom: #4fd8e8;
   --color-halo: #9df3ff;
-  --color-gold: #f2c14e;
-  --color-honey: #ffe6ae;
   --color-surge: #3f7dfb;
   --color-violet-glow: #8b5cf6;
   --color-ember: #f0a23c;

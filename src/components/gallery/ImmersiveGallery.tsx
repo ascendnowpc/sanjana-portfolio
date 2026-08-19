@@ -405,20 +405,6 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       />
       <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(4,7,15,0.85)_100%)]" />
 
-      {/* Warm counterweight. The wall is overwhelmingly cold — blue stage
-          light on a near-black ground — so a low gold wash rising from the
-          floor keeps the frame from reading as monochrome, and pairs with
-          the cyan rather than competing with it. Screen blend so it lifts
-          the tiles instead of veiling them. */}
-      <div
-        className="pointer-events-none absolute inset-0 z-10 mix-blend-screen"
-        style={{
-          background:
-            'radial-gradient(ellipse 85% 60% at 50% 112%, rgba(242,193,78,0.16), transparent 68%),' +
-            'radial-gradient(ellipse 55% 45% at 8% 6%, rgba(242,193,78,0.07), transparent 70%)',
-        }}
-      />
-
       {/* Edge scrims: the wall runs behind the wordmark and the bottom links,
           and a bright tile drifting past must never eat them. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-void via-void/75 to-transparent" />
