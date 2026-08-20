@@ -34,10 +34,18 @@ export function usePointer(smoothing = 0.08) {
     }
   }, [])
 
-  /** Call once per frame; returns the eased position. */
-  const step = () => {
-    current.current.x += (target.current.x - current.current.x) * smoothing
-    current.current.y += (target.current.y - current.current.y) * smoothing
+  /**
+   * Call once per frame; returns the eased position.
+   *
+   * `f` is the frame's length in 60fps units. Without it the easing is per
+   * *frame* rather than per second, so the pointer lags twice as far behind on
+   * a 120Hz display as on a 60Hz one and the follow feels different on every
+   * machine. Compounding the rate over `f` frames fixes that exactly.
+   */
+  const step = (f = 1) => {
+    const k = f === 1 ? smoothing : 1 - Math.pow(1 - smoothing, f)
+    current.current.x += (target.current.x - current.current.x) * k
+    current.current.y += (target.current.y - current.current.y) * k
     return current.current
   }
 

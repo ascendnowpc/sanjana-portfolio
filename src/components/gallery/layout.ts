@@ -35,8 +35,18 @@ export interface CloudOptions {
   maxRadius: number
   /** How far above and below the horizon tiles may hang, in radians. */
   elevationSpread: number
-  minWidth: number
-  maxWidth: number
+  /**
+   * Focal length of the projection the tiles will be drawn under.
+   *
+   * Sizes below are given in the px they should occupy *on screen*, and the
+   * width a tile is actually cut to is solved from that, so this has to be the
+   * same focal length the gallery draws with. It is passed in rather than
+   * duplicated.
+   */
+  focal: number
+  /** On-screen width, in px, a tile should have when it is dead ahead. */
+  minScreen: number
+  maxScreen: number
 }
 
 /** The ratio tile widths are normalised against, and the fallback aspect. */
@@ -59,29 +69,44 @@ export const DEFAULT_CLOUD: CloudOptions = {
   repeats: 2,
   /**
    * The shell has thickness: some frames hang close and read large, others sit
-   * well back. Now that nothing travels, this is the only depth cue left, so
-   * the range is generous. Sized against the short focal length in
-   * ImmersiveGallery — scale is focal ÷ distance, so a wide lens wants the
-   * work closer or everything shrinks.
+   * well back. Since sizes below are given on screen and the cut width is
+   * solved from the radius, this range now only controls parallax and shading
+   * — how much the shell moves against itself as the viewer turns — and not
+   * how big anything looks.
    */
   minRadius: 560,
-  maxRadius: 1420,
+  maxRadius: 1400,
   /**
-   * Sized to the lens, not guessed. Screen height is 2·P·tan(spread), so at
-   * the 780px focal length ±0.52rad fills a 1456×840 viewport corner to
-   * corner. It was ±0.28, which covered only the middle third and left a dead
-   * band across the top and bottom of every frame.
+   * Taller than the screen, on purpose.
+   *
+   * Screen height is 2·P·tan(θ), so at a 780px focal length a 840px viewport
+   * covers ±0.49rad. Hanging work out to ±0.68 puts roughly a third of the
+   * catalogue above the ceiling and below the floor at any moment, which is
+   * what lets each frame be half again as big without the wall closing into a
+   * single overlapping mat: about fourteen frames on screen instead of twenty.
+   * The pitch the viewer can reach covers the difference, so nothing hung out
+   * there is unreachable.
    */
-  elevationSpread: 0.52,
+  elevationSpread: 0.68,
+  /** Matches PERSPECTIVE in ImmersiveGallery, which passes it in. */
+  focal: 780,
   /**
-   * These are pre-projection: the on-screen width is this × focal ÷ distance,
-   * which at these radii runs 0.55–1.4. So 150–520 here lands as roughly
-   * 85–700px on screen, matching the reference's mix of modest frames and a
-   * few large ones. The previous 70–300 projected down to 32–378 and read as
-   * postage stamps.
+   * On-screen width when dead ahead, which is the number that actually answers
+   * Sneha's note that the frames are "very smallish".
+   *
+   * Given on screen rather than pre-projection because the two used to be
+   * drawn independently — a width from one distribution, a radius from another
+   * — and their extremes could coincide. The widest frame in the catalogue
+   * landing at the nearest radius projected past three thousand pixels and
+   * swallowed the viewport whole. Solving the cut width from the radius puts a
+   * hard ceiling on what any one frame can do.
+   *
+   * Frames drift larger than these toward the edges of the screen, where the
+   * shell swings closer to the eye — by about half again at the corners, which
+   * is the perspective doing its job.
    */
-  minWidth: 150,
-  maxWidth: 520,
+  minScreen: 150,
+  maxScreen: 470,
 }
 
 /**
@@ -116,34 +141,51 @@ export function buildCloud(
       // as the shell allows, so you never see the same still twice at once.
       const azimuth = (i * GOLDEN + (rep * TAU) / o.repeats) % TAU
 
-      // Stratified rather than random: each tile gets its own slice of the
-      // band and jitters within it, which fills the height evenly instead of
-      // clumping frames at the horizon and leaving the top empty.
-      // Stratified across the whole set, not across one repeat: `idx % n` is
-      // just `i`, so every copy of a performance was landing at exactly the
-      // same height as the first and half the band went unused.
+      // Stratified across the whole set: each tile gets its own slice of the
+      // band and jitters within it, so the height fills evenly and a
+      // performance's two copies are half a band apart rather than at
+      // identical heights.
+      //
+      // Monotonic in `idx`, and that is the load-bearing part. This was
+      // `(idx · 0.618034) % 1`, which is uniform over the whole catalogue and
+      // looks unimpeachable — but 0.618034 is 1 − 0.381966, and 0.381966 turns
+      // is exactly the golden angle the bearings above step by. The two
+      // sequences are the same sequence running backwards: elevation came out
+      // a strict function of bearing, so the shell was a spiral ramp and not a
+      // cloud. Sweeping 24 headings, the fraction of frames in view sitting
+      // above the horizon ran from 0.00 to 1.00 — turn one way and the room
+      // has no floor, turn the other and it has no ceiling. That is the empty
+      // half of the screen.
+      //
+      // Pairing a golden-angle bearing with a monotonic elevation is the
+      // Fibonacci lattice, and it is even at every heading: the same sweep
+      // gives 0.44 to 0.56.
       const total = n * o.repeats
-      const slice = (idx * 0.618033988749895) % 1
+      const slice = (idx + 0.5) / total
       const elevation =
         (slice * 2 - 1 + (rnd() - 0.5) * (1.6 / total)) * o.elevationSpread
 
-      // Squared, so more frames sit far than near. An even spread of radii
-      // puts too many large tiles in view at once and the shell feels
-      // crowded; leaning far keeps a few frames forward as accents.
-      const far = rnd()
-      const radius = o.minRadius + (o.maxRadius - o.minRadius) * (1 - far * far)
+      // Even across the shell's thickness. It used to lean far, to stop too
+      // many large tiles being in view at once — but size no longer follows
+      // from distance, so all this decides now is how much a tile shifts
+      // against its neighbours as the viewer turns, and an even spread gives
+      // the fullest range of that.
+      const radius = o.minRadius + (o.maxRadius - o.minRadius) * rnd()
 
       // Tiles are cut to the footage's own ratio rather than a uniform 16:9,
       // so portrait phone video is not centre-cropped into a letterbox strip.
-      // Widths are then normalised to equal *area*, not equal width: a 9:16
+      // Sizes are then normalised to equal *area*, not equal width: a 9:16
       // tile drawn at full width would stand nearly twice as tall as its
       // landscape neighbours and wreck the density of the shell.
       const aspect = performance.aspect ?? LANDSCAPE
       const r = rnd()
-      const base =
-        o.minWidth +
-        (o.maxWidth - o.minWidth) *
-          (performance.featured ? 0.62 + rnd() * 0.38 : r * r)
+      const screen =
+        o.minScreen +
+        (o.maxScreen - o.minScreen) *
+          (performance.featured ? 0.6 + rnd() * 0.4 : r * Math.sqrt(r))
+
+      // Solve the cut width from the size it should project to at this radius.
+      const width = (screen * radius) / o.focal
 
       tiles.push({
         performance,
@@ -151,7 +193,7 @@ export function buildCloud(
         azimuth,
         elevation,
         radius,
-        width: base * Math.sqrt(aspect / LANDSCAPE),
+        width: width * Math.sqrt(aspect / LANDSCAPE),
         aspect,
         phase: rnd() * TAU,
       })

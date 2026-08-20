@@ -143,7 +143,11 @@ export default function Home() {
         animate={{ opacity: focused ? 0 : 1 }}
         transition={{ duration: 0.6, delay: focused ? 0 : 1.6 }}
       >
-        <span className="label text-dust">Drag to look around</span>
+        {/* The cursor is the primary control now — the room turns while the
+            pointer is held away from the middle, and holds still when it comes
+            back. Dragging and scrolling still work, but they are no longer the
+            thing to tell someone about first. */}
+        <span className="label text-dust">Move your cursor to look around</span>
         <span className="breathe block h-6 w-px bg-gradient-to-b from-transparent via-bloom to-transparent" />
       </motion.div>
 

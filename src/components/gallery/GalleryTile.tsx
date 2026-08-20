@@ -23,11 +23,26 @@ export interface TileRefs {
   depth: number
   /** True while the tile is behind the viewer and taken out of the layout. */
   hidden?: boolean
+  /**
+   * The tile's projected box in viewport px, written by the loop every frame
+   * from the same arithmetic that produces the transform.
+   *
+   * This is what replaced measuring the DOM. Hover resolution and the decoder
+   * budget both need to know where each frame landed, and both used to ask
+   * `getBoundingClientRect` for it — eighty calls that each had to flush the
+   * transforms written a moment earlier, twenty times a second. The projection
+   * is rectilinear and exact, so the box can simply be computed instead.
+   */
+  left?: number
+  right?: number
+  top?: number
+  bottom?: number
   /** Last values the loop wrote for the properties that change slowly, so it
    *  can skip the write when nothing moved. Owned entirely by the loop. */
   lastZ?: number
   lastAlpha?: number
   lastShade?: number
+  lastTransform?: string
 }
 
 /**
@@ -66,11 +81,21 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
       style={{
         width: tile.width,
         marginLeft: -tile.width / 2,
-        // top:50% + the negative margin put local (50%, 0) exactly on the
-        // viewport centre, so every tile's perspective() shares one vanishing
-        // point — the same convergence a single ancestor perspective gives,
-        // without needing preserve-3d (which Chromium cannot hit-test into).
-        transformOrigin: '50% 0',
+        // The margins put the tile's own centre exactly on the viewport
+        // centre, so every tile's perspective() shares one vanishing point —
+        // the same convergence a single ancestor perspective gives, without
+        // needing preserve-3d (which Chromium cannot hit-test into).
+        //
+        // Centre, not the top edge. Anchoring at the top made the wall
+        // top-heavy and it was not obvious why: a tile hangs *downward* from
+        // its anchor, so one hung above the ceiling still drapes into view
+        // while one hung below the floor falls out of frame entirely. The
+        // asymmetry showed up as measured band coverage of 1.6/1.9/1.4 across
+        // the top half against 0.45/0.20/0.16 across the bottom — the room had
+        // a floor of nothing. Hanging each frame by its middle makes the
+        // elevation it was given the elevation it actually reads at.
+        marginTop: -tile.width / tile.aspect / 2,
+        transformOrigin: '50% 50%',
       }}
     >
       <button
@@ -82,7 +107,7 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
         style={{
           aspectRatio: tile.aspect,
           transition: 'transform 700ms var(--ease-out-expo), box-shadow 500ms',
-          transform: active ? 'scale(1.045)' : 'scale(1)',
+          transform: active ? 'scale(1.06)' : 'scale(1)',
           // Colourless. Each category used to tint its own hover — amber for
           // theatre, pink for duets, violet, green — so hovering across the
           // wall flashed through a paintbox. The reference lifts a frame with
