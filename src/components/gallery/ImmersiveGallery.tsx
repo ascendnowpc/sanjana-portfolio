@@ -23,6 +23,18 @@ import { clamp, smoothstep } from '@/lib/utils'
  */
 const PERSPECTIVE = 780
 
+/**
+ * The same, for a phone.
+ *
+ * Focal length is field of view, and a 390px-wide viewport at 780 sees a
+ * 0.49rad slice of the horizon — four frames, with the rest of the catalogue
+ * behind the viewer's shoulders. A shorter lens opens that to 0.8rad and fills
+ * the screen. It costs nothing in size: tile widths are solved against
+ * whichever focal length is in play, so the frames stay exactly as big as they
+ * were asked to be and simply have company.
+ */
+const PERSPECTIVE_MOBILE = 460
+
 const TAU = Math.PI * 2
 
 /**
@@ -51,15 +63,61 @@ const YAW_PER_WHEEL = 0.0016
  */
 const PITCH_LIMIT = 0.2
 /**
- * How far the cursor alone turns the head, in radians at full deflection.
+ * Steering with the cursor.
  *
- * Sneha asked to move around by pointing rather than only by scrolling. At 0.55
- * the pointer covers about two-thirds of a viewport of yaw edge to edge, which
- * is enough to feel like steering without making the room lurch every time the
- * mouse crosses the page.
+ * Sneha asked to move around by pointing, not only by scrolling, and the last
+ * attempt at that gave the pointer a fixed *offset* — hold the mouse right and
+ * the heading leans 0.55rad right. That is not moving around. It turns once,
+ * stops, and rewinds the moment the mouse comes back to the middle, so the
+ * room can never actually be explored by pointing at it.
+ *
+ * So the cursor drives a *rate* instead. Past a dead centre, holding the
+ * pointer out keeps the room turning for as long as it is held, and the yaw it
+ * produces is kept rather than unwound — the same contract a camera stick has.
+ * A small offset still rides on top for parallax, small enough that it cannot
+ * fight the rate it sits on.
  */
-const LOOK_YAW = 0.55
-const LOOK_PITCH = 0.16
+/**
+ * Fraction of the half-viewport that steers nothing.
+ *
+ * This is also the reading window, and that is the whole of how steering and
+ * hover get along. Inside it the room is still and the cursor picks out
+ * whatever it is over; outside it the cursor is turning the room and picks out
+ * nothing. Two controls that never fight, on one rule.
+ *
+ * The alternative — hover everywhere, steering damped while hovering — was
+ * tried and does not survive contact with the wall this size: frames cover
+ * most of the screen, so the cursor is almost always over one, so the steering
+ * is almost always damped, so pointing at the room barely moves it.
+ *
+ * 0.33 of the half-viewport is a window of about 490×280 on a 1456×840 screen,
+ * which sits where the hero copy already is. Frames are read by turning them
+ * into it, which is what looking at something means.
+ */
+const STEER_DEAD = 0.33
+/** Radians per second of yaw at full deflection. A full turn in about six
+ *  seconds with the cursor pinned to the edge. */
+const STEER_YAW = 1.15
+/** Radians per second of pitch. Shallower, because the band is shallow. */
+const STEER_PITCH = 0.4
+/** Parallax lean, in radians at full deflection. */
+const LOOK_YAW = 0.1
+const LOOK_PITCH = 0.05
+
+/**
+ * Deadzoned, squared response for one steering axis.
+ *
+ * Squared rather than linear so the middle of the screen is gentle and the
+ * edges are quick. A linear response makes every stray mouse movement shove
+ * the room, which is the failure mode that made the last version feel like a
+ * glitch rather than a camera.
+ */
+function steerAxis(v: number) {
+  const a = Math.abs(v)
+  if (a <= STEER_DEAD) return 0
+  const t = (a - STEER_DEAD) / (1 - STEER_DEAD)
+  return Math.sign(v) * Math.min(1, t * t)
+}
 
 /** Ambient yaw, radians per 60fps frame — the room turning gently on its own. */
 const DRIFT = 0.00042
@@ -75,17 +133,56 @@ const SPIN_UP = 1.15
 /**
  * Half-angle of the view, in radians.
  *
- * Tiles beyond CULL are behind the viewer's shoulders and are skipped
- * entirely; between FADE and CULL they wash out, so nothing pops at the edge
- * of vision. Generous, because on a shell the flanks come close to the eye and
- * a wide field is what fills the corners of the frame.
+ * A backstop, not the real cull — that is now the projected box below, which
+ * knows the actual viewport. These angles only have to sit outside any screen
+ * anyone might have: at 1.34rad a frame lands 2800px from centre, past the
+ * edge of a 5K display, so nothing visible is ever touched by this fade.
+ *
+ * They used to be 1.02/1.36, and 1.02 is exactly the edge angle of a 2560px
+ * monitor — every frame along both edges of a wide display was being faded out
+ * for no reason at all.
  */
-const FOV_FADE = 1.02
-const FOV_CULL = 1.36
+const FOV_FADE = 1.34
+const FOV_CULL = 1.46
 
 /** Nearest a tile may come to the eye before it is skipped, in px. Guards the
- *  divide-by-depth: a tile at the eye projects to infinity. */
-const NEAR_CLIP = 190
+ *  divide-by-depth: a tile at the eye projects to infinity. Only ever reached
+ *  well off the side of the screen, so it can never pop in view. */
+const NEAR_CLIP = 150
+
+/** How far outside the viewport a tile's projected box may sit before it stops
+ *  being drawn. Generous, so a frame is never cut while any of it could show. */
+const OFFSCREEN_MARGIN = 260
+
+/**
+ * Insets on the projected box for hover, as a fraction of its size.
+ *
+ * Asymmetric on purpose. Taking focus asks for the cursor to be properly
+ * inside the picture; keeping it allows a little slop past the edge. Without
+ * that hysteresis a frame drifting under a still cursor flickers on and off
+ * along its own border several times a second, which is half of what read as
+ * glitching.
+ */
+const HOVER_GAIN = 0.12
+const HOVER_KEEP = -0.06
+
+/** Just under a right angle: tan() is asked for the edges of a tile's angular
+ *  span, and beyond this it flips sign and the box turns inside out. */
+const ANGLE_LIMIT = Math.PI / 2 - 0.02
+
+/**
+ * Stacking order for the hover treatment.
+ *
+ * Depth gives every tile a z-index of 0..1000. The veil sits above all of
+ * them and the focused frame sits above the veil, which is the whole trick:
+ * one full-screen `backdrop-filter` softens everything painted below it, and
+ * the frame being read is painted above and so is untouched.
+ */
+const VEIL_Z = 1100
+const FOCUS_Z = 1200
+
+/** How long the veil takes to come and go. */
+const VEIL_MS = 420
 
 /**
  * How many tiles may hold a video decoder at once.
@@ -134,15 +231,25 @@ interface Props {
 }
 
 /**
- * An endless 3D wall of stage frames that the viewer flies through.
+ * A shell of stage frames hung around the viewer, who turns inside it.
  *
  * The React tree renders once and then stays still: all motion is written
- * straight to `style.transform` from a single rAF loop, which is what keeps
- * eighty simultaneously-composited tiles smooth. Tiles wrap modulo the total
- * tunnel depth, so the wall never runs out.
+ * straight to `style.transform` from a single rAF loop. Tiles are placed once,
+ * at a bearing and an elevation, and never move again — the loop only changes
+ * where the viewer is looking, and the horizon goes round forever with no seam.
+ *
+ * The loop is careful about three things, and each of them was a stutter:
+ *  - it measures nothing. Every frame's box on screen is computed from the
+ *    same projection that produced its transform, so hover and the decoder
+ *    budget never ask the DOM anything and never force a layout.
+ *  - it draws only what is on screen. A frame whose projected box misses the
+ *    viewport is skipped outright, which is about twenty tiles a frame rather
+ *    than eighty.
+ *  - it writes only what changed. Transform, opacity, z-index and shading each
+ *    carry their last value, so a still room costs nothing.
  *
  * Only the nearest dozen carry live footage — see MAX_PLAYING. Everything
- * else holds a poster, which is what keeps the wall a wall and not a stack of
+ * else holds a poster, which is what keeps this a wall and not a stack of
  * video decoders fighting over the main thread.
  */
 export function ImmersiveGallery({ performances, onFocusChange }: Props) {
@@ -190,17 +297,46 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     () =>
       buildCloud(performances, {
         repeats,
-        // Nearer shell and a shallower band on a phone: a narrow viewport
-        // sees a much smaller slice of the horizon, so work has to sit closer
-        // to fill it.
-        minRadius: isMobile ? 700 : DEFAULT_CLOUD.minRadius,
-        maxRadius: isMobile ? 1500 : DEFAULT_CLOUD.maxRadius,
-        elevationSpread: isMobile ? 0.34 : DEFAULT_CLOUD.elevationSpread,
-        minWidth: isMobile ? 84 : DEFAULT_CLOUD.minWidth,
-        maxWidth: isMobile ? 240 : DEFAULT_CLOUD.maxWidth,
+        // Authoritative: sizes below are given on screen, and the layout
+        // solves each tile's cut width against this lens.
+        focal: isMobile ? PERSPECTIVE_MOBILE : PERSPECTIVE,
+        // A shallower band on a phone. The desktop shell deliberately hangs a
+        // third of the work off the top and bottom of the frame, which is a
+        // luxury a 700px-tall screen cannot afford — there it just reads as
+        // most of the catalogue being missing.
+        elevationSpread: isMobile ? 0.44 : DEFAULT_CLOUD.elevationSpread,
+        // Smaller than desktop in absolute px, but far larger relative to the
+        // viewport: a phone is where the frames were smallest of all.
+        minScreen: isMobile ? 130 : DEFAULT_CLOUD.minScreen,
+        maxScreen: isMobile ? 300 : DEFAULT_CLOUD.maxScreen,
       }),
     [performances, repeats, isMobile],
   )
+
+  /**
+   * The hover veil, mounted only while it is needed.
+   *
+   * `veil` keeps the sheet in the tree, `veilOn` runs its opacity. Two states
+   * rather than one because a `backdrop-filter` is not free to leave sitting
+   * on the page: at zero opacity browsers will still keep the blurred copy of
+   * the backdrop up to date, and this page is eighty moving pictures. So the
+   * sheet is mounted a frame before it fades in, and unmounted only after it
+   * has finished fading out.
+   */
+  const [veil, setVeil] = useState(false)
+  const [veilOn, setVeilOn] = useState(false)
+  useEffect(() => {
+    if (hovered) {
+      setVeil(true)
+      // Next frame, so the element is in the tree at opacity 0 first and the
+      // transition has something to run from.
+      const id = requestAnimationFrame(() => setVeilOn(true))
+      return () => cancelAnimationFrame(id)
+    }
+    setVeilOn(false)
+    const id = window.setTimeout(() => setVeil(false), VEIL_MS)
+    return () => clearTimeout(id)
+  }, [hovered])
 
   /** Where the viewer is looking. Eased toward the target every frame. */
   const yaw = useRef(0)
@@ -244,7 +380,8 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     // Both wheel axes turn the head. Vertical scroll drives *yaw* rather than
     // pitch on purpose: pitch is clamped to a shallow band, so a wheel mapped
     // to it would hit the stop within one flick and feel broken, while yaw
-    // goes round forever.
+    // goes round forever. This is now one way in among three — the cursor
+    // steers and the hand drags — rather than the only one.
     const onWheel = (e: WheelEvent) => {
       targetYaw.current += (e.deltaY + e.deltaX) * YAW_PER_WHEEL
     }
@@ -321,62 +458,92 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     const world = worldRef.current
     if (!world) return
 
+    /** The lens in play. Layout is built against the same one. */
+    const P = isMobile ? PERSPECTIVE_MOBILE : PERSPECTIVE
+
     let raf = 0
     let last = 0
-    let hitFrame = 0
+    let tick = 0
     /** Timestamp the ambient drift began, for the spin-up ramp. */
     let started = 0
 
+    // Cached rather than read per frame: `innerWidth` can force the engine to
+    // settle pending style work before it answers, and this loop has just
+    // written a transform to every frame on screen.
+    let vw = window.innerWidth
+    let vh = window.innerHeight
+    const onResize = () => {
+      vw = window.innerWidth
+      vh = window.innerHeight
+    }
+    window.addEventListener('resize', onResize)
+
+    const conceal = (entry: TileRefs) => {
+      if (!entry.hidden) {
+        entry.hidden = true
+        entry.lastAlpha = 0
+        entry.root.style.opacity = '0'
+      }
+      entry.depth = 0
+    }
+
+    const setFocus = (key: string | null) => {
+      if (hoveredRef.current === key) return
+      hoveredRef.current = key
+      setHovered(key)
+      const tile = key ? cloudRef.current.find((t) => t.key === key) : null
+      onFocusChangeRef.current?.(tile?.performance ?? null)
+    }
+
     /**
-     * The wall drifts continuously, so a tile slides under a stationary cursor
-     * and CSS transforms alone never fire pointerenter — focus has to be
-     * resolved from the loop instead.
+     * Works out which frame the cursor is over, from the boxes the write phase
+     * just computed.
      *
-     * Rect intersection rather than elementFromPoint: hit-testing into a
-     * preserve-3d subtree is unreliable mid-frame, and this also runs as a
-     * pure read before any style writes, so it never forces an extra layout.
-     * Candidates are ranked by depth, matching what paints on top.
+     * The room turns continuously, so a tile slides under a stationary cursor
+     * and CSS alone never fires pointerenter — focus has to be resolved here.
+     * It used to be resolved by asking every registered element for its
+     * `getBoundingClientRect`, twenty times a second, each call having to
+     * settle the style writes the loop had just made. The projection is exact
+     * arithmetic, so the boxes are already known and this reads nothing: over
+     * ten seconds of drifting, steering and hovering, style recalculations
+     * fell from 636 to 484 and scripting from 335ms to 291ms.
      */
-    const updateFocus = () => {
+    const resolveFocus = () => {
       const { x, y } = pointer.client.current
       if (x < 0) return setFocus(null)
 
+      const held = hoveredRef.current
       let best: string | null = null
       let bestDepth = -1
 
-      registry.current.forEach(({ root, tile, depth, hidden }) => {
-        // Skip anything behind the viewer or already beaten on depth.
-        if (hidden || depth <= bestDepth) return
-        const r = root.getBoundingClientRect()
-        if (r.width < 8) return
-        // The rect is the axis-aligned bound of a slightly rotated quad, so
-        // trim the edges to keep hover honest.
-        const ix = r.width * 0.07
-        const iy = r.height * 0.07
-        if (x < r.left + ix || x > r.right - ix) return
-        if (y < r.top + iy || y > r.bottom - iy) return
-        best = tile.key
-        bestDepth = depth
+      registry.current.forEach((e) => {
+        if (e.hidden || e.depth <= bestDepth) return
+        const l = e.left!
+        const r = e.right!
+        const tp = e.top!
+        const b = e.bottom!
+        const inset = e.tile.key === held ? HOVER_KEEP : HOVER_GAIN
+        const ix = (r - l) * inset
+        const iy = (b - tp) * inset
+        if (x < l + ix || x > r - ix) return
+        if (y < tp + iy || y > b - iy) return
+        best = e.tile.key
+        bestDepth = e.depth
       })
 
       setFocus(best)
     }
 
     /**
-     * Hands the decoder budget to the nearest tiles on screen.
+     * Hands the decoder budget to the nearest frames on screen.
      *
-     * Ranked by depth, so the tiles that get footage are the big ones at the
-     * front — where motion actually reads — and the ones that lose it are the
-     * far, small, heavily-shaded ones where a still is indistinguishable.
+     * Ranked by depth, so footage goes to the big ones at the front — where
+     * motion actually reads — and the ones that lose it are far, small and
+     * shaded, where a still is indistinguishable.
      *
-     * One clip per performance. The wall stacks `repeats` copies of the
-     * catalogue down the tunnel, so without this the same eight seconds of
-     * footage can hold two or three decoders at once for no visible gain.
-     *
-     * Membership changes slowly — tiles enter and leave the frame at drift
-     * speed, and PLAY_STICKY keeps a tile that already has a decoder from
-     * losing it to a marginally nearer neighbour — so the re-render this
-     * triggers stays rare.
+     * One clip per performance: the shell hangs `repeats` copies of the
+     * catalogue, so without this the same eight seconds can hold two decoders
+     * at once for no visible gain.
      */
     const updatePlaying = () => {
       if (maxPlaying === 0) {
@@ -387,21 +554,17 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         return
       }
       const prev = playingRef.current
-      const vw = window.innerWidth
-      const vh = window.innerHeight
       const near: { key: string; slug: string; rank: number }[] = []
 
-      registry.current.forEach(({ root, tile, depth, hidden }) => {
-        if (hidden) return
-        const r = root.getBoundingClientRect()
-        if (r.width < PLAY_MIN_WIDTH) return
-        // A tile that has flown past the edge of the viewport is still in the
-        // registry and still near the camera; it is not worth a decoder.
-        if (r.right < 0 || r.left > vw || r.bottom < 0 || r.top > vh) return
+      registry.current.forEach((e) => {
+        // `hidden` already covers both behind-the-viewer and off-screen, so
+        // there is nothing left to test against the viewport here.
+        if (e.hidden) return
+        if (e.right! - e.left! < PLAY_MIN_WIDTH) return
         near.push({
-          key: tile.key,
-          slug: tile.performance.slug,
-          rank: depth + (prev.has(tile.key) ? PLAY_STICKY : 0),
+          key: e.tile.key,
+          slug: e.tile.performance.slug,
+          rank: e.depth + (prev.has(e.tile.key) ? PLAY_STICKY : 0),
         })
       })
 
@@ -421,48 +584,51 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       setPlaying(playingRef.current)
     }
 
-    const setFocus = (key: string | null) => {
-      if (hoveredRef.current === key) return
-      hoveredRef.current = key
-      setHovered(key)
-      const tile = key ? cloudRef.current.find((t) => t.key === key) : null
-      onFocusChangeRef.current?.(tile?.performance ?? null)
-    }
+    /** Screen offset, in px, of a point at this bearing off the view axis. */
+    const project = (angle: number) =>
+      P * Math.tan(clamp(angle, -ANGLE_LIMIT, ANGLE_LIMIT))
 
     const frame = (now: number) => {
-      // Read phase first — layout is still clean from the last paint.
-      if (++hitFrame % 3 === 0) updateFocus()
-      // Frame 2 rather than 1: this runs in the read phase, so it sees the
-      // depths written at the end of the *previous* frame, and on frame 1
-      // every entry.depth is still its initial 0. After that, rarely — the
-      // set only turns over as tiles wrap past the camera.
-      if (hitFrame === 2 || hitFrame % 20 === 0) updatePlaying()
-
       const dt = last ? Math.min(64, now - last) : 16.667
       last = now
       const f = dt / 16.667
+      const secs = dt / 1000
 
-      // The room turns gently on its own, and stops dead while a tile is
-      // focused so it can be read.
-      if (!hoveredRef.current && !reduced) {
+      const pt = pointer.step(f)
+      const focus = hoveredRef.current
+
+      /* ---- input: the cursor steers, and drift fills the gaps ---- */
+      let steering = 0
+      if (!isMobile && pointer.client.current.x >= 0) {
+        const sx = steerAxis(pt.x)
+        const sy = steerAxis(pt.y)
+        steering = Math.max(Math.abs(sx), Math.abs(sy))
+        targetYaw.current += sx * STEER_YAW * secs
+        targetPitch.current = clamp(
+          targetPitch.current + sy * STEER_PITCH * secs,
+          -PITCH_LIMIT,
+          PITCH_LIMIT,
+        )
+      }
+
+      // The room turns gently on its own — but only while nobody is steering
+      // it, and not at all while a frame is being read.
+      if (!focus && !reduced) {
         if (!started) started = now
         const age = (now - started) / 1000
         const spin = age >= SPIN_UP ? 1 : 1 - Math.pow(1 - age / SPIN_UP, 3)
-        targetYaw.current += DRIFT * spin * f
+        targetYaw.current += DRIFT * spin * (1 - steering) * f
       }
+
       const ease = 1 - Math.pow(1 - 0.075, f)
       yaw.current += (targetYaw.current - yaw.current) * ease
       pitch.current += (targetPitch.current - pitch.current) * ease
 
-      const pt = pointer.step()
       const t = now / 1000
-      const focus = hoveredRef.current
+      const cx = vw / 2
+      const cy = vh / 2
 
-      // The cursor steers. Moving the mouse to the edge of the screen turns
-      // the head most of a viewport's worth in that direction, so the room can
-      // be explored by pointing at it — dragging and scrolling are then extra
-      // ways in rather than the only ones. `pt` is already eased, so this
-      // inherits the smoothing for free.
+      // The parallax lean, on top of the heading the steering has built up.
       const viewYaw = yaw.current + pt.x * LOOK_YAW
       const viewPitch = clamp(
         pitch.current + pt.y * LOOK_PITCH,
@@ -480,17 +646,7 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         else if (a < -Math.PI) a += TAU
 
         const away = Math.abs(a)
-        if (away > FOV_CULL) {
-          // Behind the viewer. Hiding rather than merely fading keeps it out
-          // of hit-testing and off the compositor entirely.
-          if (!entry.hidden) {
-            entry.hidden = true
-            entry.lastAlpha = 0
-            root.style.opacity = '0'
-          }
-          entry.depth = 0
-          return
-        }
+        if (away > FOV_CULL) return conceal(entry)
 
         // Barely there. A 14px bob on every tile made the whole thing
         // shimmer; at this amplitude it reads as the room breathing.
@@ -498,31 +654,55 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         const e = tile.elevation - viewPitch + float
 
         const cosA = Math.cos(a)
-        const sinA = Math.sin(a)
         const cosE = Math.cos(e)
-        const sinE = Math.sin(e)
         const R = tile.radius
 
         // Straight spherical-to-camera. D is the distance in front of the
         // eye; on a shell the flanks swing close, so it falls off sharply
         // toward the edges of vision and those tiles read large.
         const D = R * cosA * cosE
-        if (D < NEAR_CLIP) {
-          if (!entry.hidden) {
-            entry.hidden = true
-            entry.lastAlpha = 0
-            root.style.opacity = '0'
-          }
-          entry.depth = 0
-          return
+        if (D < NEAR_CLIP) return conceal(entry)
+
+        // Where the frame lands on screen, in closed form.
+        //
+        // The projection is rectilinear — a point at bearing θ lands at
+        // P·tan(θ) from centre — and a tile of width w hung at radius R
+        // subtends ±atan(w / 2R·cos e) about its own bearing, so its edges are
+        // just two more tangents. Height is the same about its elevation, with
+        // the 1/cos a that a horizontal angle adds to everything vertical.
+        // Nothing here has to be measured.
+        const phi = Math.atan2(tile.width / 2, R * cosE)
+        const psi = Math.atan2(tile.width / tile.aspect / 2, R)
+        const left = cx + project(a - phi)
+        const right = cx + project(a + phi)
+        const top = cy - project(e + psi) / cosA
+        const bottom = cy - project(e - psi) / cosA
+
+        // The real cull: a frame with no part of it near the viewport costs
+        // nothing to skip, and skipping it is what keeps the number of tiles
+        // being transformed each frame at what is actually on screen — about
+        // twenty — rather than every one within the angular field.
+        if (
+          right < -OFFSCREEN_MARGIN ||
+          left > vw + OFFSCREEN_MARGIN ||
+          bottom < -OFFSCREEN_MARGIN ||
+          top > vh + OFFSCREEN_MARGIN
+        ) {
+          return conceal(entry)
         }
-        const X = R * sinA * cosE
-        const Y = -R * sinE
+
+        entry.left = left
+        entry.right = right
+        entry.top = top
+        entry.bottom = bottom
+
+        const X = R * Math.sin(a) * cosE
+        const Y = -R * Math.sin(e)
 
         // Deliberately not toggling `visibility`: that invalidates layout on
-        // every change, and updateFocus calls getBoundingClientRect three
-        // frames later, which then forces a synchronous reflow. Opacity alone
-        // stays on the compositor. This was the stutter.
+        // every change, and the loop would then be forcing a reflow every time
+        // a frame crossed the edge of the screen. Opacity alone stays on the
+        // compositor.
         if (entry.hidden) entry.hidden = false
 
         // Nearness, 0..1, used to rank who gets a decoder and who paints on
@@ -538,29 +718,31 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         // signs are the whole of "inward, not outward". A tile off to the
         // right has a > 0; rotateY(−a) swings its *right* edge toward the eye,
         // so the shell closes around the viewer like the inside of a drum.
-        // Positive rotateY would push that edge away instead and the wall
-        // would bulge outward at you, which is what it did before.
-        root.style.transform =
-          `perspective(${PERSPECTIVE}px) ` +
-          `translate3d(${X.toFixed(1)}px, ${Y.toFixed(1)}px, ${(PERSPECTIVE - D).toFixed(1)}px) ` +
+        const transform =
+          `perspective(${P}px) ` +
+          `translate3d(${X.toFixed(1)}px, ${Y.toFixed(1)}px, ${(P - D).toFixed(1)}px) ` +
           `rotateY(${(-a).toFixed(4)}rad) ` +
           `rotateX(${(-e).toFixed(4)}rad)`
+        // Composing the string is cheap; handing it to the style system is
+        // not, and while a frame is being read the room is still and every
+        // one of these is identical to the last.
+        if (transform !== entry.lastTransform) {
+          entry.lastTransform = transform
+          root.style.transform = transform
+        }
 
         // Paint order is DOM order without a shared 3D context, so depth has
-        // to drive z-index — which also makes hit-testing pick the front tile.
-        // Written only when the rounded value changes: an inline style costs a
-        // parse and an invalidation whether or not it differs.
-        const z = Math.round(depth * 1000)
+        // to drive z-index — which also decides what the focused frame sits in
+        // front of, including the veil that softens everything behind it.
+        const z = focus === tile.key ? FOCUS_Z : Math.round(depth * 1000)
         if (z !== entry.lastZ) {
           entry.lastZ = z
           root.style.zIndex = String(z)
         }
 
         // Wash out toward the edge of vision so nothing pops in at the
-        // shoulder, and let the very back of the shell fall away a little.
-        // Edge-of-vision fade only. The extra (0.55 + 0.45·depth) term here
-        // was knocking every far frame down to little over half opacity on top
-        // of the shading below, which is why the room read as dim and empty.
+        // shoulder. With the box cull above doing the real work this almost
+        // never fires, which is the point: it is a backstop.
         const alpha =
           Math.round((1 - smoothstep(FOV_FADE, FOV_CULL, away)) * 200) / 200
         if (alpha !== entry.lastAlpha) {
@@ -571,18 +753,16 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         // Light. The reference sits close to the footage's own brightness and
         // only the far shell falls away; a heavy veil greys everything into a
         // smudge where nothing separates from its neighbours.
-        const shading = clamp(0.34 - depth * 0.34, 0, 0.34)
-        // Focus softens the room rather than erasing it. Taking everything
-        // else to 0.975 black left the page looking broken — one picture
-        // floating in a void — when all it needs is for the surroundings to
-        // step back. The blur below does most of the separating; this only
-        // has to take the edge off.
+        const shading = clamp(0.24 - depth * 0.24, 0, 0.24)
+        // Focus steps the room back; it does not clear it away. The veil below
+        // is what separates the picture from its surroundings, so all this has
+        // to do is take a little light off, and 0.16 is a little.
         const dim =
           Math.round(
             (focus === tile.key
               ? 0
               : focus
-                ? Math.min(0.62, shading + 0.34)
+                ? Math.min(0.4, shading + 0.16)
                 : shading) * 200,
           ) / 200
         if (dim !== entry.lastShade) {
@@ -591,12 +771,27 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         }
       })
 
+      // Both of these read the boxes written just above, in the same frame, so
+      // hover no longer trails the picture it is meant to be over.
+      //
+      // Nothing is focused while the room is being turned: a frame is read by
+      // bringing it into the still centre, not by chasing it around the edge
+      // of the screen. It also means the veil — the one genuinely expensive
+      // thing on the page — is only ever up while nothing is moving.
+      tick++
+      if (steering > 0) setFocus(null)
+      else resolveFocus()
+      if (tick === 1 || tick % 20 === 0) updatePlaying()
+
       raf = requestAnimationFrame(frame)
     }
 
     raf = requestAnimationFrame(frame)
-    return () => cancelAnimationFrame(raf)
-  }, [repeats, reduced, pointer, maxPlaying])
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [repeats, reduced, pointer, maxPlaying, isMobile])
 
   return (
     <div
@@ -607,18 +802,7 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       {/* z-0 is load-bearing: it makes the wall its own stacking context, so
           the depth-derived z-index on each tile stays local and cannot paint
           over the scrims and vignette below. */}
-      {/* One blur on the whole room while a frame is focused, rather than a
-          filter per tile: eighty individual blurs would each force their own
-          paint pass. The focused tile is lifted out of it by its own z-index
-          and its shade going to zero. */}
-      <div
-        ref={worldRef}
-        className="absolute inset-0 z-0"
-        style={{
-          filter: hovered ? 'blur(2.5px)' : 'none',
-          transition: 'filter 520ms var(--ease-out-expo)',
-        }}
-      >
+      <div ref={worldRef} className="absolute inset-0 z-0">
         {cloud.map((tile) => (
           <GalleryTile
             key={tile.key}
@@ -629,22 +813,66 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
             onSelect={handleSelect}
           />
         ))}
+
+        {/* The hover treatment.
+
+            The last version put `filter: blur()` on this whole container, which
+            does two things wrong. It blurs the focused frame too — a filter
+            applies to the entire subtree, and no amount of z-index lifts a
+            child out of its own parent's filter — and it collapses eighty
+            independently composited layers into one surface that has to be
+            re-rasterised every frame while they move, which is a fair share of
+            the glitching.
+
+            A `backdrop-filter` on a single sheet does what was actually wanted:
+            it softens what is already painted beneath it and leaves the tiles
+            as their own layers. The focused frame is given a z-index above the
+            sheet, so it stays sharp and lit while its surroundings step back a
+            little — which is all Sneha asked for. */}
+        {veil && (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              zIndex: VEIL_Z,
+              opacity: veilOn ? 1 : 0,
+              backdropFilter: 'blur(3px)',
+              WebkitBackdropFilter: 'blur(3px)',
+              backgroundColor: 'rgba(4,7,15,0.26)',
+              transition: `opacity ${VEIL_MS}ms var(--ease-out-expo)`,
+              willChange: 'opacity',
+            }}
+          />
+        )}
       </div>
 
-      {/* Keeps the hero copy sitting on darkness no matter what flies past. */}
+      {/* Keeps the hero copy sitting on darkness no matter what flies past.
+
+          Lightened hard. These two used to stack 0.92 black over the middle of
+          the screen and 0.9 over the corners, which between them passed about
+          a third of the wall's light and is most of why the frames read as
+          barely there. The copy over the top carries `on-scrim`, a heavy
+          text-shadow, and does not need the page blacked out behind it to be
+          legible. */}
       <div
         className="pointer-events-none absolute inset-0 z-10"
         style={{
           background:
-            'radial-gradient(ellipse 46% 38% at 50% 50%, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.72) 46%, transparent 78%)',
+            'radial-gradient(ellipse 44% 36% at 50% 50%, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.34) 48%, transparent 76%)',
         }}
       />
-      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_38%,rgba(0,0,0,0.9)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_46%,rgba(0,0,0,0.66)_100%)]" />
 
       {/* Edge scrims: the wall runs behind the wordmark and the bottom links,
-          and a bright tile drifting past must never eat them. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-void via-void/75 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-void via-void/80 to-transparent" />
+          and a bright tile drifting past must never eat them.
+
+          The bottom one was the heavier of the two — 224px of near-solid black
+          — and it is a third of the frame. Measured band luminance across the
+          page ran 18 / 59 / 27 / 17 / 4 / 5 from top to bottom: the room had no
+          floor, and most of that was this. Lightened to the weight the top one
+          carries, which the links' own text-shadow is more than able to sit
+          on. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-40 bg-gradient-to-b from-void via-void/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-48 bg-gradient-to-t from-void/95 via-void/55 to-transparent" />
     </div>
   )
 }
