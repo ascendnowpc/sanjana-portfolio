@@ -1,34 +1,40 @@
 import { seededRandom, hashString } from '@/lib/utils'
 import type { Performance } from '@/types/content'
 
+/**
+ * A frame hanging in the shell of pictures around the viewer.
+ *
+ * Positions are *angles*, not coordinates. The viewer stands still at the
+ * centre and turns; a tile's place in the world never changes, only the
+ * direction you are facing. That is the whole model, and it is why there is no
+ * `x`/`y`/`z` here any more — those belonged to a wall that flew past you.
+ */
 export interface TileLayout {
   performance: Performance
-  /** Stable key — the same performance appears at several depths. */
+  /** Stable key — the same performance appears at several bearings. */
   key: string
-  /** Position on the wall, in px, relative to the viewport centre. Fixed:
-   *  the wall travels forward and pans, it does not rotate. */
-  x: number
-  y: number
-  /** Resting depth before travel is applied. */
-  z: number
-  /** Tile width in px; height derives from `aspect`. */
+  /** Bearing around the viewer, in radians. 0 is dead ahead at rest. */
+  azimuth: number
+  /** Angle above (+) or below (−) the horizon, in radians. */
+  elevation: number
+  /** Distance from the viewer, in px. Varies so the shell has thickness. */
+  radius: number
+  /** Tile width in px at unit scale; height derives from `aspect`. */
   width: number
   /** width / height the tile is cut to — the footage's own ratio. */
   aspect: number
-  /** Small per-tile rotation so the wall never looks like a spreadsheet. */
-  tilt: number
   /** Phase offset for the idle float, so tiles don't bob in unison. */
   phase: number
 }
 
 export interface CloudOptions {
-  /** How many copies of the catalogue to stack down the tunnel. */
+  /** How many copies of the catalogue to hang around the viewer. */
   repeats: number
-  /** Total depth of one repeat, in px. */
-  depth: number
-  /** Radius of the clear hole in the middle, so the overlay copy stays legible. */
-  innerRadius: number
-  outerRadius: number
+  /** Nearest and furthest a tile may sit from the viewer. */
+  minRadius: number
+  maxRadius: number
+  /** How far above and below the horizon tiles may hang, in radians. */
+  elevationSpread: number
   minWidth: number
   maxWidth: number
 }
@@ -36,82 +42,56 @@ export interface CloudOptions {
 /** The ratio tile widths are normalised against, and the fallback aspect. */
 const LANDSCAPE = 16 / 9
 
-/** Flattens the ring into a wide wall rather than a sphere. */
-const VERTICAL_SQUASH = 0.58
+const TAU = Math.PI * 2
 
-/**
- * Placement is scattered, not gridded.
- *
- * An earlier pass pinned tiles to thirteen fixed angular slots on three
- * shells, on the theory that the reference wall was a corridor of standing
- * columns. Watching it actually move says otherwise: the tiles are strewn
- * through the volume at every angle and every distance from the axis, and the
- * regularity I thought I saw in stills was just perspective lining things up
- * for a moment. Golden-angle placement gives that — even coverage with no
- * repeating figure — which is what was here originally.
- */
+/** Golden angle — even bearings with no repeating figure. */
 const GOLDEN = Math.PI * (3 - Math.sqrt(5))
 
-/**
- * How much of the radius is random rather than evenly stepped.
- *
- * Fully random clumps; fully even reads as a target. Stepping the radius and
- * then jittering it keeps the field even at any depth without banding.
- */
-const RADIUS_JITTER = 0.42
-
-/** Depth scatter as a fraction of the gap between consecutive tiles. Tiles
- *  must not arrive at the camera in evenly spaced ranks. */
-const DEPTH_JITTER = 0.85
-
 export const DEFAULT_CLOUD: CloudOptions = {
-  repeats: 3,
   /**
-   * Spacing, not density.
+   * Two copies, deliberately spread half a turn apart.
    *
-   * The last pass packed this to 2350 chasing "more frames on screen" and the
-   * result was a mosaic — tiles touching, no black between them, nothing for
-   * the eye to rest on. In the reference the gaps are as considered as the
-   * frames: roughly two thirds of the screen is empty at any moment.
+   * Enough frames that a look in any direction finds work, few enough that the
+   * gaps stay as wide as the reference's — about twenty on screen at once, not
+   * forty. Copies of one performance sit 180° apart so two of the same picture
+   * can never be in view together.
    */
-  depth: 3400,
+  repeats: 2,
   /**
-   * A soft clearing in the middle rather than a cut hole.
-   *
-   * 440 made a donut; 90 let tiles sit on the wordmark. The reference keeps a
-   * loose gap around its centre copy that work still drifts near but rarely
-   * through.
+   * The shell has thickness: some frames hang close and read large, others sit
+   * well back. Now that nothing travels, this is the only depth cue left, so
+   * the range is generous. Sized against the short focal length in
+   * ImmersiveGallery — scale is focal ÷ distance, so a wide lens wants the
+   * work closer or everything shrinks.
    */
-  innerRadius: 210,
-  // Wide enough that the corners of the frame are never empty.
-  outerRadius: 1500,
+  minRadius: 620,
+  maxRadius: 1700,
   /**
-   * Small. This is the single biggest correction.
-   *
-   * Ours ran 200–560px against a 1456px viewport, so two or three tiles could
-   * own the whole frame and everything read as clutter. Measured off the
-   * reference at the same viewport width the range is roughly 40–290, with
-   * most frames nearer the bottom of it — the wall is made of many modest
-   * pictures and a few large ones, not the other way round.
+   * Kept narrow on purpose. At ±0.28rad the highest and lowest frames land
+   * near the top and bottom edges of a 16:9 viewport; wider than that and work
+   * hangs permanently out of sight above the ceiling.
    */
-  minWidth: 96,
-  maxWidth: 360,
+  elevationSpread: 0.28,
+  /**
+   * Measured off the reference at a 1456px viewport: frames run about 40–290px
+   * with most near the bottom of that range. These are pre-projection widths,
+   * so the perspective scale of focal-length ÷ distance moves them around it.
+   */
+  minWidth: 70,
+  maxWidth: 300,
 }
 
 /**
- * Scatters the catalogue through the volume of the tunnel.
+ * Hangs the catalogue in a shell around the viewer.
  *
- * Golden-angle placement spreads tiles evenly around the axis without any
- * repeating figure, and the radius is stepped-then-jittered so the field stays
- * evenly dense from the middle out rather than clumping.
+ * Bearings come from the golden angle so coverage is even at any heading with
+ * no repeating pattern; elevations are stratified across the band and then
+ * jittered, so frames never line up into rows; radii spread across the shell's
+ * thickness so some read near and some far.
  *
- * The two things that matter most are what is *not* here. Nothing is held back
- * from the centre, so far tiles converge to a vanishing point and the wall
- * reads as a volume you are inside rather than a ring you are passing through.
- * And no tile carries any roll: watching the reference move, every frame is
- * square to the world and the only rotation is the perspective turning it
- * toward the axis. Random roll was the single biggest source of visual noise
- * when this had it.
+ * Nothing here is on a wall and nothing has a travel direction. Tiles are
+ * placed once and never move again — the loop that draws them only ever
+ * changes where the viewer is *looking*.
  */
 export function buildCloud(
   performances: Performance[],
@@ -121,60 +101,55 @@ export function buildCloud(
   if (!performances.length) return []
 
   const tiles: TileLayout[] = []
+  const n = performances.length
+
   for (let rep = 0; rep < o.repeats; rep++) {
     performances.forEach((performance, i) => {
-      const idx = rep * performances.length + i
+      const idx = rep * n + i
       const rnd = seededRandom(hashString(performance.slug) + rep * 7919)
 
-      const angle = idx * GOLDEN
+      // Golden angle spreads the catalogue evenly around the horizon; the
+      // per-repeat offset guarantees a performance's copies sit as far apart
+      // as the shell allows, so you never see the same still twice at once.
+      const azimuth = (i * GOLDEN + (rep * TAU) / o.repeats) % TAU
 
-      // Stepped through the full range as the index advances, then jittered.
-      // sqrt on the stepped part keeps the density even: without it, equal
-      // radial steps crowd the middle, because a ring's area grows with r.
-      const even = Math.sqrt(((idx * 0.618) % 1))
-      const spread = even * (1 - RADIUS_JITTER) + rnd() * RADIUS_JITTER
-      const radius = o.innerRadius + (o.outerRadius - o.innerRadius) * spread
+      // Stratified rather than random: each tile gets its own slice of the
+      // band and jitters within it, which fills the height evenly instead of
+      // clumping frames at the horizon and leaving the top empty.
+      const slice = (idx % n) / n
+      const elevation =
+        (slice * 2 - 1 + (rnd() - 0.5) * (1.6 / n)) * o.elevationSpread
 
-      // Evenly spaced down the tunnel, then scattered by most of one gap, so
-      // work does not arrive at the camera in ranks.
-      const slot = (i + (rnd() - 0.5) * DEPTH_JITTER) / performances.length
-      // Featured work sits a little nearer the front of each repeat.
-      const lead = performance.featured ? -0.22 : 0
-      const z = -(rep * o.depth + (slot + lead) * o.depth)
+      // Squared, so more frames sit far than near. An even spread of radii
+      // puts too many large tiles in view at once and the shell feels
+      // crowded; leaning far keeps a few frames forward as accents.
+      const far = rnd()
+      const radius = o.minRadius + (o.maxRadius - o.minRadius) * (1 - far * far)
 
       // Tiles are cut to the footage's own ratio rather than a uniform 16:9,
       // so portrait phone video is not centre-cropped into a letterbox strip.
       // Widths are then normalised to equal *area*, not equal width: a 9:16
       // tile drawn at full width would stand nearly twice as tall as its
-      // landscape neighbours and wreck the density of the wall.
+      // landscape neighbours and wreck the density of the shell.
       const aspect = performance.aspect ?? LANDSCAPE
-      // A wide spread of sizes, on purpose. The reference has small frames
-      // deep in the middle and slabs at the edges in the same view, and that
-      // mixture is a large part of why it reads as depth rather than as a
-      // pattern.
-      // Squared, so the distribution leans small: many modest frames and the
-      // occasional large one, which is what the reference's range looks like
-      // when you measure it. A flat random gives far too many mid-size tiles
-      // and the wall turns into a patchwork.
       const r = rnd()
       const base =
         o.minWidth +
         (o.maxWidth - o.minWidth) *
-          (performance.featured ? 0.6 + rnd() * 0.4 : r * r)
+          (performance.featured ? 0.62 + rnd() * 0.38 : r * r)
 
       tiles.push({
         performance,
         key: `${performance.slug}-${rep}`,
-        x: Math.cos(angle) * radius,
-        // Flattened vertically — a wide wall reads better than a sphere.
-        y: Math.sin(angle) * radius * VERTICAL_SQUASH,
-        z,
+        azimuth,
+        elevation,
+        radius,
         width: base * Math.sqrt(aspect / LANDSCAPE),
         aspect,
-        tilt: 0,
-        phase: rnd() * Math.PI * 2,
+        phase: rnd() * TAU,
       })
     })
   }
+
   return tiles
 }

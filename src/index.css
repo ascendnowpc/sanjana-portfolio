@@ -6,9 +6,13 @@
    light source, violet + ember reserved for category accents.
 ------------------------------------------------------------------- */
 @theme {
-  --color-void: #04070f;
-  --color-ink: #070c18;
-  --color-abyss: #0b1120;
+  /* Pure black, not a navy. The reference sits its work on #000 and the
+     difference is not subtle at this scale: a #04070f ground puts a blue cast
+     behind every frame, which is what made stage photography look tinted and
+     the whole page read cooler than the footage in it. */
+  --color-void: #000000;
+  --color-ink: #050505;
+  --color-abyss: #0a0a0c;
   --color-slate-deep: #131d2f;
   --color-edge: #1d2a3f;
 

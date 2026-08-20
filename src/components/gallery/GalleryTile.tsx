@@ -17,9 +17,12 @@ export interface TileRefs {
   /** One overlay carrying both depth shading and the dim-the-rest state. */
   shade: HTMLDivElement
   tile: TileLayout
-  /** Written by the gallery loop each frame: 0 = far, 1 = at the camera.
-   *  Hit-testing uses it to pick the frontmost tile under the pointer. */
+  /** Written by the gallery loop each frame: 0 = far side of the shell,
+   *  1 = closest to the eye. Hit-testing and the decoder budget both rank on
+   *  it, and it drives z-index so the nearest frame paints on top. */
   depth: number
+  /** True while the tile is behind the viewer and taken out of the layout. */
+  hidden?: boolean
   /** Last values the loop wrote for the properties that change slowly, so it
    *  can skip the write when nothing moved. Owned entirely by the loop. */
   lastZ?: number
