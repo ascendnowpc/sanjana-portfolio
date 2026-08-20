@@ -41,10 +41,16 @@ renaming the video, the preview and the poster together.
 
 `videoSrc` is the full recording, fetched only on a detail page.
 
-`previewSrc` is the loop the index wall plays. **Every tile in frame plays at
-once** — around 54 of them on a laptop screen — so the binding constraint is
-concurrent *decode*, not download. That is why the cut is 480px at 15fps
-rather than something prettier: roughly a third of the decode cost of 640/30.
+`previewSrc` is the loop the index wall plays. **A dozen tiles play at once** —
+the nearest ones, one clip per performance — because the binding constraint is
+concurrent *decode*, not download. A browser has only a handful of hardware
+decoders, and past roughly a dozen streams it falls back to decoding on the
+main thread, which is the same thread animating the wall. The rest of the
+tiles hold their poster; at tunnel depth the difference does not read.
+
+That cap lives in `MAX_PLAYING` in `src/components/gallery/ImmersiveGallery.tsx`.
+The cut is still 480px at 15fps rather than something prettier — roughly a
+third of the decode cost of 640/30 — which is what makes even a dozen cheap.
 All 36 together are 2.4 MB, against 1.1 GB of full recordings.
 
 The `-480` suffix is load-bearing. Objects carry an immutable one-year cache
