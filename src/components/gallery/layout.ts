@@ -59,14 +59,17 @@ const GOLDEN = Math.PI * (3 - Math.sqrt(5))
 
 export const DEFAULT_CLOUD: CloudOptions = {
   /**
-   * Two copies, deliberately spread half a turn apart.
+   * Three copies, spread evenly around the horizon.
    *
-   * Enough frames that a look in any direction finds work, few enough that the
-   * gaps stay as wide as the reference's — about twenty on screen at once, not
-   * forty. Copies of one performance sit 180° apart so two of the same picture
-   * can never be in view together.
+   * Density is the product of how many frames hang in the shell and how big
+   * each one is on screen, and the sizes below just came down by a third — two
+   * copies at the new size cover about a fifth of the viewport, which reads as
+   * a nearly empty room. A third copy puts the coverage back where the
+   * reference sits it without making any single frame bigger. Copies of one
+   * performance sit a third of a turn apart, so the same still is never in
+   * view twice.
    */
-  repeats: 2,
+  repeats: 3,
   /**
    * The shell has thickness: some frames hang close and read large, others sit
    * well back. Since sizes below are given on screen and the cut width is
@@ -104,9 +107,16 @@ export const DEFAULT_CLOUD: CloudOptions = {
    * Frames drift larger than these toward the edges of the screen, where the
    * shell swings closer to the eye — by about half again at the corners, which
    * is the perspective doing its job.
+   *
+   * Down by nearly half from 150/470. At the old ceiling a featured frame near the
+   * edge of vision projected past 640px — nearly half the width of the screen
+   * — and a frame that size stops reading as one picture among many hanging in
+   * a room and starts reading as the page itself. The depth cues that sell the
+   * shell are all comparative: a near frame only looks near next to a far one,
+   * and there is no room left for a far one when the near one is that big.
    */
-  minScreen: 150,
-  maxScreen: 470,
+  minScreen: 98,
+  maxScreen: 268,
 }
 
 /**

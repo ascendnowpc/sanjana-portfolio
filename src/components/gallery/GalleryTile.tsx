@@ -2,6 +2,14 @@ import { memo, useEffect, useRef, useState } from 'react'
 import type { TileLayout } from './layout'
 import { mediaUrl } from '@/lib/media'
 
+/**
+ * How much a frame grows while it is being read.
+ *
+ * Exported because the gallery has to place the caption clear of the frame at
+ * the size it will settle at, not the size it had when the cursor stopped.
+ */
+export const HOVER_SCALE = 1.14
+
 interface Props {
   tile: TileLayout
   /** Populated by the gallery so its rAF loop can write transforms directly. */
@@ -23,6 +31,9 @@ export interface TileRefs {
   depth: number
   /** True while the tile is behind the viewer and taken out of the layout. */
   hidden?: boolean
+  /** 0..1, eased by the loop: how much this is *the* frame being read. Drives
+   *  the shading, so gaining and losing focus are both movements. */
+  lit?: number
   /**
    * The tile's projected box in viewport px, written by the loop every frame
    * from the same arithmetic that produces the transform.
@@ -106,15 +117,18 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
         className="group relative block w-full cursor-pointer overflow-hidden bg-ink outline outline-white/5"
         style={{
           aspectRatio: tile.aspect,
-          transition: 'transform 700ms var(--ease-out-expo), box-shadow 500ms',
-          transform: active ? 'scale(1.06)' : 'scale(1)',
+          transition: 'transform 620ms var(--ease-out-expo), box-shadow 500ms',
+          // Bigger than it was. The frame being read has to separate from a
+          // wall of its neighbours, and now that no frame is 470px wide to
+          // begin with there is room for it to grow into.
+          transform: active ? `scale(${HOVER_SCALE})` : 'scale(1)',
           // Colourless. Each category used to tint its own hover — amber for
           // theatre, pink for duets, violet, green — so hovering across the
           // wall flashed through a paintbox. The reference lifts a frame with
           // nothing but its own picture and a plain light edge, and that is
           // what makes a hover there feel clean.
           boxShadow: active
-            ? '0 0 0 1px rgba(232,226,214,0.34), 0 30px 90px -24px rgba(0,0,0,0.9)'
+            ? '0 0 0 1px rgba(232,226,214,0.42), 0 40px 110px -20px rgba(0,0,0,0.95)'
             : 'none',
         }}
       >
@@ -126,10 +140,14 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
           draggable={false}
           className="h-full w-full object-cover"
           style={{
-            transition: 'transform 5s var(--ease-out-expo), filter 600ms',
+            // Was 5s, which is longer than most hovers last: letting go of a
+            // frame left its picture creeping back for another four seconds
+            // over a wall that had moved on, and a dozen of those overlapping
+            // is a fair share of what read as glitching.
+            transition: 'transform 1600ms var(--ease-out-expo), filter 600ms',
             // Runs under the preview loop, and carries the hover on its own
             // for any entry with no footage attached yet.
-            transform: active ? 'scale(1.14)' : 'scale(1.01)',
+            transform: active ? 'scale(1.06)' : 'scale(1.01)',
             // No saturate/contrast boost on hover: the reference shows the
             // footage as it is, and pushing colour was part of what read as
             // "strange colours".
@@ -152,6 +170,34 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
           style={{ opacity: 0.6 }}
         />
 
+        {/* The invitation, on the picture itself.
+
+            It used to sit with the title in the middle of the screen, several
+            hundred pixels from the frame it referred to, which is a caption
+            for a wall rather than for a picture. Here it is unambiguous: this
+            frame, the lit one, opens. Mounted only while hovered — a text node
+            per tile is cheap, but eighty of them are not. */}
+        {active && (
+          <>
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.1) 42%, transparent 70%)',
+                animation: 'tile-caption 420ms var(--ease-out-expo) both',
+              }}
+            />
+            <span
+              className="tracked on-scrim pointer-events-none absolute inset-x-0 bottom-[8%] text-center text-chalk"
+              style={{
+                fontSize: 'clamp(0.5rem, 0.72vw, 0.72rem)',
+                animation: 'tile-caption 520ms var(--ease-out-expo) both',
+              }}
+            >
+              Learn more
+            </span>
+          </>
+        )}
       </button>
     </div>
   )

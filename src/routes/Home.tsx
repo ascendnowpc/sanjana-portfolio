@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Performance } from '@/types/content'
-import { ImmersiveGallery } from '@/components/gallery/ImmersiveGallery'
+import {
+  ImmersiveGallery,
+  type CaptionAnchor,
+} from '@/components/gallery/ImmersiveGallery'
 import { MagneticLink } from '@/components/ui/MagneticLink'
 import { SplitText } from '@/components/ui/SplitText'
 import { usePerformances } from '@/hooks/useContent'
@@ -26,6 +29,32 @@ const Small = ({ children }: { children: React.ReactNode }) => (
 export default function Home() {
   const { items } = usePerformances()
   const [focused, setFocused] = useState<Performance | null>(null)
+  /** Where the caption sits, so it never lands on the frame it describes. */
+  const [anchor, setAnchor] = useState<CaptionAnchor>({
+    side: 'below',
+    offset: 470,
+  })
+  const onFocusChange = useCallback(
+    (performance: Performance | null, next: CaptionAnchor) => {
+      setFocused(performance)
+      // Only while there is something to place: taking the anchor from a
+      // clearing focus would swing the caption across the screen on its way
+      // out.
+      if (performance) setAnchor(next)
+    },
+    [],
+  )
+  /**
+   * Set once, part-way through the gallery's opening pull.
+   *
+   * The welcome sentence belongs to that wide establishing shot and to nothing
+   * after it: once the room has arrived, the work is the page, and a paragraph
+   * parked across the middle of it is just something to look past. So it is
+   * shown while the room is still far away and retired as it lands — the one
+   * thing it is for, done once.
+   */
+  const [arrived, setArrived] = useState(false)
+  const onIntroDone = useCallback(() => setArrived(true), [])
 
   // The index is a fixed, non-scrolling surface — travel is the scroll here.
   useEffect(() => {
@@ -39,52 +68,37 @@ export default function Home() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-void">
-      <ImmersiveGallery performances={items} onFocusChange={setFocused} />
+      <ImmersiveGallery
+        performances={items}
+        onFocusChange={onFocusChange}
+        onIntroDone={onIntroDone}
+      />
 
-      {/* ---------------- centre overlay ---------------- */}
+      {/* ---------------- centre overlay ----------------
+
+          Two things live here and they never overlap in time: the welcome
+          sentence, which belongs to the opening shot, and the caption for
+          whichever frame is being read, which belongs to everything after it.
+
+          Both are absolutely placed rather than sharing a flex slot, and the
+          `AnimatePresence` has no `mode` on purpose. `mode="wait"` held the
+          incoming caption until the outgoing one had finished leaving, so
+          moving from one frame to the next left the middle of the screen empty
+          for half a second — read as the page hanging. Overlapping them
+          crossfades instead, which is what the eye expects when the thing
+          being described has changed rather than gone. */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
-        <AnimatePresence mode="wait">
-          {focused ? (
-            <motion.div
-              key={focused.slug}
-              className="max-w-3xl text-center"
-              initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {/* Cream, not the category's colour. Hovering along the wall
-                  used to cycle the label through amber, pink and violet,
-                  which is exactly the "strange colours" in the reference's
-                  absence — everything there is one warm off-white. */}
-              <p className="label on-scrim mb-5 text-mist">
-                {CATEGORY_MAP[focused.category].label} — {focused.year}
-              </p>
-              <h2 className="tracked on-scrim text-[clamp(1.4rem,4vw,3.1rem)] leading-[1.25] text-chalk">
-                <SplitText text={focused.title} stagger={0.035} />
-              </h2>
-              <p className="on-scrim mx-auto mt-6 max-w-xl text-[0.78rem] leading-relaxed font-light tracking-wider text-mist uppercase">
-                {focused.blurb}
-              </p>
-              <p className="tracked-tight on-scrim mt-8 text-[0.7rem] text-mist">
-                Learn more
-              </p>
-            </motion.div>
-          ) : (
+        <AnimatePresence>
+          {!arrived ? (
             <motion.div
               key="welcome"
-              className="max-w-4xl text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, filter: 'blur(6px)' }}
-              transition={{ duration: 0.7 }}
+              className="absolute max-w-4xl px-6 text-center"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14, filter: 'blur(8px)' }}
+              transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
             >
-              <motion.div
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col gap-3"
-              >
+              <div className="flex flex-col gap-3">
                 <p>
                   <Small>Welcome</Small>
                 </p>
@@ -103,9 +117,39 @@ export default function Home() {
                   <Small>and</Small>
                   <Big>Honor Choir</Big>
                 </p>
-              </motion.div>
+              </div>
             </motion.div>
-          )}
+          ) : focused ? (
+            <motion.div
+              key={focused.slug}
+              className="absolute inset-x-0 mx-auto max-w-3xl px-6 text-center"
+              style={
+                anchor.side === 'below'
+                  ? { top: anchor.offset }
+                  : { bottom: anchor.offset }
+              }
+              initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -8, filter: 'blur(6px)' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {/* Cream, not the category's colour. Hovering along the wall
+                  used to cycle the label through amber, pink and violet,
+                  which is exactly the "strange colours" in the reference's
+                  absence — everything there is one warm off-white. */}
+              <p className="label on-scrim mb-5 text-mist">
+                {CATEGORY_MAP[focused.category].label} — {focused.year}
+              </p>
+              <h2 className="tracked on-scrim text-[clamp(1.4rem,4vw,3.1rem)] leading-[1.25] text-chalk">
+                <SplitText text={focused.title} stagger={0.035} />
+              </h2>
+              <p className="on-scrim mx-auto mt-6 max-w-xl text-[0.78rem] leading-relaxed font-light tracking-wider text-mist uppercase">
+                {focused.blurb}
+              </p>
+              {/* No "learn more" here any more — it sits on the frame itself
+                  now, where there is no doubt which picture it opens. */}
+            </motion.div>
+          ) : null}
         </AnimatePresence>
       </div>
 
@@ -140,8 +184,8 @@ export default function Home() {
       <motion.div
         className="pointer-events-none absolute right-6 bottom-10 hidden items-center gap-3 md:flex md:right-12"
         initial={{ opacity: 0 }}
-        animate={{ opacity: focused ? 0 : 1 }}
-        transition={{ duration: 0.6, delay: focused ? 0 : 1.6 }}
+        animate={{ opacity: !arrived || focused ? 0 : 1 }}
+        transition={{ duration: 0.6, delay: focused ? 0 : 0.5 }}
       >
         {/* The cursor is the primary control now — the room turns while the
             pointer is held away from the middle, and holds still when it comes

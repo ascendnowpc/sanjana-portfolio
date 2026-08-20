@@ -3,7 +3,6 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Nav } from '@/components/layout/Nav'
 import { Footer } from '@/components/layout/Footer'
-import { Cursor } from '@/components/layout/Cursor'
 import { Ambience } from '@/components/layout/Ambience'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { TransitionProvider } from '@/components/layout/TransitionProvider'
@@ -58,7 +57,6 @@ export default function App() {
       <TransitionProvider>
         <Preloader />
         <Ambience />
-        <Cursor />
         <Shell />
       </TransitionProvider>
     </BrowserRouter>
