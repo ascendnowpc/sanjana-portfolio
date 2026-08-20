@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import type { TileLayout } from './layout'
 import { mediaUrl } from '@/lib/media'
 import { CATEGORY_MAP } from '@/data/categories'
@@ -21,12 +21,17 @@ export interface TileRefs {
   /** Written by the gallery loop each frame: 0 = far, 1 = at the camera.
    *  Hit-testing uses it to pick the frontmost tile under the pointer. */
   depth: number
+  /** Last values the loop wrote for the properties that change slowly, so it
+   *  can skip the write when nothing moved. Owned entirely by the loop. */
+  lastZ?: number
+  lastAlpha?: number
+  lastShade?: number
 }
 
 /**
  * One frame on the wall.
  *
- * Kept deliberately thin: 30-odd of these composite every frame, so anything
+ * Kept deliberately thin: eighty of these composite every frame, so anything
  * that only matters on hover (the gradient wash, the caption) is mounted only
  * while hovered, and the per-frame values — transform, opacity, shading — are
  * written by the gallery's loop through the registered refs rather than by
@@ -100,27 +105,11 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
           }}
         />
 
-        {/* Always the short silent loop, never the full recording: half a
-            dozen of these run at once, and pointing them at four-minute files
-            would pull hundreds of megabytes through the wall. Falls back to
+        {/* Always the short silent loop, never the full recording: a dozen of
+            these run at once, and pointing them at four-minute files would
+            pull hundreds of megabytes through the wall. Falls back to
             `videoSrc` for any entry with no preview cut yet. */}
-        {showVideo && (
-          <video
-            // The element only exists when the gallery has decided this tile
-            // should be moving, so its existence is already the "load now"
-            // signal — preload="none" would leave it at readyState 0 forever.
-            // The explicit play() covers autoplay being declined on the
-            // attribute, which Safari does more readily than Chrome.
-            ref={(el) => void el?.play().catch(() => {})}
-            src={mediaUrl(preview)}
-            className="absolute inset-0 h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-          />
-        )}
+        {showVideo && <TilePreview src={mediaUrl(preview)!} />}
 
         {/* Depth shading and the dim-everything-else state share one layer;
             its opacity is driven per-frame by the gallery loop. Compositing an
@@ -131,7 +120,7 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
           style={{ opacity: 0.6 }}
         />
 
-        {/* Hover wash — mounted only while focused, so the other ~30 tiles
+        {/* Hover wash — mounted only while focused, so the other tiles
             carry no extra layers. The title and year deliberately live in the
             centre overlay only: repeating them on the tile collides with that
             copy whenever the focused tile sits near the middle of the wall. */}
@@ -145,6 +134,67 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
         )}
       </button>
     </div>
+  )
+}
+
+/**
+ * The looping preview on one tile, mounted only while it holds a decoder.
+ *
+ * Split out of the tile so the element's whole life — start, first frame,
+ * release — happens in one effect. The previous version drove it from an
+ * inline `ref` callback, which React tears down and re-runs on every render
+ * of the tile, so `play()` fired repeatedly and raced its own promise.
+ *
+ * It stays transparent until a frame is actually decoded. The poster sits
+ * directly underneath, so what the viewer sees is a still that quietly starts
+ * moving, never a black rectangle punched into the wall.
+ */
+function TilePreview({ src }: { src: string }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [ready, setReady] = useState(false)
+
+  // The source is attached here rather than as a `src` prop, because the
+  // teardown below detaches it and React would not know to put it back: it
+  // still believes the attribute holds the value it rendered. Under
+  // StrictMode, which runs every effect twice, that left every preview
+  // pointing at nothing.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.src = src
+    // A clip already in the HTTP cache can reach HAVE_CURRENT_DATA before the
+    // `loadeddata` listener would have anything to report, which would leave
+    // the preview running behind a transparent element forever.
+    if (el.readyState >= 2) setReady(true)
+    // Safari declines the autoplay attribute more readily than Chrome even
+    // when muted, so ask explicitly. A rejection here is not an error worth
+    // surfacing: the poster is already the fallback.
+    void el.play().catch(() => {})
+    return () => {
+      // Dropping the node is not enough to hand the decoder back promptly —
+      // the element can sit in the media pool still holding it, which is
+      // exactly the resource the budget upstream exists to ration.
+      el.pause()
+      el.removeAttribute('src')
+      el.load()
+    }
+  }, [src])
+
+  return (
+    <video
+      ref={ref}
+      className="absolute inset-0 h-full w-full object-cover"
+      style={{
+        opacity: ready ? 1 : 0,
+        transition: 'opacity 600ms var(--ease-out-expo)',
+      }}
+      onLoadedData={() => setReady(true)}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+    />
   )
 }
 

@@ -52,3 +52,32 @@ export function mediaUrl(path: string | undefined): string | undefined {
 export function mediaKey(path: string): string {
   return path.replace(/^\/+/, '')
 }
+
+/**
+ * Opens the connection to the media origin as early as possible.
+ *
+ * When media comes from R2 the very first poster request otherwise pays for a
+ * DNS lookup, a TCP handshake and a TLS negotiation before a single byte of
+ * image arrives — all of it on the critical path to first paint, and all of it
+ * avoidable by starting the handshake while the bundle is still parsing.
+ *
+ * A no-op when media is served from public/, where the connection is the one
+ * that delivered the page.
+ */
+export function preconnectMedia() {
+  if (!isRemoteMedia || typeof document === 'undefined') return
+  let origin: string
+  try {
+    origin = new URL(MEDIA_BASE, window.location.href).origin
+  } catch {
+    return
+  }
+  if (document.querySelector(`link[rel="preconnect"][href="${origin}"]`)) return
+  const link = document.createElement('link')
+  link.rel = 'preconnect'
+  // Deliberately no crossOrigin: posters load through plain <img> tags, which
+  // use the credentialed socket. An anonymous preconnect would warm up the
+  // other pool and the images would open a second connection anyway.
+  link.href = origin
+  document.head.appendChild(link)
+}

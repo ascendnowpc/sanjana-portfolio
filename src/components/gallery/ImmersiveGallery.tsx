@@ -29,23 +29,41 @@ const PAN_PER_PX = 1.35
 const PAN_LIMIT = 620
 
 /**
- * Every tile in frame plays.
+ * How many tiles may hold a video decoder at once.
  *
- * A 1456×839 viewport puts ~59 tiles on screen, so this has to clear that or
- * it silently becomes a budget and some visible tiles stay frozen. It is a
- * backstop against a pathological viewport, not a quality knob.
+ * This used to be 72 — "every tile in frame plays" — and that is what cost the
+ * wall its smoothness. A browser has a small pool of hardware video decoders;
+ * past roughly a dozen concurrent streams Chrome quietly drops the rest to
+ * software decode on the main thread, which is the same thread writing the
+ * transforms, so the whole wall stutters. Firefox and Safari cap harder still
+ * and simply refuse to start the surplus, leaving frozen tiles.
  *
- * This is only affordable because the previews are cut for it: 480px at 15fps
- * is roughly a third of the decode cost of the 640px/30fps cut they replaced,
- * and all 36 together are 2.4 MB. Tiles off the edge are still skipped — a
- * decoder spent on something invisible buys nothing.
- *
- * If this ever costs too many frames on weaker hardware, turning it down is
- * the single-line fix: the set is depth-ranked, so the furthest and faintest
- * tiles are the ones that lose their decoder first.
+ * A dozen moving frames already reads as "the whole wall is alive", because
+ * the ones that get them are the nearest and largest. The rest hold their
+ * poster, which at tunnel depth is indistinguishable at a glance.
  */
-const MAX_PLAYING = 72
-const MAX_PLAYING_MOBILE = 8
+const MAX_PLAYING = 12
+const MAX_PLAYING_MOBILE = 3
+
+/**
+ * Nudge given to a tile that is already playing when ranking candidates.
+ *
+ * Without it, two tiles either side of the cut swap places every time the
+ * ranking runs, and each swap tears down a decoder and starts a new one —
+ * the most expensive thing this component can do. The bonus is small enough
+ * that a genuinely nearer tile still takes the slot.
+ */
+const PLAY_STICKY = 0.08
+
+/**
+ * Delay, in ms, before the first decoder is handed out.
+ *
+ * Video elements created during first paint compete with the posters for
+ * bandwidth and hold `window.load` open, which is what kept the preloader
+ * pinned to its ceiling. Posters land first, the wall is interactive
+ * immediately, and the footage fades in behind it a moment later.
+ */
+const WARMUP_MS = 900
 
 /** Depth band worth spending a decoder on — see the opacity ramp below. */
 const PLAY_FAR = 0.1
@@ -64,8 +82,12 @@ interface Props {
  *
  * The React tree renders once and then stays still: all motion is written
  * straight to `style.transform` from a single rAF loop, which is what keeps
- * ~32 simultaneously-composited tiles smooth. Tiles wrap modulo the total
+ * eighty simultaneously-composited tiles smooth. Tiles wrap modulo the total
  * tunnel depth, so the wall never runs out.
+ *
+ * Only the nearest dozen carry live footage — see MAX_PLAYING. Everything
+ * else holds a poster, which is what keeps the wall a wall and not a stack of
+ * video decoders fighting over the main thread.
  */
 export function ImmersiveGallery({ performances, onFocusChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -85,9 +107,29 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
   const { zoomTo } = useTransition()
 
   const repeats = isMobile ? 1 : 2
+
+  /** False until the posters have settled — see WARMUP_MS. */
+  const [warm, setWarm] = useState(false)
+  useEffect(() => {
+    let t = 0
+    const arm = () => {
+      t = window.setTimeout(() => setWarm(true), WARMUP_MS)
+    }
+    if (document.readyState === 'complete') arm()
+    else window.addEventListener('load', arm, { once: true })
+    return () => {
+      window.removeEventListener('load', arm)
+      clearTimeout(t)
+    }
+  }, [])
+
   // Reduced-motion users get stills only: a frame full of autoplaying video is
   // precisely what that preference is asking us not to do.
-  const maxPlaying = reduced ? 0 : isMobile ? MAX_PLAYING_MOBILE : MAX_PLAYING
+  const maxPlaying = !warm || reduced
+    ? 0
+    : isMobile
+      ? MAX_PLAYING_MOBILE
+      : MAX_PLAYING
   const cloud = useMemo(
     () =>
       buildCloud(performances, {
@@ -253,15 +295,20 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     }
 
     /**
-     * Every tile visible in the frame runs its loop.
+     * Hands the decoder budget to the nearest tiles on screen.
      *
-     * Ranked by depth only so that if the cap ever bites, it is the furthest
-     * (smallest, most heavily shaded) tiles that lose their decoder rather
-     * than whatever happened to be iterated last.
+     * Ranked by depth, so the tiles that get footage are the big ones at the
+     * front — where motion actually reads — and the ones that lose it are the
+     * far, small, heavily-shaded ones where a still is indistinguishable.
+     *
+     * One clip per performance. The wall stacks `repeats` copies of the
+     * catalogue down the tunnel, so without this the same eight seconds of
+     * footage can hold two or three decoders at once for no visible gain.
      *
      * Membership changes slowly — tiles enter and leave the frame at drift
-     * speed — so the re-render this triggers stays rare even though the set
-     * is now large.
+     * speed, and PLAY_STICKY keeps a tile that already has a decoder from
+     * losing it to a marginally nearer neighbour — so the re-render this
+     * triggers stays rare.
      */
     const updatePlaying = () => {
       if (maxPlaying === 0) {
@@ -271,9 +318,10 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         }
         return
       }
+      const prev = playingRef.current
       const vw = window.innerWidth
       const vh = window.innerHeight
-      const near: { key: string; depth: number }[] = []
+      const near: { key: string; slug: string; rank: number }[] = []
 
       registry.current.forEach(({ root, tile, depth }) => {
         if (depth < PLAY_FAR || depth > PLAY_NEAR) return
@@ -282,15 +330,26 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         // A tile that has flown past the edge of the viewport is still in the
         // registry and still near the camera; it is not worth a decoder.
         if (r.right < 0 || r.left > vw || r.bottom < 0 || r.top > vh) return
-        near.push({ key: tile.key, depth })
+        near.push({
+          key: tile.key,
+          slug: tile.performance.slug,
+          rank: depth + (prev.has(tile.key) ? PLAY_STICKY : 0),
+        })
       })
 
-      near.sort((a, b) => b.depth - a.depth)
-      const next = near.slice(0, maxPlaying)
+      near.sort((a, b) => b.rank - a.rank)
 
-      const prev = playingRef.current
-      if (next.length === prev.size && next.every((n) => prev.has(n.key))) return
-      playingRef.current = new Set(next.map((n) => n.key))
+      const next: string[] = []
+      const claimed = new Set<string>()
+      for (const n of near) {
+        if (next.length >= maxPlaying) break
+        if (claimed.has(n.slug)) continue
+        claimed.add(n.slug)
+        next.push(n.key)
+      }
+
+      if (next.length === prev.size && next.every((k) => prev.has(k))) return
+      playingRef.current = new Set(next)
       setPlaying(playingRef.current)
     }
 
@@ -354,22 +413,42 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
 
         // Without a shared 3D context, paint order is DOM order — so depth has
         // to drive z-index, which also makes hit-testing pick the front tile.
-        root.style.zIndex = String(Math.round(depth * 1000))
+        //
+        // z-index, opacity and shading all crawl compared to the transform —
+        // at drift speed a tile's depth moves ~0.0002 per frame — so each is
+        // written only when its rounded value actually changes. Setting an
+        // inline property costs a parse and a style invalidation whether or
+        // not the value differs, and there are eighty tiles a frame.
+        const z = Math.round(depth * 1000)
+        if (z !== entry.lastZ) {
+          entry.lastZ = z
+          root.style.zIndex = String(z)
+        }
 
-        root.style.opacity = String(
-          smoothstep(0, 0.09, depth) * (1 - smoothstep(0.9, 1, depth)),
-        )
+        const alpha =
+          Math.round(
+            smoothstep(0, 0.09, depth) * (1 - smoothstep(0.9, 1, depth)) * 200,
+          ) / 200
+        if (alpha !== entry.lastAlpha) {
+          entry.lastAlpha = alpha
+          root.style.opacity = String(alpha)
+        }
 
         // One layer carries both jobs: depth shading, plus pushing every
         // other tile back when one is focused.
         const shading = clamp(0.74 - depth * 0.6, 0, 0.8)
-        shade.style.opacity = String(
-          focus === tile.key
-            ? shading * 0.2
-            : focus
-              ? Math.min(0.92, shading + 0.3)
-              : shading,
-        )
+        const dim =
+          Math.round(
+            (focus === tile.key
+              ? shading * 0.2
+              : focus
+                ? Math.min(0.92, shading + 0.3)
+                : shading) * 200,
+          ) / 200
+        if (dim !== entry.lastShade) {
+          entry.lastShade = dim
+          shade.style.opacity = String(dim)
+        }
       })
 
       raf = requestAnimationFrame(frame)

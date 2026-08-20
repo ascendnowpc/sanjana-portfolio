@@ -7,6 +7,11 @@ import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
  * A short curtain over the first paint — it hides the moment where the tunnel
  * has laid out but the posters have not yet decoded. Lifts on `window.load`,
  * with a hard ceiling so a slow asset can never trap the visitor.
+ *
+ * The timings here are short on purpose. `window.load` used to wait behind the
+ * wall's video elements, so the curtain sat at its ceiling on every visit and
+ * the site felt slow to open; now that footage is held back until after load,
+ * this lifts as soon as the posters are in.
  */
 export function Preloader() {
   const reduced = usePrefersReducedMotion()
@@ -16,11 +21,11 @@ export function Preloader() {
     if (reduced) return
     const lift = () => setDone(true)
     if (document.readyState === 'complete') {
-      const t = window.setTimeout(lift, 650)
+      const t = window.setTimeout(lift, 260)
       return () => clearTimeout(t)
     }
     window.addEventListener('load', lift)
-    const ceiling = window.setTimeout(lift, 2600)
+    const ceiling = window.setTimeout(lift, 1800)
     return () => {
       window.removeEventListener('load', lift)
       clearTimeout(ceiling)
@@ -33,7 +38,7 @@ export function Preloader() {
         <motion.div
           className="fixed inset-0 z-[90] flex items-center justify-center bg-void"
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="text-center">
             <motion.p
