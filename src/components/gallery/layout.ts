@@ -64,21 +64,24 @@ export const DEFAULT_CLOUD: CloudOptions = {
    * ImmersiveGallery — scale is focal ÷ distance, so a wide lens wants the
    * work closer or everything shrinks.
    */
-  minRadius: 620,
-  maxRadius: 1700,
+  minRadius: 560,
+  maxRadius: 1420,
   /**
-   * Kept narrow on purpose. At ±0.28rad the highest and lowest frames land
-   * near the top and bottom edges of a 16:9 viewport; wider than that and work
-   * hangs permanently out of sight above the ceiling.
+   * Sized to the lens, not guessed. Screen height is 2·P·tan(spread), so at
+   * the 780px focal length ±0.52rad fills a 1456×840 viewport corner to
+   * corner. It was ±0.28, which covered only the middle third and left a dead
+   * band across the top and bottom of every frame.
    */
-  elevationSpread: 0.28,
+  elevationSpread: 0.52,
   /**
-   * Measured off the reference at a 1456px viewport: frames run about 40–290px
-   * with most near the bottom of that range. These are pre-projection widths,
-   * so the perspective scale of focal-length ÷ distance moves them around it.
+   * These are pre-projection: the on-screen width is this × focal ÷ distance,
+   * which at these radii runs 0.55–1.4. So 150–520 here lands as roughly
+   * 85–700px on screen, matching the reference's mix of modest frames and a
+   * few large ones. The previous 70–300 projected down to 32–378 and read as
+   * postage stamps.
    */
-  minWidth: 70,
-  maxWidth: 300,
+  minWidth: 150,
+  maxWidth: 520,
 }
 
 /**
@@ -116,9 +119,13 @@ export function buildCloud(
       // Stratified rather than random: each tile gets its own slice of the
       // band and jitters within it, which fills the height evenly instead of
       // clumping frames at the horizon and leaving the top empty.
-      const slice = (idx % n) / n
+      // Stratified across the whole set, not across one repeat: `idx % n` is
+      // just `i`, so every copy of a performance was landing at exactly the
+      // same height as the first and half the band went unused.
+      const total = n * o.repeats
+      const slice = (idx * 0.618033988749895) % 1
       const elevation =
-        (slice * 2 - 1 + (rnd() - 0.5) * (1.6 / n)) * o.elevationSpread
+        (slice * 2 - 1 + (rnd() - 0.5) * (1.6 / total)) * o.elevationSpread
 
       // Squared, so more frames sit far than near. An even spread of radii
       // puts too many large tiles in view at once and the shell feels

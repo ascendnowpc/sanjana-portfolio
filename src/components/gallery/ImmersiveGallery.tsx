@@ -50,6 +50,17 @@ const YAW_PER_WHEEL = 0.0016
  * the viewer is staring at empty ceiling.
  */
 const PITCH_LIMIT = 0.2
+/**
+ * How far the cursor alone turns the head, in radians at full deflection.
+ *
+ * Sneha asked to move around by pointing rather than only by scrolling. At 0.55
+ * the pointer covers about two-thirds of a viewport of yaw edge to edge, which
+ * is enough to feel like steering without making the room lurch every time the
+ * mouse crosses the page.
+ */
+const LOOK_YAW = 0.55
+const LOOK_PITCH = 0.16
+
 /** Ambient yaw, radians per 60fps frame — the room turning gently on its own. */
 const DRIFT = 0.00042
 /**
@@ -447,9 +458,17 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       const t = now / 1000
       const focus = hoveredRef.current
 
-      // Moving the mouse leans the head a little, on top of the heading.
-      const viewYaw = yaw.current + pt.x * 0.09
-      const viewPitch = clamp(pitch.current + pt.y * 0.05, -0.45, 0.45)
+      // The cursor steers. Moving the mouse to the edge of the screen turns
+      // the head most of a viewport's worth in that direction, so the room can
+      // be explored by pointing at it — dragging and scrolling are then extra
+      // ways in rather than the only ones. `pt` is already eased, so this
+      // inherits the smoothing for free.
+      const viewYaw = yaw.current + pt.x * LOOK_YAW
+      const viewPitch = clamp(
+        pitch.current + pt.y * LOOK_PITCH,
+        -PITCH_LIMIT - LOOK_PITCH,
+        PITCH_LIMIT + LOOK_PITCH,
+      )
 
       registry.current.forEach((entry) => {
         const { root, shade, tile } = entry
@@ -468,7 +487,6 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
             entry.hidden = true
             entry.lastAlpha = 0
             root.style.opacity = '0'
-            root.style.visibility = 'hidden'
           }
           entry.depth = 0
           return
@@ -494,7 +512,6 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
             entry.hidden = true
             entry.lastAlpha = 0
             root.style.opacity = '0'
-            root.style.visibility = 'hidden'
           }
           entry.depth = 0
           return
@@ -502,10 +519,11 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         const X = R * sinA * cosE
         const Y = -R * sinE
 
-        if (entry.hidden) {
-          entry.hidden = false
-          root.style.visibility = ''
-        }
+        // Deliberately not toggling `visibility`: that invalidates layout on
+        // every change, and updateFocus calls getBoundingClientRect three
+        // frames later, which then forces a synchronous reflow. Opacity alone
+        // stays on the compositor. This was the stutter.
+        if (entry.hidden) entry.hidden = false
 
         // Nearness, 0..1, used to rank who gets a decoder and who paints on
         // top. Not a tunnel position any more — just "how big is this".
@@ -540,12 +558,11 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
 
         // Wash out toward the edge of vision so nothing pops in at the
         // shoulder, and let the very back of the shell fall away a little.
+        // Edge-of-vision fade only. The extra (0.55 + 0.45·depth) term here
+        // was knocking every far frame down to little over half opacity on top
+        // of the shading below, which is why the room read as dim and empty.
         const alpha =
-          Math.round(
-            (1 - smoothstep(FOV_FADE, FOV_CULL, away)) *
-              (0.55 + 0.45 * depth) *
-              200,
-          ) / 200
+          Math.round((1 - smoothstep(FOV_FADE, FOV_CULL, away)) * 200) / 200
         if (alpha !== entry.lastAlpha) {
           entry.lastAlpha = alpha
           root.style.opacity = String(alpha)
@@ -554,15 +571,18 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         // Light. The reference sits close to the footage's own brightness and
         // only the far shell falls away; a heavy veil greys everything into a
         // smudge where nothing separates from its neighbours.
-        const shading = clamp(0.5 - depth * 0.5, 0, 0.5)
-        // Focus takes the rest of the room almost to black, so the page reads
-        // as one lit picture on an empty field.
+        const shading = clamp(0.34 - depth * 0.34, 0, 0.34)
+        // Focus softens the room rather than erasing it. Taking everything
+        // else to 0.975 black left the page looking broken — one picture
+        // floating in a void — when all it needs is for the surroundings to
+        // step back. The blur below does most of the separating; this only
+        // has to take the edge off.
         const dim =
           Math.round(
             (focus === tile.key
               ? 0
               : focus
-                ? Math.min(0.975, shading + 0.7)
+                ? Math.min(0.62, shading + 0.34)
                 : shading) * 200,
           ) / 200
         if (dim !== entry.lastShade) {
@@ -587,7 +607,18 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       {/* z-0 is load-bearing: it makes the wall its own stacking context, so
           the depth-derived z-index on each tile stays local and cannot paint
           over the scrims and vignette below. */}
-      <div ref={worldRef} className="absolute inset-0 z-0">
+      {/* One blur on the whole room while a frame is focused, rather than a
+          filter per tile: eighty individual blurs would each force their own
+          paint pass. The focused tile is lifted out of it by its own z-index
+          and its shade going to zero. */}
+      <div
+        ref={worldRef}
+        className="absolute inset-0 z-0"
+        style={{
+          filter: hovered ? 'blur(2.5px)' : 'none',
+          transition: 'filter 520ms var(--ease-out-expo)',
+        }}
+      >
         {cloud.map((tile) => (
           <GalleryTile
             key={tile.key}
