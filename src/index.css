@@ -77,6 +77,33 @@
     outline: 1px solid var(--color-bloom);
     outline-offset: 3px;
   }
+
+  /* Set by <Cursor> once it has taken over, and only on fine pointers.
+     The `*` and `!important` are both load-bearing: links, buttons and the
+     gallery tiles all carry `cursor-pointer`, and a bare `cursor: none` on
+     <html> loses to every one of them — which left the native arrow showing
+     over exactly the elements the custom ring reacts to. */
+  html.cursor-none,
+  html.cursor-none * {
+    cursor: none !important;
+  }
+
+  /* Two exceptions, both because the real cursor does a job the ring cannot.
+     A video's controls live in shadow DOM — `cursor` reaches them only by
+     inheritance from the <video>, and scrubbing a timeline with an invisible
+     pointer is guesswork. Text fields want the caret. Both selectors outrank
+     the blanket rule above on specificity, so order is not load-bearing. */
+  html.cursor-none video[controls] {
+    cursor: default !important;
+  }
+
+  html.cursor-none :is(
+      input:not([type='range']),
+      textarea,
+      [contenteditable]
+    ) {
+    cursor: text !important;
+  }
 }
 
 /* ------------------------------------------------------------------
