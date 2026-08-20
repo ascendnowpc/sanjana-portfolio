@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import type { TileLayout } from './layout'
 import { mediaUrl } from '@/lib/media'
 
@@ -159,7 +159,9 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
             these run at once, and pointing them at four-minute files would
             pull hundreds of megabytes through the wall. Falls back to
             `videoSrc` for any entry with no preview cut yet. */}
-        {showVideo && <TilePreview src={mediaUrl(preview)!} />}
+        {showVideo && (
+          <TilePreview src={mediaUrl(preview)!} poster={mediaUrl(p.poster)} />
+        )}
 
         {/* Depth shading and the dim-everything-else state share one layer;
             its opacity is driven per-frame by the gallery loop. Compositing an
@@ -211,13 +213,10 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
  * inline `ref` callback, which React tears down and re-runs on every render
  * of the tile, so `play()` fired repeatedly and raced its own promise.
  *
- * It stays transparent until a frame is actually decoded. The poster sits
- * directly underneath, so what the viewer sees is a still that quietly starts
- * moving, never a black rectangle punched into the wall.
+ * Autoplay is asked for more than once, on purpose. See `start` below.
  */
-function TilePreview({ src }: { src: string }) {
+function TilePreview({ src, poster }: { src: string; poster?: string }) {
   const ref = useRef<HTMLVideoElement>(null)
-  const [ready, setReady] = useState(false)
 
   // The source is attached here rather than as a `src` prop, because the
   // teardown below detaches it and React would not know to put it back: it
@@ -227,16 +226,41 @@ function TilePreview({ src }: { src: string }) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
+    // Set here as well as in the JSX. Muted-inline is the entire basis on
+    // which a browser grants autoplay, and it is checked against the element's
+    // own state at the moment `play()` is called — not against what React
+    // believes it rendered.
+    el.muted = true
+    el.playsInline = true
     el.src = src
-    // A clip already in the HTTP cache can reach HAVE_CURRENT_DATA before the
-    // `loadeddata` listener would have anything to report, which would leave
-    // the preview running behind a transparent element forever.
-    if (el.readyState >= 2) setReady(true)
-    // Safari declines the autoplay attribute more readily than Chrome even
-    // when muted, so ask explicitly. A rejection here is not an error worth
-    // surfacing: the poster is already the fallback.
-    void el.play().catch(() => {})
+
+    /**
+     * Ask to play — and keep asking at each point where a refusal may have
+     * stopped being justified.
+     *
+     * One attempt is not enough, and this is the likeliest reason a wall of
+     * frames sits still in Safari while playing perfectly in Chrome. WebKit
+     * grants muted autoplay only to a video it considers *visible*, and it
+     * decides that at the instant `play()` is called — which here was while
+     * the element was still transparent, waiting for its first frame. The
+     * promise rejected, the rejection was swallowed as harmless, the frame
+     * arrived, the element faded in, and nothing ever asked again. A tile
+     * that had been refused once stayed refused for the life of the page.
+     *
+     * So: once now, again when there is enough decoded to show, and again on
+     * the visitor's first click or touch anywhere — a gesture lifts the block
+     * outright, and the whole wall catches up at once.
+     */
+    const start = () => {
+      if (el.paused) void el.play().catch(() => {})
+    }
+    start()
+    el.addEventListener('canplay', start)
+    window.addEventListener('pointerdown', start)
+
     return () => {
+      el.removeEventListener('canplay', start)
+      window.removeEventListener('pointerdown', start)
       // Dropping the node is not enough to hand the decoder back promptly —
       // the element can sit in the media pool still holding it, which is
       // exactly the resource the budget upstream exists to ration.
@@ -250,11 +274,11 @@ function TilePreview({ src }: { src: string }) {
     <video
       ref={ref}
       className="absolute inset-0 h-full w-full object-cover"
-      style={{
-        opacity: ready ? 1 : 0,
-        transition: 'opacity 600ms var(--ease-out-expo)',
-      }}
-      onLoadedData={() => setReady(true)}
+      // Its own poster, rather than fading in from transparent over the still
+      // underneath. The two look identical — it is the same image — and this
+      // way the element is opaque and visible from the moment it mounts,
+      // which is the state WebKit wants to see before it will play anything.
+      poster={poster}
       autoPlay
       muted
       loop
