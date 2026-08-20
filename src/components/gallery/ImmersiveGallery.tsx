@@ -14,6 +14,15 @@ const PERSPECTIVE = 1400
 /** Ambient forward drift, in px per 60fps frame. */
 const DRIFT = 1.1
 /**
+ * Seconds the ambient drift takes to reach full speed on arrival.
+ *
+ * In the reference the wall is dead still for a beat and then eases into
+ * motion over about a second — it starts *travelling*, rather than being
+ * already in motion the instant you look at it. Cheap, and it is most of the
+ * difference between arriving somewhere and cutting to it.
+ */
+const SPIN_UP = 1.15
+/**
  * Sideways steering is a straight translation of the wall, not a rotation.
  *
  * Rotating the ring made the tiles swing around the viewer like a carousel,
@@ -258,6 +267,8 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     let raf = 0
     let last = 0
     let hitFrame = 0
+    /** Timestamp the ambient drift began, for the spin-up ramp. */
+    let started = 0
 
     /**
      * The wall drifts continuously, so a tile slides under a stationary cursor
@@ -375,7 +386,14 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       const f = dt / 16.667
 
       // Ambient drift halts while a tile is focused, so reading is easy.
-      if (!hoveredRef.current && !reduced) targetTravel.current += DRIFT * f
+      if (!hoveredRef.current && !reduced) {
+        if (!started) started = now
+        const age = (now - started) / 1000
+        // Expo ease-in, matching the site's easing, so the wall gathers speed
+        // rather than snapping to it.
+        const spin = age >= SPIN_UP ? 1 : 1 - Math.pow(1 - age / SPIN_UP, 3)
+        targetTravel.current += DRIFT * spin * f
+      }
       travel.current +=
         (targetTravel.current - travel.current) * (1 - Math.pow(1 - 0.075, f))
       pan.current += (targetPan.current - pan.current) * (1 - Math.pow(1 - 0.075, f))
@@ -448,12 +466,18 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         // The floor is not zero: even the nearest tile keeps a thin veil, so
         // the wall stays scenery behind the copy instead of competing with it.
         const shading = clamp(0.94 - depth * 0.85, 0.12, 0.94)
+        // Focus takes the rest of the wall almost to black, not merely dark.
+        // The reference dims everything but the hovered frame so hard that the
+        // page reads as a single lit picture on an empty field — which is what
+        // makes its centre copy legible over a wall that is not otherwise
+        // cleared. At 0.92 ours stayed a busy backdrop competing with the
+        // title it had just put up.
         const dim =
           Math.round(
             (focus === tile.key
-              ? shading * 0.2
+              ? shading * 0.15
               : focus
-                ? Math.min(0.92, shading + 0.3)
+                ? Math.min(0.975, shading + 0.55)
                 : shading) * 200,
           ) / 200
         if (dim !== entry.lastShade) {

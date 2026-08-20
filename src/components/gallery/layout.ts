@@ -40,63 +40,66 @@ const LANDSCAPE = 16 / 9
 const VERTICAL_SQUASH = 0.58
 
 /**
- * Angular slots the tiles are allowed to occupy.
+ * Placement is scattered, not gridded.
  *
- * This is the whole difference between a corridor and a snowstorm. Tiles are
- * pinned to a fixed set of directions out from the centre, so flying forward
- * you pass between standing columns of work rather than through scattered
- * confetti. Coprime with SHELLS and with the stride below, so every
- * (slot, shell) pair gets used before any repeats.
+ * An earlier pass pinned tiles to thirteen fixed angular slots on three
+ * shells, on the theory that the reference wall was a corridor of standing
+ * columns. Watching it actually move says otherwise: the tiles are strewn
+ * through the volume at every angle and every distance from the axis, and the
+ * regularity I thought I saw in stills was just perspective lining things up
+ * for a moment. Golden-angle placement gives that — even coverage with no
+ * repeating figure — which is what was here originally.
  */
-const SLOTS = 13
+const GOLDEN = Math.PI * (3 - Math.sqrt(5))
 
 /**
- * Concentric distances from the axis. Three depths of wall, so the corridor
- * has thickness without losing the alignment that SLOTS buys.
- */
-const SHELLS = 3
-
-/**
- * How far to step around the ring between consecutive pieces.
+ * How much of the radius is random rather than evenly stepped.
  *
- * Coprime with SLOTS, so consecutive work lands on opposite sides of the
- * corridor and the eye is never handed two neighbours at once.
+ * Fully random clumps; fully even reads as a target. Stepping the radius and
+ * then jittering it keeps the field even at any depth without banding.
  */
-const SLOT_STRIDE = 5
+const RADIUS_JITTER = 0.42
 
-/** Jitter, as a fraction of the slot/shell spacing. Enough to break the
- *  machine-made look, small enough that the columns still read as columns. */
-const ANGLE_JITTER = 0.055
-const RADIUS_JITTER = 0.06
+/** Depth scatter as a fraction of the gap between consecutive tiles. Tiles
+ *  must not arrive at the camera in evenly spaced ranks. */
+const DEPTH_JITTER = 0.85
 
 export const DEFAULT_CLOUD: CloudOptions = {
   repeats: 3,
-  depth: 3200,
-  // The vertical squash pulls the top and bottom slots toward the middle, so
-  // the hole has to be cut wider than the copy block looks: at 340 the tiles
-  // in those two slots were landing on the headline.
-  innerRadius: 440,
-  outerRadius: 1180,
-  minWidth: 250,
-  // No single tile should dominate the frame. Depth is what makes something
-  // big here; a 560px tile arriving at the camera just swamped the copy.
-  maxWidth: 480,
+  // Tighter than before. The reference keeps roughly thirty frames on screen
+  // at once; at 3200 per repeat ours had half that and the wall read as a few
+  // pictures floating in a void rather than as a field you are inside.
+  depth: 2350,
+  /**
+   * Almost nothing is held back from the middle.
+   *
+   * This was 440, which cut a clean hole around the hero copy — and turned
+   * the tunnel into a donut. The reference has tiles all the way in to the
+   * vanishing point, which is exactly what sells it as a volume: the eye
+   * follows the small far frames converging at the centre. The copy stays
+   * legible on the scrim and its own text-shadow, as it does there.
+   */
+  innerRadius: 90,
+  // Wide enough that the corners of the frame are never empty.
+  outerRadius: 1500,
+  minWidth: 200,
+  maxWidth: 560,
 }
 
 /**
- * Hangs the catalogue on a corridor wall.
+ * Scatters the catalogue through the volume of the tunnel.
  *
- * Previously this scattered tiles by golden angle at random radii, which
- * spreads them evenly but leaves no structure at all — the wall read as noise,
- * and every tile arriving at a random depth with a random tilt made it read as
- * busy rather than deep.
+ * Golden-angle placement spreads tiles evenly around the axis without any
+ * repeating figure, and the radius is stepped-then-jittered so the field stays
+ * evenly dense from the middle out rather than clumping.
  *
- * Now each piece is pinned to one of SLOTS directions out from the axis and
- * one of SHELLS distances along it, and the depths are evenly spaced rather
- * than random. The result is a lattice: columns of work standing in the dark
- * that you fly between, arriving at a steady rhythm. A little jitter keeps it
- * from looking machine-made, and the centre is left empty so the hero copy
- * always sits on darkness.
+ * The two things that matter most are what is *not* here. Nothing is held back
+ * from the centre, so far tiles converge to a vanishing point and the wall
+ * reads as a volume you are inside rather than a ring you are passing through.
+ * And no tile carries any roll: watching the reference move, every frame is
+ * square to the world and the only rotation is the perspective turning it
+ * toward the axis. Random roll was the single biggest source of visual noise
+ * when this had it.
  */
 export function buildCloud(
   performances: Performance[],
@@ -106,34 +109,26 @@ export function buildCloud(
   if (!performances.length) return []
 
   const tiles: TileLayout[] = []
-  const slotArc = (Math.PI * 2) / SLOTS
-  // Shells are spaced by area rather than by radius: equal radial steps put
-  // far more tiles per unit of screen on the outer shell, which is what made
-  // the old sqrt-weighted radius necessary in the first place.
-  const shellStep = (o.outerRadius - o.innerRadius) / Math.max(1, SHELLS - 1)
-
   for (let rep = 0; rep < o.repeats; rep++) {
     performances.forEach((performance, i) => {
       const idx = rep * performances.length + i
       const rnd = seededRandom(hashString(performance.slug) + rep * 7919)
 
-      // Half a slot of offset per repeat, so a piece does not sit in the same
-      // column every time the catalogue comes round again.
-      const slot = (idx * SLOT_STRIDE) % SLOTS
-      const angle = (slot + rep * 0.5) * slotArc + (rnd() - 0.5) * slotArc * ANGLE_JITTER
+      const angle = idx * GOLDEN
 
-      const shell = (idx + rep) % SHELLS
-      const radius =
-        (o.innerRadius + shell * shellStep) *
-        (1 + (rnd() - 0.5) * RADIUS_JITTER)
+      // Stepped through the full range as the index advances, then jittered.
+      // sqrt on the stepped part keeps the density even: without it, equal
+      // radial steps crowd the middle, because a ring's area grows with r.
+      const even = Math.sqrt(((idx * 0.618) % 1))
+      const spread = even * (1 - RADIUS_JITTER) + rnd() * RADIUS_JITTER
+      const radius = o.innerRadius + (o.outerRadius - o.innerRadius) * spread
 
-      // Evenly spaced down the tunnel — a steady rhythm of arrivals. The
-      // shell offset staggers the three walls against each other so they do
-      // not reach the camera as one flat curtain.
-      const slotZ = (i + (shell / SHELLS) * 0.6) / performances.length
+      // Evenly spaced down the tunnel, then scattered by most of one gap, so
+      // work does not arrive at the camera in ranks.
+      const slot = (i + (rnd() - 0.5) * DEPTH_JITTER) / performances.length
       // Featured work sits a little nearer the front of each repeat.
       const lead = performance.featured ? -0.22 : 0
-      const z = -(rep * o.depth + (slotZ + lead) * o.depth)
+      const z = -(rep * o.depth + (slot + lead) * o.depth)
 
       // Tiles are cut to the footage's own ratio rather than a uniform 16:9,
       // so portrait phone video is not centre-cropped into a letterbox strip.
@@ -141,12 +136,14 @@ export function buildCloud(
       // tile drawn at full width would stand nearly twice as tall as its
       // landscape neighbours and wreck the density of the wall.
       const aspect = performance.aspect ?? LANDSCAPE
-      // Narrower spread than before. Wildly mixed sizes read as clutter; a
-      // calm range lets the depth do the work of making things big or small.
+      // A wide spread of sizes, on purpose. The reference has small frames
+      // deep in the middle and slabs at the edges in the same view, and that
+      // mixture is a large part of why it reads as depth rather than as a
+      // pattern.
       const base =
         o.minWidth +
         (o.maxWidth - o.minWidth) *
-          (performance.featured ? 0.72 + rnd() * 0.28 : 0.34 + rnd() * 0.3)
+          (performance.featured ? 0.65 + rnd() * 0.35 : rnd())
 
       tiles.push({
         performance,
@@ -157,14 +154,10 @@ export function buildCloud(
         z,
         width: base * Math.sqrt(aspect / LANDSCAPE),
         aspect,
-        // Flat against the wall. The old ±2.5deg of roll was the single
-        // biggest source of visual noise: thirty rectangles at thirty
-        // different angles never resolves into a structure.
         tilt: 0,
         phase: rnd() * Math.PI * 2,
       })
     })
   }
-
   return tiles
 }
