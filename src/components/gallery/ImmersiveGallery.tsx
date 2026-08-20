@@ -391,7 +391,9 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
           ((((tile.z + travel.current) % TOTAL) + TOTAL) % TOTAL) - TOTAL
         const depth = (wrapped + TOTAL) / TOTAL // 0 = furthest, 1 = at camera
         entry.depth = depth
-        const float = reduced ? 0 : Math.sin(t * 0.45 + tile.phase) * 14
+        // Barely there. A 14px bob on every tile made the whole wall shimmer;
+        // at 4px it reads as the corridor breathing rather than as jitter.
+        const float = reduced ? 0 : Math.sin(t * 0.32 + tile.phase) * 4
 
         // Look-around parallax, applied per tile rather than to a shared 3D
         // container: near tiles slide further than far ones, which is the
@@ -425,9 +427,14 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
           root.style.zIndex = String(z)
         }
 
+        // A long fade in from the far end and a short one out past the camera.
+        // The old ramp reached full opacity by 9% of the tunnel, so the deep
+        // distance was a wall of half-lit thumbnails; now work resolves out of
+        // the dark as it approaches, which is what gives the corridor its
+        // depth instead of just its length.
         const alpha =
           Math.round(
-            smoothstep(0, 0.09, depth) * (1 - smoothstep(0.9, 1, depth)) * 200,
+            smoothstep(0, 0.34, depth) * (1 - smoothstep(0.88, 1, depth)) * 200,
           ) / 200
         if (alpha !== entry.lastAlpha) {
           entry.lastAlpha = alpha
@@ -436,7 +443,11 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
 
         // One layer carries both jobs: depth shading, plus pushing every
         // other tile back when one is focused.
-        const shading = clamp(0.74 - depth * 0.6, 0, 0.8)
+        // Steeper than before, and reaching further: a tile at the far end is
+        // almost entirely in shadow and only lifts as it comes forward.
+        // The floor is not zero: even the nearest tile keeps a thin veil, so
+        // the wall stays scenery behind the copy instead of competing with it.
+        const shading = clamp(0.94 - depth * 0.85, 0.12, 0.94)
         const dim =
           Math.round(
             (focus === tile.key
