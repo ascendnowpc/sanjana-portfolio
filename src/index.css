@@ -82,32 +82,6 @@
     outline-offset: 3px;
   }
 
-  /* Set by <Cursor> once it has taken over, and only on fine pointers.
-     The `*` and `!important` are both load-bearing: links, buttons and the
-     gallery tiles all carry `cursor-pointer`, and a bare `cursor: none` on
-     <html> loses to every one of them — which left the native arrow showing
-     over exactly the elements the custom ring reacts to. */
-  html.cursor-none,
-  html.cursor-none * {
-    cursor: none !important;
-  }
-
-  /* Two exceptions, both because the real cursor does a job the ring cannot.
-     A video's controls live in shadow DOM — `cursor` reaches them only by
-     inheritance from the <video>, and scrubbing a timeline with an invisible
-     pointer is guesswork. Text fields want the caret. Both selectors outrank
-     the blanket rule above on specificity, so order is not load-bearing. */
-  html.cursor-none video[controls] {
-    cursor: default !important;
-  }
-
-  html.cursor-none :is(
-      input:not([type='range']),
-      textarea,
-      [contenteditable]
-    ) {
-    cursor: text !important;
-  }
 }
 
 /* ------------------------------------------------------------------
@@ -214,6 +188,14 @@
 @keyframes sweep {
   from { transform: translateX(-120%); }
   to { transform: translateX(320%); }
+}
+
+/* The caption on a hovered gallery frame. It is mounted at the moment it is
+   wanted, so it has no "before" to transition from — an entry animation is the
+   only thing that can fade it in rather than snapping it on. */
+@keyframes tile-caption {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .marquee-track {

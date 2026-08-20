@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 /**
  * Pointer position as -1..1 from the centre of the viewport, smoothed.
@@ -11,6 +11,9 @@ export function usePointer(smoothing = 0.08) {
   const current = useRef({ x: 0, y: 0 })
   /** Raw viewport coordinates, for hit-testing moving elements. */
   const client = useRef({ x: -1, y: -1 })
+  /** Held in a ref so `step` never has to be rebuilt — see the return. */
+  const rate = useRef(smoothing)
+  rate.current = smoothing
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -42,12 +45,32 @@ export function usePointer(smoothing = 0.08) {
    * a 120Hz display as on a 60Hz one and the follow feels different on every
    * machine. Compounding the rate over `f` frames fixes that exactly.
    */
-  const step = (f = 1) => {
-    const k = f === 1 ? smoothing : 1 - Math.pow(1 - smoothing, f)
+  const step = useCallback((f = 1) => {
+    const s = rate.current
+    const k = f === 1 ? s : 1 - Math.pow(1 - s, f)
     current.current.x += (target.current.x - current.current.x) * k
     current.current.y += (target.current.y - current.current.y) * k
     return current.current
-  }
+  }, [])
 
-  return { step, target, current, client }
+  /**
+   * One object, for the life of the component.
+   *
+   * This used to be a fresh literal on every render, and a fresh literal is a
+   * changed dependency: the gallery lists this in the deps of the effect that
+   * owns its animation loop, so the loop was being torn down and started again
+   * on *every* render — which is every hover, and every time the video budget
+   * moves. A restarted loop loses everything it was keeping between frames.
+   * The visible cost was the ambient drift: it ramps up over its first second,
+   * and that ramp began again from nothing several times a second, so the room
+   * never actually got moving on its own.
+   */
+  const api = useRef<{
+    step: (f?: number) => { x: number; y: number }
+    target: typeof target
+    current: typeof current
+    client: typeof client
+  } | null>(null)
+  if (!api.current) api.current = { step, target, current, client }
+  return api.current
 }
