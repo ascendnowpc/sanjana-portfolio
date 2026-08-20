@@ -12,6 +12,21 @@ import { mediaUrl } from '@/lib/media'
 
 type Filter = CategoryId | 'all'
 
+/**
+ * One frame for every card, whatever shape the piece is.
+ *
+ * The archive mixes 16:9 stage cameras with 9:16 phone footage. The grid used
+ * to force all of it into a 16:10 letterbox with `object-cover`, which cropped
+ * about two-thirds off a vertical piece. Giving portrait work its own taller
+ * frame fixed the cropping but wrecked the grid: a row is as tall as its
+ * tallest cell, so every landscape card sat over a column of dead space.
+ *
+ * So the frame stays uniform and the poster is *contained* inside it instead,
+ * over a blurred copy of itself. Slightly squarer than before, to leave a
+ * vertical piece somewhere to stand.
+ */
+const CARD_FRAME = '4 / 3'
+
 export default function Work() {
   const { items } = usePerformances()
   const [params, setParams] = useSearchParams()
@@ -90,7 +105,12 @@ export default function Work() {
         )}
 
         {/* Grid */}
-        <motion.ul layout className="grid gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.ul
+          layout
+          // items-start: a two-line title makes its card taller than the rest,
+          // and stretching the others to match would strand their captions.
+          className="grid grid-cols-1 items-start gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <AnimatePresence mode="popLayout">
             {filtered.map((p, i) => (
               <WorkCard
@@ -174,19 +194,30 @@ function WorkCard({
           ref={frameRef}
           className="relative overflow-hidden bg-ink"
           style={{
-            aspectRatio: '16 / 10',
+            aspectRatio: CARD_FRAME,
             transition: 'box-shadow 600ms',
             boxShadow: hover
               ? `0 0 0 1px ${accent}55, 0 40px 80px -40px ${accent}99`
               : '0 0 0 1px rgba(29,42,63,0.6)',
           }}
         >
+          {/* Fills what the contained poster leaves over, so the card still
+              reads as a solid frame rather than a picture floating on ink. */}
+          <img
+            src={mediaUrl(poster)}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl"
+          />
+
           <img
             src={mediaUrl(poster)}
             alt=""
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover"
+            className="relative h-full w-full object-contain"
             style={{
               transition: 'transform 1.4s var(--ease-out-expo), filter 700ms',
               transform: hover ? 'scale(1.07)' : 'scale(1)',
