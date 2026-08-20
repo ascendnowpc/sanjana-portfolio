@@ -66,24 +66,36 @@ const DEPTH_JITTER = 0.85
 
 export const DEFAULT_CLOUD: CloudOptions = {
   repeats: 3,
-  // Tighter than before. The reference keeps roughly thirty frames on screen
-  // at once; at 3200 per repeat ours had half that and the wall read as a few
-  // pictures floating in a void rather than as a field you are inside.
-  depth: 2350,
   /**
-   * Almost nothing is held back from the middle.
+   * Spacing, not density.
    *
-   * This was 440, which cut a clean hole around the hero copy — and turned
-   * the tunnel into a donut. The reference has tiles all the way in to the
-   * vanishing point, which is exactly what sells it as a volume: the eye
-   * follows the small far frames converging at the centre. The copy stays
-   * legible on the scrim and its own text-shadow, as it does there.
+   * The last pass packed this to 2350 chasing "more frames on screen" and the
+   * result was a mosaic — tiles touching, no black between them, nothing for
+   * the eye to rest on. In the reference the gaps are as considered as the
+   * frames: roughly two thirds of the screen is empty at any moment.
    */
-  innerRadius: 90,
+  depth: 3400,
+  /**
+   * A soft clearing in the middle rather than a cut hole.
+   *
+   * 440 made a donut; 90 let tiles sit on the wordmark. The reference keeps a
+   * loose gap around its centre copy that work still drifts near but rarely
+   * through.
+   */
+  innerRadius: 210,
   // Wide enough that the corners of the frame are never empty.
   outerRadius: 1500,
-  minWidth: 200,
-  maxWidth: 560,
+  /**
+   * Small. This is the single biggest correction.
+   *
+   * Ours ran 200–560px against a 1456px viewport, so two or three tiles could
+   * own the whole frame and everything read as clutter. Measured off the
+   * reference at the same viewport width the range is roughly 40–290, with
+   * most frames nearer the bottom of it — the wall is made of many modest
+   * pictures and a few large ones, not the other way round.
+   */
+  minWidth: 96,
+  maxWidth: 360,
 }
 
 /**
@@ -140,10 +152,15 @@ export function buildCloud(
       // deep in the middle and slabs at the edges in the same view, and that
       // mixture is a large part of why it reads as depth rather than as a
       // pattern.
+      // Squared, so the distribution leans small: many modest frames and the
+      // occasional large one, which is what the reference's range looks like
+      // when you measure it. A flat random gives far too many mid-size tiles
+      // and the wall turns into a patchwork.
+      const r = rnd()
       const base =
         o.minWidth +
         (o.maxWidth - o.minWidth) *
-          (performance.featured ? 0.65 + rnd() * 0.35 : rnd())
+          (performance.featured ? 0.6 + rnd() * 0.4 : r * r)
 
       tiles.push({
         performance,

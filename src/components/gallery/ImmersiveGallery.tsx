@@ -34,8 +34,16 @@ const SPIN_UP = 1.15
  * as it did before steering existed.
  */
 const PAN_PER_PX = 1.35
-/** Clamp, so the wall can be nudged aside but never steered off screen. */
-const PAN_LIMIT = 620
+/**
+ * Width the field wraps around, in px — the circumference of the carousel.
+ *
+ * Sideways travel used to be clamped to ±620, which made it a nudge rather
+ * than a direction: you could shove the wall aside and it stopped. Wrapping
+ * instead makes the horizontal an axis you can travel along forever, and it
+ * is what turns the gesture from sliding a flat sheet into turning a room.
+ * Set beyond the widest tile position so the seam is always off screen.
+ */
+const PAN_WRAP = 3400
 
 /**
  * How many tiles may hold a video decoder at once.
@@ -145,8 +153,8 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         repeats,
         outerRadius: isMobile ? 620 : DEFAULT_CLOUD.outerRadius,
         innerRadius: isMobile ? 190 : DEFAULT_CLOUD.innerRadius,
-        minWidth: isMobile ? 170 : DEFAULT_CLOUD.minWidth,
-        maxWidth: isMobile ? 300 : DEFAULT_CLOUD.maxWidth,
+        minWidth: isMobile ? 84 : DEFAULT_CLOUD.minWidth,
+        maxWidth: isMobile ? 240 : DEFAULT_CLOUD.maxWidth,
       }),
     [performances, repeats, isMobile],
   )
@@ -194,11 +202,7 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     // wall across while a vertical one flies down the tunnel.
     const onWheel = (e: WheelEvent) => {
       targetTravel.current += e.deltaY * 1.5
-      targetPan.current = clamp(
-        targetPan.current - e.deltaX * PAN_PER_PX,
-        -PAN_LIMIT,
-        PAN_LIMIT,
-      )
+      targetPan.current -= e.deltaX * PAN_PER_PX
     }
 
     let dragging = false
@@ -221,11 +225,7 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
       // would still register as a click and open a page.
       dragDistance.current += Math.abs(dx) + Math.abs(dy)
       targetTravel.current += dy * 2.6
-      targetPan.current = clamp(
-        targetPan.current + dx * PAN_PER_PX,
-        -PAN_LIMIT,
-        PAN_LIMIT,
-      )
+      targetPan.current += dx * PAN_PER_PX
       lastX = e.clientX
       lastY = e.clientY
     }
@@ -235,10 +235,8 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown' || e.key === 'PageDown') targetTravel.current += 700
       if (e.key === 'ArrowUp' || e.key === 'PageUp') targetTravel.current -= 700
-      if (e.key === 'ArrowLeft')
-        targetPan.current = clamp(targetPan.current + 220, -PAN_LIMIT, PAN_LIMIT)
-      if (e.key === 'ArrowRight')
-        targetPan.current = clamp(targetPan.current - 220, -PAN_LIMIT, PAN_LIMIT)
+      if (e.key === 'ArrowLeft') targetPan.current += 220
+      if (e.key === 'ArrowRight') targetPan.current -= 220
     }
 
     el.addEventListener('wheel', onWheel, { passive: true })
@@ -419,16 +417,29 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
         const shift = 0.4 + depth * 1.2
         // Steering slides the wall sideways as a whole; tiles keep their
         // fixed places on it, so everything moves in parallel.
-        const px = tile.x + pan.current - pt.x * 58 * shift
+        // Sideways travel wraps, so a tile leaving one edge returns at the
+        // other and the horizontal never runs out.
+        const panned =
+          ((((tile.x + pan.current + PAN_WRAP / 2) % PAN_WRAP) + PAN_WRAP) %
+            PAN_WRAP) -
+          PAN_WRAP / 2
+        const px = panned - pt.x * 58 * shift
         const py = tile.y + float - pt.y * 36 * shift
 
         root.style.transform =
           `perspective(${PERSPECTIVE}px) ` +
           `translate3d(${px}px, ${py}px, ${wrapped + FRONT}px) ` +
-          // rotateY/rotateX by position curves the flat wall into a cylinder
-          // wrapped around the viewer — the look from the reference site.
-          `rotateY(${tile.x * 0.014 - pt.x * 5}deg) ` +
-          `rotateX(${-tile.y * 0.012 + pt.y * 3.2}deg) ` +
+          // Facing follows the tile's *current* position, not its resting one.
+          //
+          // This is the difference Sneha called "parallel moving". Keyed to
+          // `tile.x`, a tile keeps the angle it was born with however far the
+          // wall travels, so the whole field slides across the screen like a
+          // sheet of paper. Keyed to where it actually is, every tile turns to
+          // face the axis as it crosses — near ones swinging hard, far ones
+          // barely — and the same drag now reads as the room rotating around
+          // the viewer rather than a backdrop being dragged past them.
+          `rotateY(${clamp(px * 0.028, -46, 46) - pt.x * 5}deg) ` +
+          `rotateX(${clamp(-py * 0.03, -24, 24) + pt.y * 3.2}deg) ` +
           `rotateZ(${tile.tilt}deg)`
 
         // Without a shared 3D context, paint order is DOM order — so depth has
@@ -461,11 +472,14 @@ export function ImmersiveGallery({ performances, onFocusChange }: Props) {
 
         // One layer carries both jobs: depth shading, plus pushing every
         // other tile back when one is focused.
-        // Steeper than before, and reaching further: a tile at the far end is
-        // almost entirely in shadow and only lifts as it comes forward.
-        // The floor is not zero: even the nearest tile keeps a thin veil, so
-        // the wall stays scenery behind the copy instead of competing with it.
-        const shading = clamp(0.94 - depth * 0.85, 0.12, 0.94)
+        // Light. In the reference the wall sits at very close to the footage's
+        // own brightness — only the deep distance falls away — and the frames
+        // read as lit pictures hanging in a dark room. Ours had a 12-to-94%
+        // black veil over everything, which greyed the whole wall down into a
+        // smudge and was a large part of why it looked cluttered rather than
+        // composed: nothing had enough contrast to separate from its
+        // neighbours.
+        const shading = clamp(0.82 - depth * 0.95, 0, 0.82)
         // Focus takes the rest of the wall almost to black, not merely dark.
         // The reference dims everything but the hovered frame so hard that the
         // page reads as a single lit picture on an empty field — which is what

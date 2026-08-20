@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { Performance } from '@/types/content'
 import { ImmersiveGallery } from '@/components/gallery/ImmersiveGallery'
 import { MagneticLink } from '@/components/ui/MagneticLink'
+import { SplitText } from '@/components/ui/SplitText'
 import { usePerformances } from '@/hooks/useContent'
 import { CATEGORY_MAP } from '@/data/categories'
 import { PROFILE } from '@/data/site'
@@ -35,9 +36,6 @@ export default function Home() {
     }
   }, [])
 
-  const accent = focused
-    ? (focused.accent ?? CATEGORY_MAP[focused.category].accent)
-    : '#4fd8e8'
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-void">
@@ -55,16 +53,20 @@ export default function Home() {
               exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             >
-              <p className="label on-scrim mb-5" style={{ color: accent }}>
+              {/* Cream, not the category's colour. Hovering along the wall
+                  used to cycle the label through amber, pink and violet,
+                  which is exactly the "strange colours" in the reference's
+                  absence — everything there is one warm off-white. */}
+              <p className="label on-scrim mb-5 text-mist">
                 {CATEGORY_MAP[focused.category].label} — {focused.year}
               </p>
               <h2 className="tracked on-scrim text-[clamp(1.4rem,4vw,3.1rem)] leading-[1.25] text-chalk">
-                {focused.title}
+                <SplitText text={focused.title} stagger={0.035} />
               </h2>
               <p className="on-scrim mx-auto mt-6 max-w-xl text-[0.78rem] leading-relaxed font-light tracking-wider text-mist uppercase">
                 {focused.blurb}
               </p>
-              <p className="tracked-tight on-scrim mt-8 text-[0.7rem]" style={{ color: accent }}>
+              <p className="tracked-tight on-scrim mt-8 text-[0.7rem] text-mist">
                 Learn more
               </p>
             </motion.div>

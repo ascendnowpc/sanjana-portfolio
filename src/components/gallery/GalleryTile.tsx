@@ -1,7 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import type { TileLayout } from './layout'
 import { mediaUrl } from '@/lib/media'
-import { CATEGORY_MAP } from '@/data/categories'
 
 interface Props {
   tile: TileLayout
@@ -41,7 +40,6 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const shadeRef = useRef<HTMLDivElement>(null)
   const p = tile.performance
-  const accent = p.accent ?? CATEGORY_MAP[p.category].accent
   const preview = p.previewSrc ?? p.videoSrc
   // Hovering always earns footage even if the tile missed the ambient cut.
   const showVideo = Boolean(preview) && (playing || active)
@@ -82,8 +80,13 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
           aspectRatio: tile.aspect,
           transition: 'transform 700ms var(--ease-out-expo), box-shadow 500ms',
           transform: active ? 'scale(1.045)' : 'scale(1)',
+          // Colourless. Each category used to tint its own hover — amber for
+          // theatre, pink for duets, violet, green — so hovering across the
+          // wall flashed through a paintbox. The reference lifts a frame with
+          // nothing but its own picture and a plain light edge, and that is
+          // what makes a hover there feel clean.
           boxShadow: active
-            ? `0 0 0 1px ${accent}66, 0 30px 90px -20px ${accent}55`
+            ? '0 0 0 1px rgba(232,226,214,0.34), 0 30px 90px -24px rgba(0,0,0,0.9)'
             : 'none',
         }}
       >
@@ -99,9 +102,10 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
             // Runs under the preview loop, and carries the hover on its own
             // for any entry with no footage attached yet.
             transform: active ? 'scale(1.14)' : 'scale(1.01)',
-            // Filters force their own paint pass, so only the hovered tile
-            // pays for one.
-            filter: active ? 'saturate(1.15) contrast(1.05)' : undefined,
+            // No saturate/contrast boost on hover: the reference shows the
+            // footage as it is, and pushing colour was part of what read as
+            // "strange colours".
+            filter: undefined,
           }}
         />
 
@@ -120,18 +124,6 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
           style={{ opacity: 0.6 }}
         />
 
-        {/* Hover wash — mounted only while focused, so the other tiles
-            carry no extra layers. The title and year deliberately live in the
-            centre overlay only: repeating them on the tile collides with that
-            copy whenever the focused tile sits near the middle of the wall. */}
-        {active && (
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: `linear-gradient(to top, ${accent}38, transparent 60%)`,
-            }}
-          />
-        )}
       </button>
     </div>
   )
