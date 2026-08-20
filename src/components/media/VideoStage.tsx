@@ -6,7 +6,8 @@ interface Props {
   poster: string
   videoSrc?: string
   title: string
-  accent: string
+  /** Optional highlight for the play control. Defaults to the site's cream. */
+  accent?: string
   /** Where the play button sends the viewer when there is no video yet. */
   fallbackHref?: string
 }
@@ -28,26 +29,25 @@ interface Props {
  */
 
 /**
- * Bottom of the stage kept clear of the media, as Tailwind inset classes.
+ * Height of the stage.
  *
- * The performance page pulls its title block up into the stage with a matching
- * negative margin. A <video> lays its native controls along the bottom of its
- * own box, so a full-height video put the scrubber, the volume and the
- * fullscreen button directly underneath that title — and the <h1> paints
- * later, so it took every one of those clicks. Only play/pause, out at the far
- * left of the bar, still worked.
+ * A band, not a full screen. The reference gives its film a modest centred
+ * rectangle with black all around, which reads as a screening rather than as
+ * a hero image — and the page has already said what the piece is by the time
+ * you reach it.
  *
- * Reserving the band costs a little scale and nothing else, now that the media
- * is contained rather than cropped. Keep it deeper than the title's own pull,
- * which is `-mt-24 md:-mt-32` in WorkDetail.
+ * This also retired the bottom reserve that used to live here. That existed
+ * only because the title block was dragged up over the player and its native
+ * controls; with the title above the video, nothing overlaps and the controls
+ * sit in clear space on their own.
  */
-const CLEAR_OF_TITLE = 'bottom-28 md:bottom-40'
+const STAGE = 'h-[46vh] md:h-[64vh]'
 
 export function VideoStage({
   poster,
   videoSrc,
   title,
-  accent,
+  accent = 'rgba(232,226,214,0.85)',
   fallbackHref,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -67,7 +67,9 @@ export function VideoStage({
   }
 
   return (
-    <div className="relative h-[62vh] w-full overflow-hidden bg-ink md:h-[86vh]">
+    <div
+      className={`relative mx-auto w-full max-w-[1180px] overflow-hidden bg-ink ${STAGE}`}
+    >
       {/* Fills whatever the contained media leaves over. Scaled past the edges
           because a blur samples beyond its own box and would otherwise fade
           out to transparent at the frame's border. */}
@@ -83,7 +85,7 @@ export function VideoStage({
           top/bottom pair is over-constrained, and CSS resolves that by giving
           it its intrinsic height — a 720x1280 recording became a 3024px-tall
           element hanging off the bottom of the page. */}
-      <div className={`absolute inset-x-0 top-0 ${CLEAR_OF_TITLE}`}>
+      <div className="absolute inset-0">
         {videoSrc ? (
           <video
             ref={videoRef}
@@ -115,7 +117,7 @@ export function VideoStage({
             type="button"
             onClick={start}
             aria-label={videoSrc ? `Play ${title}` : 'Jump to the recording'}
-            className={`group absolute inset-x-0 top-0 ${CLEAR_OF_TITLE} flex flex-col items-center justify-center gap-10`}
+            className="group absolute inset-0 flex flex-col items-center justify-center gap-10"
           >
             <span className="relative flex h-24 w-24 items-center justify-center rounded-full md:h-28 md:w-28">
               <span

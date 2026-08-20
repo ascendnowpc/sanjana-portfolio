@@ -6,6 +6,7 @@ import { CATEGORY_MAP } from '@/data/categories'
 import { VideoStage } from '@/components/media/VideoStage'
 import { WaveformPlayer } from '@/components/audio/WaveformPlayer'
 import { Reveal } from '@/components/ui/Reveal'
+import { SplitText } from '@/components/ui/SplitText'
 import { totalRuntime } from '@/lib/utils'
 import { mediaUrl } from '@/lib/media'
 
@@ -51,32 +52,74 @@ export default function WorkDetail() {
 
   return (
     <article className="min-h-screen bg-void">
-      <VideoStage
-        poster={current.poster}
-        videoSrc={current.videoSrc}
-        title={current.title}
-        accent={accent}
-        fallbackHref="#recording"
-      />
-
-      {/* ---------------- title block ---------------- */}
-      <div className="relative mx-auto -mt-24 max-w-[1600px] px-6 md:-mt-32 md:px-12">
+      {/* ---------------- title, then the film ----------------
+          The piece announces itself in type before it plays. The full-bleed
+          player used to open the page and the title was dragged up over its
+          bottom edge, which put the name of the work on top of the work and
+          left the controls fighting the <h1> for clicks. Reading order now
+          matches the reference: who, what, then watch. */}
+      <header className="mx-auto max-w-[1100px] px-6 pt-32 text-center md:px-12 md:pt-40">
         <motion.div
-          initial={{ opacity: 0, y: 32 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
         >
           <Link
             to={`/work?category=${current.category}`}
-            className="label transition-opacity hover:opacity-70"
-            style={{ color: accent }}
+            className="label text-dust transition-colors duration-300 hover:text-chalk"
           >
-            {category.label}
+            {category.label} — {current.year}
           </Link>
-          <h1 className="tracked mt-5 text-[clamp(1.8rem,5.5vw,4.5rem)] leading-[1.08] text-chalk">
-            {current.title}
+
+          <h1 className="tracked mt-8 text-[clamp(1.9rem,6vw,5rem)] leading-[1.06] text-chalk">
+            <SplitText text={current.title} delay={0.15} stagger={0.045} />
           </h1>
-          <p className="mt-4 text-sm font-light tracking-wide text-mist">
+
+          <motion.p
+            className="mx-auto mt-8 max-w-2xl text-[0.72rem] leading-[2] tracking-[0.18em] text-mist uppercase"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {current.blurb}
+          </motion.p>
+
+          <motion.a
+            href="#recording"
+            className="mt-10 inline-flex flex-col items-center gap-2 text-dust transition-colors duration-300 hover:text-chalk"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.75 }}
+          >
+            <span className="text-lg leading-none">+</span>
+            <span className="label">More info</span>
+          </motion.a>
+        </motion.div>
+      </header>
+
+      <motion.div
+        className="mt-16 md:mt-20"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.1, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <VideoStage
+          poster={current.poster}
+          videoSrc={current.videoSrc}
+          title={current.title}
+          fallbackHref="#recording"
+        />
+      </motion.div>
+
+      {/* ---------------- meta + body ---------------- */}
+      <div className="relative mx-auto max-w-[1600px] px-6 md:px-12">
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <p className="mt-24 text-sm font-light tracking-wide text-mist">
             {current.subtitle}
           </p>
         </motion.div>
@@ -95,16 +138,13 @@ export default function WorkDetail() {
           </Reveal>
 
           <div>
-            <Reveal>
-              <p className="max-w-2xl text-lg leading-[1.75] font-light text-mist md:text-xl">
-                {current.blurb}
-              </p>
-              {current.description && (
-                <p className="mt-8 max-w-2xl text-sm leading-[1.9] font-light text-mist/80">
+            {current.description && (
+              <Reveal>
+                <p className="max-w-2xl text-sm leading-[1.9] font-light text-mist/80">
                   {current.description}
                 </p>
-              )}
-            </Reveal>
+              </Reveal>
+            )}
 
             {/* ---------------- audio ---------------- */}
             {current.tracks.length > 0 && (
