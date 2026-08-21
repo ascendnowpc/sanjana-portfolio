@@ -465,8 +465,8 @@ export function ImmersiveGallery({
         elevationSpread: isMobile ? 0.44 : DEFAULT_CLOUD.elevationSpread,
         // Smaller than desktop in absolute px, but far larger relative to the
         // viewport: a phone is where the frames were smallest of all.
-        minScreen: isMobile ? 95 : DEFAULT_CLOUD.minScreen,
-        maxScreen: isMobile ? 210 : DEFAULT_CLOUD.maxScreen,
+        minScreen: isMobile ? 108 : DEFAULT_CLOUD.minScreen,
+        maxScreen: isMobile ? 242 : DEFAULT_CLOUD.maxScreen,
       }),
     [performances, repeats, isMobile],
   )

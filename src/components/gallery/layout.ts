@@ -108,15 +108,16 @@ export const DEFAULT_CLOUD: CloudOptions = {
    * shell swings closer to the eye — by about half again at the corners, which
    * is the perspective doing its job.
    *
-   * Down by nearly half from 150/470. At the old ceiling a featured frame near the
+   * Down by a third from 150/470, having briefly been down by nearly half —
+   * 98/268 overshot, and these are the sizes with that correction in them. At the old ceiling a featured frame near the
    * edge of vision projected past 640px — nearly half the width of the screen
    * — and a frame that size stops reading as one picture among many hanging in
    * a room and starts reading as the page itself. The depth cues that sell the
    * shell are all comparative: a near frame only looks near next to a far one,
    * and there is no room left for a far one when the near one is that big.
    */
-  minScreen: 98,
-  maxScreen: 268,
+  minScreen: 115,
+  maxScreen: 315,
 }
 
 /**
