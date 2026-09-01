@@ -88,11 +88,11 @@ export function MusicShelf({ items }: { items: Performance[] }) {
 
   return (
     /* Narrower than the rest of the page on purpose. The shelf stops growing
-       at ~1144px of content, so on a wide screen it sits in the middle with
+       at ~1064px of content, so on a wide screen it sits in the middle with
        real margin either side rather than running the full 1600 — cards that
        fill a 1920 display stop reading as record sleeves and start reading as
        page sections. */
-    <section className="mx-auto max-w-[1240px] px-6 pb-32 md:px-12">
+    <section className="mx-auto max-w-[1160px] px-6 pb-32 md:px-12">
       <Reveal>
         <p className="label mb-4 text-dust">Listen</p>
         <p className="max-w-2xl text-sm leading-[1.9] font-light text-mist">
