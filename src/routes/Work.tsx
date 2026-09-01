@@ -240,7 +240,10 @@ function WorkCard({
 
           <div
             className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
-            style={{ background: 'linear-gradient(to top, #04070f, transparent)' }}
+            style={{
+              background:
+                'linear-gradient(to top, var(--color-void), transparent)',
+            }}
           />
 
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4">

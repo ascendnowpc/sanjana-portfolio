@@ -12,7 +12,6 @@ interface Props {
   album: string
   artist: string
   cover?: string
-  accent: string
   tracks: Track[]
   /** Where the full pieces live. */
   href: string
@@ -37,13 +36,17 @@ interface Props {
  * Playback is the shared `useAudioEngine`, one instance a card. The audio
  * element preloads nothing: six cards mounting on the About page would
  * otherwise open six range requests before anyone has asked to hear anything.
+ *
+ * Every lit thing here is `gilt` and nothing else — the frame of the sounding
+ * card, the played part of the scrubber, the row playing right now. The point
+ * of a single accent is that the eye can find the one card making sound
+ * without reading a word.
  */
 export function AlbumCard({
   id,
   album,
   artist,
   cover,
-  accent,
   tracks,
   href,
   featured = false,
@@ -133,22 +136,20 @@ export function AlbumCard({
 
   if (!track) return null
 
-  /* The frame the reference is built on: a hairline of the page's own text
-     colour, held right down at the edge of visible. `border-edge` is a blue
-     and disappears into the ground at this weight. */
+  /* The frame the reference is built on: a white hairline, drawn well above
+     the ground rather than whispered into it. The buttons inside sit a step
+     back from the card's own edge so the card still reads as the object.
+     `border-edge` is a blue, and disappears entirely at this weight. */
   const ghost =
-    'font-mono text-[0.6rem] uppercase tracking-[0.2em] border border-chalk/15 px-3 py-2 transition-colors duration-400'
+    'font-mono text-[0.6rem] uppercase tracking-[0.2em] border border-chalk/25 px-3 py-2 transition-colors duration-400'
 
   return (
     <article
-      className="relative min-w-0 border border-chalk/15 bg-ink/40 p-3.5 transition-colors duration-700 md:p-5"
-      // The accent is a runtime value, so the playing state is the one thing
-      // here Tailwind cannot hold. It is worth the inline style: across six
-      // cards, the lit frame is what says which recording is sounding.
-      style={{
-        borderColor: playing ? `${accent}59` : undefined,
-        boxShadow: playing ? `0 0 60px -34px ${accent}` : undefined,
-      }}
+      className={`relative min-w-0 border bg-ink/40 p-3.5 transition-colors duration-700 md:p-5 ${
+        playing
+          ? 'border-gilt/60 shadow-[0_0_70px_-34px_var(--color-gilt)]'
+          : 'border-chalk/45'
+      }`}
     >
       {/* ---------------- header row ---------------- */}
       <div className="mb-3.5 flex items-center justify-between gap-3 md:mb-5">
@@ -157,7 +158,7 @@ export function AlbumCard({
         </span>
         <Link
           to={href}
-          className={`${ghost} text-mist hover:border-bloom/60 hover:text-chalk`}
+          className={`${ghost} text-mist hover:border-gilt/70 hover:text-gilt`}
         >
           Watch <span aria-hidden="true">↗</span>
         </Link>
@@ -179,11 +180,8 @@ export function AlbumCard({
           />
         )}
         <span className="absolute inset-0 flex items-center justify-center bg-void/45 opacity-0 backdrop-blur-[1px] transition-opacity duration-500 group-hover:opacity-100">
-          <span
-            className="flex h-14 w-14 items-center justify-center rounded-full border"
-            style={{ borderColor: `${accent}88`, background: `${accent}1f` }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={accent}>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-gilt/55 bg-gilt/10">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-gilt">
               {playing ? (
                 <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
               ) : (
@@ -212,7 +210,7 @@ export function AlbumCard({
           type="button"
           onClick={onToggle}
           aria-label={playing ? 'Pause' : 'Play'}
-          className="shrink-0 text-chalk transition-colors duration-300 hover:text-bloom"
+          className="shrink-0 text-chalk transition-colors duration-300 hover:text-gilt"
         >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
             {playing ? (
@@ -227,7 +225,7 @@ export function AlbumCard({
           type="button"
           onClick={() => go(index - 1)}
           aria-label="Previous recording"
-          className="shrink-0 text-chalk transition-colors duration-300 hover:text-bloom"
+          className="shrink-0 text-chalk transition-colors duration-300 hover:text-gilt"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 5h2v14H6zM20 5v14l-11-7z" />
@@ -238,7 +236,7 @@ export function AlbumCard({
           type="button"
           onClick={() => go(index + 1)}
           aria-label="Next recording"
-          className="shrink-0 text-chalk transition-colors duration-300 hover:text-bloom"
+          className="shrink-0 text-chalk transition-colors duration-300 hover:text-gilt"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 5h2v14h-2zM4 5l11 7-11 7z" />
@@ -284,21 +282,18 @@ export function AlbumCard({
         >
           <div className="h-[3px] w-full rounded-full bg-edge">
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-full bg-gilt"
               style={{
                 width: `${progress * 100}%`,
-                background: accent,
                 transition: 'width 120ms linear',
               }}
             />
           </div>
           <span
-            className="pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{
-              left: `${progress * 100}%`,
-              background: playing ? accent : '#e8f1f8',
-              transition: 'left 120ms linear',
-            }}
+            className={`pointer-events-none absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+              playing ? 'bg-gilt' : 'bg-chalk'
+            }`}
+            style={{ left: `${progress * 100}%`, transition: 'left 120ms linear' }}
           />
         </div>
 
@@ -318,7 +313,7 @@ export function AlbumCard({
             type="button"
             onClick={() => engine.setVolume(engine.volume > 0 ? 0 : 0.8)}
             aria-label={engine.volume > 0 ? 'Mute' : 'Unmute'}
-            className="text-chalk transition-colors duration-300 hover:text-bloom"
+            className="text-chalk transition-colors duration-300 hover:text-gilt"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M4 9v6h3.5L12 19V5L7.5 9H4z" />
@@ -344,7 +339,7 @@ export function AlbumCard({
             // its thumb outside its box, so a collapsed w-0 slider still sits
             // over the speaker icon and eats the click that would open it.
             className="pointer-events-none ml-0 h-1 w-0 cursor-pointer appearance-none rounded-full bg-edge opacity-0 transition-all duration-500 group-hover/vol:pointer-events-auto group-hover/vol:ml-2.5 group-hover/vol:w-16 group-hover/vol:opacity-100 focus-visible:pointer-events-auto focus-visible:ml-2.5 focus-visible:w-16 focus-visible:opacity-100"
-            style={{ accentColor: accent }}
+            style={{ accentColor: 'var(--color-gilt)' }}
           />
         </div>
 
@@ -353,8 +348,9 @@ export function AlbumCard({
           onClick={() => setListOpen((v) => !v)}
           aria-expanded={listOpen}
           aria-label={listOpen ? 'Hide the recordings' : 'Show the recordings'}
-          className="shrink-0 transition-colors duration-300 hover:text-bloom"
-          style={{ color: listOpen ? accent : '#e8f1f8' }}
+          className={`shrink-0 transition-colors duration-300 hover:text-gilt ${
+            listOpen ? 'text-gilt' : 'text-chalk'
+          }`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 5h9v2H3zM3 10h9v2H3zM3 15h6v2H3z" />
@@ -374,7 +370,7 @@ export function AlbumCard({
         <ol
           ref={listRef}
           onScroll={measure}
-          className="track-scroll mt-4 overflow-y-auto overscroll-contain border-t border-chalk/15 md:mt-5"
+          className="track-scroll mt-4 overflow-y-auto overscroll-contain border-t border-chalk/25 md:mt-5"
           style={{
             maxHeight: featured ? '16.5rem' : '13.25rem',
             maskImage: atEnd
@@ -388,7 +384,7 @@ export function AlbumCard({
           {tracks.map((t, i) => {
             const current = i === index
             return (
-              <li key={t.id} className="border-b border-chalk/10 last:border-b-0">
+              <li key={t.id} className="border-b border-chalk/15 last:border-b-0">
                 <button
                   type="button"
                   onClick={() => (current ? onToggle() : go(i, true))}
@@ -396,17 +392,17 @@ export function AlbumCard({
                   className="group/row flex w-full items-center gap-4 py-3.5 text-left"
                 >
                   <span
-                    className="w-5 shrink-0 font-mono text-[0.7rem] tabular-nums"
-                    style={{ color: current ? accent : '#55647a' }}
+                    className={`w-5 shrink-0 font-mono text-[0.7rem] tabular-nums ${
+                      current ? 'text-gilt' : 'text-dust'
+                    }`}
                   >
                     {current && playing ? (
                       <span className="flex h-3 items-end gap-[2px]">
                         {[0, 1, 2].map((b) => (
                           <span
                             key={b}
-                            className="w-[2px] origin-bottom"
+                            className="w-[2px] origin-bottom bg-gilt"
                             style={{
-                              background: accent,
                               height: '100%',
                               animation: `bar-pulse ${520 + b * 190}ms ease-in-out ${b * 90}ms infinite`,
                             }}
@@ -419,13 +415,20 @@ export function AlbumCard({
                   </span>
 
                   <span
-                    className="min-w-0 flex-1 truncate font-mono text-[0.78rem] transition-colors duration-300 group-hover/row:text-chalk"
-                    style={{ color: current ? '#e8f1f8' : '#8ea6c0' }}
+                    className={`min-w-0 flex-1 truncate font-mono text-[0.78rem] transition-colors duration-300 ${
+                      current
+                        ? 'text-gilt'
+                        : 'text-mist group-hover/row:text-chalk'
+                    }`}
                   >
                     {t.title}
                   </span>
 
-                  <span className="shrink-0 font-mono text-[0.72rem] text-dust tabular-nums">
+                  <span
+                    className={`shrink-0 font-mono text-[0.72rem] tabular-nums ${
+                      current ? 'text-gilt/70' : 'text-dust'
+                    }`}
+                  >
                     {formatClock(t.duration)}
                   </span>
                 </button>

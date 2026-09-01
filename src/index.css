@@ -6,15 +6,25 @@
    light source, violet + ember reserved for category accents.
 ------------------------------------------------------------------- */
 @theme {
-  /* Pure black, not a navy. The reference sits its work on #000 and the
-     difference is not subtle at this scale: a #04070f ground puts a blue cast
-     behind every frame, which is what made stage photography look tinted and
-     the whole page read cooler than the footage in it. */
-  --color-void: #000000;
-  --color-ink: #050505;
-  --color-abyss: #0a0a0c;
+  /* Neutral charcoal, not a navy and not pure black. Two separate findings
+     sit in these three values. First: any blue in the ground (this was once
+     #04070f) casts back onto every frame, which made stage photography look
+     tinted and the page read cooler than the footage in it — so the greys are
+     dead neutral. Second: #000 is *too* far down. A hair of lift is what
+     separates the frames from the void behind them and lets a white hairline
+     border read as a drawn edge rather than a glare, which is the whole look
+     the reference is built on. The three stay ordered — ground, panel, well —
+     so a raised surface is never darker than what it sits on. */
+  --color-void: #111111;
+  --color-ink: #171717;
+  --color-abyss: #1c1c1c;
   --color-slate-deep: #131d2f;
   --color-edge: #1d2a3f;
+
+  /* The listening shelf's one accent — brass, off the reference player. It is
+     deliberately the only colour in that section: six cards each glowing in
+     their own category accent turned a quiet page into a fruit salad. */
+  --color-gilt: #c8a45c;
 
   --color-bloom: #4fd8e8;
   --color-halo: #9df3ff;
@@ -138,8 +148,8 @@
    through the centre, and the scrim alone is not enough to hold contrast. */
 @utility on-scrim {
   text-shadow:
-    0 1px 26px rgba(4, 7, 15, 0.96),
-    0 0 10px rgba(4, 7, 15, 0.92);
+    0 1px 26px rgba(17, 17, 17, 0.96),
+    0 0 10px rgba(17, 17, 17, 0.92);
 }
 
 @utility text-glow {
