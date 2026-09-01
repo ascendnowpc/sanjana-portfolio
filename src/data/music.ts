@@ -16,14 +16,17 @@ import type { CategoryId } from '@/types/content'
  * works untouched.
  *
  * **Square art.** The card crops its cover to 1:1, so a 16:9 still loses its
- * top and bottom. Solo Concerts has real square artwork and sits in the frame
- * exactly as shot; the remaining entries are 16:9 stills and are cropped.
+ * top and bottom. Solo Concerts is a 4:5 poster, so rather than crop it the
+ * file is already square: the poster is centred on a black field the width of
+ * the frame, which reads as no border at all because the poster's own edges
+ * are black. Any art that must survive whole wants the same treatment. The
+ * remaining entries are 16:9 stills and are cropped.
  *
  * A category with no entry here falls back to the poster of its most recent
  * piece, so adding a discipline never means editing this file.
  */
 export const MUSIC_COVERS: Partial<Record<CategoryId, string>> = {
-  'solo-concert': '/media/covers/solo-concert.jpg',
+  'solo-concert': '/media/covers/solo-concert-poster.jpg',
   'musical-theatre': '/media/posters/musical-theatre-2024-06.jpg',
   'hindi-singing': '/media/posters/hindi-singing-2025-01.jpg',
   'honor-choir': '/media/posters/honor-choir-2025-02.jpg',
