@@ -40,6 +40,20 @@ export function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+/**
+ * 254 -> "04:14".
+ *
+ * Zero-padded on purpose: the transport readout sits in a fixed row next to a
+ * scrubber, and an unpadded "4:14" ticking over to "10:02" shifts every
+ * character beside it.
+ */
+export function formatClock(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return '00:00'
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
 /** Total runtime of a track list, as "23 min". */
 export function totalRuntime(durations: number[]) {
   const total = durations.reduce((a, b) => a + b, 0)

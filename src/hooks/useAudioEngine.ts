@@ -160,7 +160,17 @@ export function useAudioEngine({ src, duration, seed }: Options) {
       }
       el.volume = volume
       el.currentTime = offsetRef.current
-      await el.play()
+      try {
+        await el.play()
+      } catch (err) {
+        // Two things reject here: a file that is missing or unplayable, and a
+        // play() that a source swap interrupted mid-load. Neither may leave
+        // the transport claiming to run, and neither may surface as an
+        // unhandled rejection — the About page mounts six of these players.
+        console.warn('[audio] playback failed:', err)
+        setPlaying(false)
+        return
+      }
     } else {
       startedAtRef.current = ctx.currentTime
       startVoices()
@@ -244,11 +254,24 @@ export function useAudioEngine({ src, duration, seed }: Options) {
     return () => cancelAnimationFrame(raf)
   }, [mode, playing, total])
 
+  /* Latest handles, read by effects that must not re-run when they change:
+     `play` is rebuilt on every volume change, and the reset below must fire
+     on a source swap and nothing else. */
+  const playRef = useRef(play)
+  playRef.current = play
+  const playingRef = useRef(playing)
+  playingRef.current = playing
+
   // Reset the transport whenever the caller switches track.
   useEffect(() => {
     offsetRef.current = 0
     setTime(0)
     setReady(!src)
+    // Swapping the source reloads the media element and silences the graph,
+    // but a listener who was mid-song asked for the *next* track, not for
+    // silence: carry the intent across rather than leaving the transport
+    // claiming to play an element that has stopped.
+    if (playingRef.current) void playRef.current()
     return () => {
       stopVoices()
       audioRef.current?.pause()
@@ -279,6 +302,8 @@ export function useAudioEngine({ src, duration, seed }: Options) {
     setReady,
     volume,
     setVolume,
+    play,
+    pause,
     toggle,
     seek,
     readLevels,

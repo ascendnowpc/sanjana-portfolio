@@ -12,6 +12,7 @@ videoSrc              /media/video/<slug>.mp4               <R2 base>/media/vide
 previewSrc            /media/preview/<slug>-480.mp4         <R2 base>/media/preview/<slug>-480.mp4
 tracks[].audioSrc     /media/audio/<slug>.mp3               <R2 base>/media/audio/<slug>.mp3
 portraits[]           /media/portraits/portrait-N.jpg       <R2 base>/media/portraits/portrait-N.jpg
+MUSIC_COVERS[cat]     /media/covers/<category>.jpg          <R2 base>/media/covers/<category>.jpg
 ```
 
 `src/lib/media.ts` is the only place that makes that decision. With
@@ -32,6 +33,7 @@ Drop the real files here, using these exact names:
 | Index-wall preview | `public/media/preview/<slug>-480.mp4` | ~8s, silent, 480px, 15fps. Size is in the name on purpose — see below. |
 | Track audio | `public/media/audio/<slug>.mp3` | Lifted off the recording; drives the waveform player. |
 | Portrait | `public/media/portraits/portrait-N.jpg` | 4:5, for the About strip. |
+| Music cover | `public/media/covers/<category>.jpg` | Square, one a discipline, for the About listening cards. Optional — `src/data/music.ts` falls back to a poster. |
 | Gallery still | `public/media/posters/<name>.jpg` | Any name; referenced from `gallery[]`. |
 
 All three files for one entry share the slug, so renaming an entry means

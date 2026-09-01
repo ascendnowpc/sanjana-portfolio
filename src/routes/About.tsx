@@ -10,6 +10,7 @@ import { Aperture } from '@/components/ui/Aperture'
 import { ScrollWords } from '@/components/ui/ScrollWords'
 import { CountUp } from '@/components/ui/CountUp'
 import { Marquee } from '@/components/ui/Marquee'
+import { MusicShelf } from '@/components/audio/MusicShelf'
 import { mediaUrl } from '@/lib/media'
 
 /** Italic serif word inside the poster-weight headline. */
@@ -255,7 +256,10 @@ export default function About() {
         </div>
       </section>
 
-      {/* ---------------- 6. portraits over the drifting name ---------------- */}
+      {/* ---------------- 6. the recordings ---------------- */}
+      <MusicShelf items={items} />
+
+      {/* ---------------- 7. portraits over the drifting name ---------------- */}
       <div ref={stripRef} className="relative overflow-hidden py-16">
         <Marquee
           text={`${PROFILE.name} `}
@@ -290,7 +294,7 @@ export default function About() {
         </motion.div>
       </div>
 
-      {/* ---------------- 7. press ---------------- */}
+      {/* ---------------- 8. press ---------------- */}
       <section className="border-t border-edge/50 bg-ink/40">
         <div className="mx-auto max-w-[1600px] px-6 py-32 md:px-12">
           <p className="label mb-16 text-dust">Press</p>
@@ -309,7 +313,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* ---------------- 8. the ask ---------------- */}
+      {/* ---------------- 9. the ask ---------------- */}
       <section className="px-6 py-40 text-center md:px-12">
         <Reveal>
           <p className="label text-dust">Next</p>
