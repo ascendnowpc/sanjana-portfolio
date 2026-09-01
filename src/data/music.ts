@@ -32,7 +32,7 @@ import type { CategoryId } from '@/types/content'
  * both sides. A new discipline wants a poster, not the fallback.
  */
 export const MUSIC_COVERS: Partial<Record<CategoryId, string>> = {
-  'solo-concert': '/media/covers/solo-concert-4x5.jpg',
+  'solo-concert': '/media/covers/solo-concert-4x5-v2.jpg',
   'musical-theatre': '/media/covers/musical-theatre-4x5.jpg',
   'hindi-singing': '/media/covers/hindi-singing-4x5.jpg',
   'honor-choir': '/media/covers/honor-choir-4x5.jpg',
