@@ -10,42 +10,34 @@ import type { CategoryId } from '@/types/content'
  *
  * Each entry defaults to a still already in the repo, so the shelf is never
  * broken while the real art is being chosen. To swap one in: drop the image
- * at `public/media/covers/<category>.jpg`, point the entry at
- * `/media/covers/<category>.jpg`, and it is live — the same key resolves to
- * the R2 bucket in production (see MEDIA.md). Any absolute https:// URL also
- * works untouched.
+ * at `public/media/covers/<category>-4x5.jpg`, point the entry at
+ * `/media/covers/<category>-4x5.jpg`, and it is live — the same key resolves
+ * to the R2 bucket in production (see MEDIA.md). Any absolute https:// URL
+ * also works untouched.
  *
- * **Square art.** The card crops its cover to 1:1, so a 16:9 still loses its
- * top and bottom. The five posters below are 4:5, so rather than crop them the
- * files are already square — the poster sits at full height and the extra width
- * is filled rather than taken out of the art. What to fill it with is decided
- * by what the poster has at its left and right edges:
+ * **The frame is 4:5, because the art is.** The posters are made at Instagram
+ * portrait size, so the sleeve was set to match rather than the posters being
+ * bent to fit a square. They go in at 1400x1750 exactly as exported — nothing
+ * cropped, nothing padded, no decision to make per image.
  *
- * - A flat field: match it. Solo Concerts and Musical Theatre are black,
- *   Hindi Singing is #f23a29 red, and in each case the fill is invisible.
- * - Bands running off the side: extend the edge pixels outward, so they keep
- *   going. Classical Repertoire's film strips need this — a flat field would
- *   have cut all four dead at the seam.
- * - A *textured* field: extend it too. Honor Choir's grey margin carries paper
- *   grain, and a flat swatch would have sat inside it as a visibly cleaner
- *   rectangle. Extending reproduces the grain along with the colour.
+ * That is the whole rule, and it is worth keeping: the sleeve was square
+ * first, and every poster then needed its own answer to the leftover width —
+ * match the field, extend the edge, and a separate rule about not extending an
+ * edge a figure runs off, because that smears. Changing one number in
+ * AlbumCard deleted all of it. Export the next poster at 4:5 and there is
+ * nothing to do.
  *
- * Do not extend an edge a *figure* runs off. Hindi Singing has two of them at
- * the bottom corners, and extending smeared them sideways into streaks; the
- * flat red leaves them cropped where the poster already cropped them, a few
- * pixels further in. Extension only reads as continuation for a band.
- *
- * Either way nothing is cropped. The remaining entries are 16:9 stills, and
- * those are cropped to their middle band.
+ * An entry that is not 4:5 is centre-cropped to fit, so a 16:9 still loses a
+ * good deal of both sides.
  *
  * A category with no entry here falls back to the poster of its most recent
  * piece, so adding a discipline never means editing this file.
  */
 export const MUSIC_COVERS: Partial<Record<CategoryId, string>> = {
-  'solo-concert': '/media/covers/solo-concert-poster.jpg',
-  'musical-theatre': '/media/covers/musical-theatre-poster.jpg',
-  'hindi-singing': '/media/covers/hindi-singing-poster.jpg',
-  'honor-choir': '/media/covers/honor-choir-poster.jpg',
+  'solo-concert': '/media/covers/solo-concert-4x5.jpg',
+  'musical-theatre': '/media/covers/musical-theatre-4x5.jpg',
+  'hindi-singing': '/media/covers/hindi-singing-4x5.jpg',
+  'honor-choir': '/media/covers/honor-choir-4x5.jpg',
   'collaboration': '/media/posters/collaboration-2025-07.jpg',
-  'classical-repertoire': '/media/covers/classical-repertoire-poster.jpg',
+  'classical-repertoire': '/media/covers/classical-repertoire-4x5.jpg',
 }

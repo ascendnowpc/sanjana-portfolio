@@ -175,7 +175,7 @@ export function AlbumCard({
         aria-label={`${playing ? 'Pause' : 'Play'} ${track.title}`}
         className="sleeve-frame block w-full"
       >
-        <span className="sleeve block aspect-square w-full overflow-hidden bg-abyss">
+        <span className="sleeve block aspect-[4/5] w-full overflow-hidden bg-abyss">
           {cover && (
             <img
               src={mediaUrl(cover)}
