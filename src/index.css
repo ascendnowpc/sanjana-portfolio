@@ -119,8 +119,6 @@
   text-transform: uppercase;
 }
 
-
-
 /* The track lists inside the music cards scroll on their own. The global
    9px bar is far too heavy for a list that narrow, and on the platforms that
    hide overlay scrollbars entirely it is the only thing telling the reader
@@ -163,7 +161,13 @@
 }
 
 /* ------------------------------------------------------------------
-   Ambience — film grain + scanlines, layered over everything.
+   Ambience — film grain, layered over everything.
+
+   There were scanlines here too, and they were removed rather than dimmed.
+   The sheet was black at a fixed alpha, so how much it showed depended on
+   what sat under it: against the #111 ground it was aimed at it moved a
+   pixel by 2/255, and against white text or the poster art it took 30 off.
+   It was invisible where it was wanted and strongest where it was not.
 ------------------------------------------------------------------- */
 .grain::after {
   content: "";
@@ -174,25 +178,6 @@
   opacity: 0.045;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: grain-shift 700ms steps(2) infinite;
-}
-
-.scanlines::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 59;
-  pointer-events: none;
-  opacity: 0.3;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0 2px,
-    rgba(0, 0, 0, 0.42) 2px 3px
-  );
-  /* No mix-blend-mode. Multiplying a full-screen sheet means the compositor
-     has to read the backdrop and blend it on every frame, and the page under
-     this one is eighty moving pictures — it was paying for that continuously.
-     Over a palette this dark, plain black lines at the same weight are
-     indistinguishable from the multiply, and cost nothing. */
 }
 
 /* ------------------------------------------------------------------
