@@ -34,6 +34,24 @@ npm run preview
 `/work` also reads `?category=` (`solo-concert`, `musical-theatre`,
 `studio-session`, `collaboration`) so filtered views are linkable.
 
+### Deploying: these routes need a fallback
+
+Every route above except `/` exists only on the client — `BrowserRouter`
+makes them up after `index.html` has booted, and the build contains no file
+at any of those paths. Click through to `/about` and it works; reload it and
+the host is being asked for a file that was never built, so it answers 404.
+
+Two config files say "serve `index.html` instead", covering the usual hosts:
+
+- `vercel.json` — a catch-all rewrite, for Vercel.
+- `public/_redirects` — for Netlify and Cloudflare Pages. It ships to
+  `dist/_redirects` because everything in `public/` is copied verbatim.
+
+Both hosts check the filesystem before applying the rule, so real assets are
+untouched and only genuinely missing paths reach the fallback. On any other
+host, the equivalent is `try_files $uri /index.html` — the deploy needs *some*
+form of it, or refresh is broken everywhere but the home page.
+
 ## How the index wall works
 
 This is the part worth understanding before changing it.
