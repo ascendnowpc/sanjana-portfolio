@@ -1,0 +1,6 @@
+# SPA fallback for Netlify and Cloudflare Pages. The app routes on the client
+# with BrowserRouter, so /about exists only once index.html has booted — asking
+# the host for it directly is a request for a file that was never built. Both
+# hosts check the filesystem first, so real assets are unaffected and only
+# genuinely missing paths land here.
+/*  /index.html  200

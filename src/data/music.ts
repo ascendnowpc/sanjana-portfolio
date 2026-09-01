@@ -16,7 +16,7 @@ import type { CategoryId } from '@/types/content'
  * works untouched.
  *
  * **Square art.** The card crops its cover to 1:1, so a 16:9 still loses its
- * top and bottom. The four posters below are 4:5, so rather than crop them the
+ * top and bottom. The five posters below are 4:5, so rather than crop them the
  * files are already square — the poster sits at full height and the extra width
  * is filled rather than taken out of the art. What to fill it with is decided
  * by what the poster has at its left and right edges:
@@ -26,6 +26,9 @@ import type { CategoryId } from '@/types/content'
  * - Bands running off the side: extend the edge pixels outward, so they keep
  *   going. Classical Repertoire's film strips need this — a flat field would
  *   have cut all four dead at the seam.
+ * - A *textured* field: extend it too. Honor Choir's grey margin carries paper
+ *   grain, and a flat swatch would have sat inside it as a visibly cleaner
+ *   rectangle. Extending reproduces the grain along with the colour.
  *
  * Do not extend an edge a *figure* runs off. Hindi Singing has two of them at
  * the bottom corners, and extending smeared them sideways into streaks; the
@@ -42,7 +45,7 @@ export const MUSIC_COVERS: Partial<Record<CategoryId, string>> = {
   'solo-concert': '/media/covers/solo-concert-poster.jpg',
   'musical-theatre': '/media/covers/musical-theatre-poster.jpg',
   'hindi-singing': '/media/covers/hindi-singing-poster.jpg',
-  'honor-choir': '/media/posters/honor-choir-2025-02.jpg',
+  'honor-choir': '/media/covers/honor-choir-poster.jpg',
   'collaboration': '/media/posters/collaboration-2025-07.jpg',
   'classical-repertoire': '/media/covers/classical-repertoire-poster.jpg',
 }
