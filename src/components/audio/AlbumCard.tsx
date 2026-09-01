@@ -136,59 +136,54 @@ export function AlbumCard({
 
   if (!track) return null
 
-  /* The frame the reference is built on: a white hairline, drawn well above
-     the ground rather than whispered into it. The buttons inside sit a step
-     back from the card's own edge so the card still reads as the object.
-     `border-edge` is a blue, and disappears entirely at this weight. */
+  /* The card runs on a white ramp of its own rather than the page's mist and
+     dust, which are blue-greys: against the reference's plain white type they
+     read as grubby. Chalk at four strengths — frame, type, secondary, rule —
+     and nothing tinted. */
   const ghost =
-    'font-mono text-[0.6rem] uppercase tracking-[0.2em] border border-chalk/25 px-3 py-2 transition-colors duration-400'
+    'font-mono text-[0.6rem] uppercase tracking-[0.2em] border border-chalk/45 px-3 py-2 transition-colors duration-400'
 
   return (
     <article
       className={`relative min-w-0 border bg-ink/40 p-3.5 transition-colors duration-700 md:p-5 ${
         playing
           ? 'border-gilt/60 shadow-[0_0_70px_-34px_var(--color-gilt)]'
-          : 'border-chalk/45'
+          : 'border-chalk/80'
       }`}
     >
       {/* ---------------- header row ---------------- */}
       <div className="mb-3.5 flex items-center justify-between gap-3 md:mb-5">
-        <span className={`${ghost} text-dust`}>
+        <span className={`${ghost} text-chalk/70`}>
           {tracks.length} {tracks.length === 1 ? 'Recording' : 'Recordings'}
         </span>
         <Link
           to={href}
-          className={`${ghost} text-mist hover:border-gilt/70 hover:text-gilt`}
+          className={`${ghost} text-chalk hover:border-gilt/70 hover:text-gilt`}
         >
           Watch <span aria-hidden="true">↗</span>
         </Link>
       </div>
 
       {/* ---------------- cover ---------------- */}
+      {/* No play badge over the art. The transport below already says what
+          this does, and a scrim over the one photograph on the card was
+          covering the thing people came to look at. The sleeve still starts
+          playback when clicked; the tilt on hover is the affordance. */}
       <button
         type="button"
         onClick={onToggle}
         aria-label={`${playing ? 'Pause' : 'Play'} ${track.title}`}
-        className="group relative block aspect-square w-full overflow-hidden bg-abyss"
+        className="sleeve-frame block w-full"
       >
-        {cover && (
-          <img
-            src={mediaUrl(cover)}
-            alt={`${album} — cover`}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-[1400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
-          />
-        )}
-        <span className="absolute inset-0 flex items-center justify-center bg-void/45 opacity-0 backdrop-blur-[1px] transition-opacity duration-500 group-hover:opacity-100">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-gilt/55 bg-gilt/10">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-gilt">
-              {playing ? (
-                <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
-              ) : (
-                <path d="M8 5l12 7-12 7z" />
-              )}
-            </svg>
-          </span>
+        <span className="sleeve block aspect-square w-full overflow-hidden bg-abyss">
+          {cover && (
+            <img
+              src={mediaUrl(cover)}
+              alt={`${album} — cover`}
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          )}
         </span>
       </button>
 
@@ -200,8 +195,8 @@ export function AlbumCard({
       >
         {track.title}
       </h3>
-      <p className="mt-2 font-mono text-[0.72rem] tracking-[0.14em] text-mist md:text-xs">
-        {artist} <span className="text-dust">/</span> {album}
+      <p className="mt-2 font-mono text-[0.72rem] tracking-[0.14em] text-chalk/85 md:text-xs">
+        {artist} <span className="text-chalk/45">/</span> {album}
       </p>
 
       {/* ---------------- transport ---------------- */}
@@ -280,7 +275,7 @@ export function AlbumCard({
           }}
           className="relative -my-3 min-w-8 flex-1 cursor-pointer touch-none py-3"
         >
-          <div className="h-[3px] w-full rounded-full bg-edge">
+          <div className="h-[3px] w-full rounded-full bg-chalk/25">
             <div
               className="h-full rounded-full bg-gilt"
               style={{
@@ -297,8 +292,8 @@ export function AlbumCard({
           />
         </div>
 
-        <p className="shrink-0 font-mono text-[0.62rem] text-mist tabular-nums md:text-[0.68rem]">
-          {formatClock(time)} <span className="text-dust">/</span>{' '}
+        <p className="shrink-0 font-mono text-[0.62rem] text-chalk tabular-nums md:text-[0.68rem]">
+          {formatClock(time)} <span className="text-chalk/45">/</span>{' '}
           {formatClock(duration)}
         </p>
 
@@ -338,7 +333,7 @@ export function AlbumCard({
             // pointer-events matter as much as the width: a range input paints
             // its thumb outside its box, so a collapsed w-0 slider still sits
             // over the speaker icon and eats the click that would open it.
-            className="pointer-events-none ml-0 h-1 w-0 cursor-pointer appearance-none rounded-full bg-edge opacity-0 transition-all duration-500 group-hover/vol:pointer-events-auto group-hover/vol:ml-2.5 group-hover/vol:w-16 group-hover/vol:opacity-100 focus-visible:pointer-events-auto focus-visible:ml-2.5 focus-visible:w-16 focus-visible:opacity-100"
+            className="pointer-events-none ml-0 h-1 w-0 cursor-pointer appearance-none rounded-full bg-chalk/25 opacity-0 transition-all duration-500 group-hover/vol:pointer-events-auto group-hover/vol:ml-2.5 group-hover/vol:w-16 group-hover/vol:opacity-100 focus-visible:pointer-events-auto focus-visible:ml-2.5 focus-visible:w-16 focus-visible:opacity-100"
             style={{ accentColor: 'var(--color-gilt)' }}
           />
         </div>
@@ -360,7 +355,7 @@ export function AlbumCard({
       </div>
 
       {missing && (
-        <p className="mt-3 font-mono text-[0.62rem] leading-relaxed text-dust">
+        <p className="mt-3 font-mono text-[0.62rem] leading-relaxed text-chalk/55">
           Audio for this take is not on the media host yet.
         </p>
       )}
@@ -370,7 +365,7 @@ export function AlbumCard({
         <ol
           ref={listRef}
           onScroll={measure}
-          className="track-scroll mt-4 overflow-y-auto overscroll-contain border-t border-chalk/25 md:mt-5"
+          className="track-scroll mt-4 overflow-y-auto overscroll-contain border-t border-chalk/45 md:mt-5"
           style={{
             maxHeight: featured ? '16.5rem' : '13.25rem',
             maskImage: atEnd
@@ -384,7 +379,7 @@ export function AlbumCard({
           {tracks.map((t, i) => {
             const current = i === index
             return (
-              <li key={t.id} className="border-b border-chalk/15 last:border-b-0">
+              <li key={t.id} className="border-b border-chalk/30 last:border-b-0">
                 <button
                   type="button"
                   onClick={() => (current ? onToggle() : go(i, true))}
@@ -393,7 +388,7 @@ export function AlbumCard({
                 >
                   <span
                     className={`w-5 shrink-0 font-mono text-[0.7rem] tabular-nums ${
-                      current ? 'text-gilt' : 'text-dust'
+                      current ? 'text-gilt' : 'text-chalk/60'
                     }`}
                   >
                     {current && playing ? (
@@ -418,7 +413,7 @@ export function AlbumCard({
                     className={`min-w-0 flex-1 truncate font-mono text-[0.78rem] transition-colors duration-300 ${
                       current
                         ? 'text-gilt'
-                        : 'text-mist group-hover/row:text-chalk'
+                        : 'text-chalk/85 group-hover/row:text-chalk'
                     }`}
                   >
                     {t.title}
@@ -426,7 +421,7 @@ export function AlbumCard({
 
                   <span
                     className={`shrink-0 font-mono text-[0.72rem] tabular-nums ${
-                      current ? 'text-gilt/70' : 'text-dust'
+                      current ? 'text-gilt/70' : 'text-chalk/70'
                     }`}
                   >
                     {formatClock(t.duration)}

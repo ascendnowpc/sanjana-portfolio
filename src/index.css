@@ -195,6 +195,37 @@
      indistinguishable from the multiply, and cost nothing. */
 }
 
+/* ------------------------------------------------------------------
+   Cover sleeves — the tilt on the music cards.
+
+   A hover zoom just makes the picture bigger. A tilt gives it an edge and a
+   thickness, so the cover reads as a sleeve you could pick up rather than a
+   flat crop. The perspective sits on the parent, which puts the vanishing
+   point at the card instead of at the image, and the shadow falls away from
+   the corner coming forward.
+------------------------------------------------------------------- */
+.sleeve-frame {
+  perspective: 1200px;
+}
+
+.sleeve {
+  transform-style: preserve-3d;
+  transition:
+    transform 700ms var(--ease-out-expo),
+    box-shadow 700ms var(--ease-out-expo);
+}
+
+.sleeve-frame:hover .sleeve,
+.sleeve-frame:focus-visible .sleeve {
+  /* Scaled *down*, not up. Perspective already magnifies the near corner by
+     about 4% as it comes forward, and at full size that pushed the sleeve
+     past the card's own border. Shrinking by the same amount keeps the whole
+     tilted plane inside the padding, and the corner still reads as nearer
+     because it is. */
+  transform: rotateX(4deg) rotateY(-8deg) scale(0.97);
+  box-shadow: -26px 30px 66px -30px rgba(0, 0, 0, 0.95);
+}
+
 @keyframes grain-shift {
   0% { transform: translate(0, 0); }
   25% { transform: translate(-3%, 2%); }
@@ -246,6 +277,13 @@
   .marquee-track,
   .breathe {
     animation: none !important;
+  }
+  /* Dropped outright rather than shortened: the global duration override
+     below would otherwise snap the tilt into place, which is the part
+     motion sensitivity actually objects to. */
+  .sleeve-frame:hover .sleeve,
+  .sleeve-frame:focus-visible .sleeve {
+    transform: none;
   }
   *,
   *::before,
