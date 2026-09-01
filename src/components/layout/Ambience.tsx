@@ -1,4 +1,4 @@
-/** Film grain + scanlines, mounted once at the app root. */
+/** Film grain, mounted once at the app root. */
 export function Ambience() {
-  return <div className="grain scanlines pointer-events-none fixed inset-0 z-[58]" />
+  return <div className="grain pointer-events-none fixed inset-0 z-[58]" />
 }
