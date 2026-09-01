@@ -17,7 +17,7 @@ interface Album {
 /**
  * How many cards the narrow column takes for each one the wide column does.
  *
- * A cover is square, so a card's height is mostly its column's width, and the
+ * A cover is 4:5, so a card's height is mostly its column's width, and the
  * wide column is close to twice the narrow one. Two narrow cards a wide one
  * therefore keeps the columns roughly level — and because the list is sorted
  * deepest-first, it also puts the biggest bodies of work in the biggest
@@ -38,7 +38,7 @@ const NARROW_PER_WIDE = 2
  * right one beside it, so no two rows ever line up.
  *
  * Which card lands in which column is not an alternation. A card's cover is
- * square, so its height is mostly its column's width: split six cards evenly
+ * 4:5, so its height is mostly its column's width: split six cards evenly
  * and the wide side runs half a screen past the narrow one. See
  * NARROW_PER_WIDE.
  */
