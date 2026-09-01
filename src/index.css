@@ -111,6 +111,29 @@
 
 
 
+/* The track lists inside the music cards scroll on their own. The global
+   9px bar is far too heavy for a list that narrow, and on the platforms that
+   hide overlay scrollbars entirely it is the only thing telling the reader
+   the list continues. */
+@utility track-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-edge) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-edge);
+    border-radius: 99px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-dust);
+  }
+}
+
 /* For copy that sits directly on the moving wall — far tiles still drift
    through the centre, and the scrim alone is not enough to hold contrast. */
 @utility on-scrim {
