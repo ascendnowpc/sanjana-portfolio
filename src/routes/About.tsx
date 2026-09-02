@@ -13,8 +13,14 @@ import { Marquee } from '@/components/ui/Marquee'
 import { MusicShelf } from '@/components/audio/MusicShelf'
 import { mediaUrl } from '@/lib/media'
 
-/** The looping film the About page opens on. */
-const ABOUT_FILM = '/media/video/about-intro.mp4'
+/**
+ * The looping film the About page opens on.
+ *
+ * The size is in the key on purpose. R2 objects carry an immutable one-year
+ * cache header, so a re-cut has to land under a new name or browsers and the
+ * edge keep serving the old file — the same rule the preview clips follow.
+ */
+const ABOUT_FILM = '/media/video/about-intro-1080.mp4'
 const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
 
 /** Italic serif word inside the poster-weight headline. */

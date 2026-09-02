@@ -1,5 +1,11 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { motion, useScroll, useSpring, useTransform } from 'framer-motion'
+import {
+  motion,
+  useMotionTemplate,
+  useScroll,
+  useSpring,
+  useTransform,
+} from 'framer-motion'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
@@ -25,6 +31,8 @@ interface Props {
   children: ReactNode
   /** Viewport heights of scroll the whole gesture is spread across. */
   length?: number
+  /** The film's own aspect ratio, so the frame never crops it. */
+  aspect?: number
 }
 
 /**
@@ -36,16 +44,22 @@ interface Props {
  * to full bleed. By the time the sentence has gone the picture is the whole
  * screen, and the reader did all of it — nothing here plays on entry.
  *
- * Width and height are animated rather than a scale transform on purpose. A
- * scale would drag the film's own aspect ratio along with it and stretch the
- * subject; growing the frame and counter-zooming the video inside it keeps her
- * roughly the same size on screen the entire way, so the frame opens *around*
- * the performance instead of inflating it.
+ * Width and height are animated rather than a scale transform on purpose, and
+ * both are pinned to the film's own aspect ratio, so at every size between the
+ * card and the final frame the whole picture is on screen. Nothing is cropped
+ * to fit and nothing is stretched: the frame opens *around* the performance
+ * rather than inflating it or trimming it.
  *
  * Reduced-motion visitors get the end state — headline above, film wide and
  * still playing — which is the same information without the travel.
  */
-export function Overture({ src, poster, children, length = 2 }: Props) {
+export function Overture({
+  src,
+  poster,
+  children,
+  length = 2,
+  aspect = 16 / 9,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const reduced = usePrefersReducedMotion()
@@ -82,18 +96,24 @@ export function Overture({ src, poster, children, length = 2 }: Props) {
 
   // The card starts a little over a centimetre wider and taller than a
   // straight 30vw/26vh: measured against a 1440x800 screen, where 1cm is
-  // ~2.6vw across and ~4.7vh down.
+  // ~2.6vw across and ~4.7vh down. It stops short of full bleed — a frame that
+  // runs to the exact edge of the window reads as a background the page
+  // happens to sit on, and leaving a couple of centimetres of void around it
+  // keeps it a *picture*, which is what the whole gesture has been opening.
   //
-  // It stops short of full bleed. A frame that runs to the exact edge of the
-  // window reads as a background the page happens to sit on; leaving a couple
-  // of centimetres of void around it keeps it a *picture*, which is what the
-  // whole gesture has been opening.
-  const width = useTransform(open, [0, 1], ['32.6vw', '94vw'])
-  const height = useTransform(open, [0, 1], ['30.7vh', '84vh'])
+  // Both bounds are ceilings, not the size. The frame takes whichever of the
+  // two the film's own aspect ratio can fit inside, so it is never a shape the
+  // video has to be cropped to fill: on a wide window the height binds, on a
+  // tall one the width does, and object-cover has nothing left to cut either
+  // way. Sizing to a fixed vw/vh pair instead threw away about an eighth of
+  // the frame's height on an ordinary laptop.
+  const w = useTransform(open, [0, 1], [32.6, 94])
+  const h = useTransform(open, [0, 1], [30.7, 84])
+  const width = useMotionTemplate`min(${w}vw, calc(${h}vh * ${aspect}))`
+  const height = useMotionTemplate`min(${h}vh, calc(${w}vw / ${aspect}))`
   // The card sits low, under the headline; it rises into the middle of the
   // screen as it grows, which is what makes the two movements read as one.
   const filmY = useTransform(open, [0, 1], ['30vh', '0vh'])
-  const filmScale = useTransform(open, [0, 1], [1.28, 1])
 
   // The words are gone by the time the frame is two thirds open, so they never
   // sit on top of the picture competing with it.
@@ -152,11 +172,7 @@ export function Overture({ src, poster, children, length = 2 }: Props) {
             style={{ width, height, y: filmY, backgroundColor: OPENING_BLACK }}
             className="relative overflow-hidden rounded-[2px]"
           >
-            {/* Counter-zoom lives on the video, never on the frame: scaling the
-                frame would undo the width and height being animated above. */}
-            <motion.div style={{ scale: filmScale }} className="h-full w-full">
-              {film}
-            </motion.div>
+            {film}
           </motion.div>
         </div>
 
