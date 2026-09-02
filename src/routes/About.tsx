@@ -82,18 +82,27 @@ export default function About() {
       <Overture src={ABOUT_FILM} poster={ABOUT_FILM_POSTER}>
         {/* Two deliberate lines, not a wrap: at this weight the break is part
             of the composition, and letting the viewport choose it strands a
-            single word on line two on half the screens it renders at. */}
+            single word on line two on half the screens it renders at.
+
+            Leading is above 1, not the sub-1 a display line usually wants.
+            Anton's cap height is 0.86em — unusually tall in its em box — so a
+            line-height under that closes the channel entirely and the T of
+            BUILT lands on top of THE. 1.06 leaves a 0.2em gap, which is the
+            proportion the reference holds. Tracking is left a hair open for a
+            related reason: the face is already condensed, and pulling it
+            tighter fuses the verticals into a picket fence.
+
+            The size is set so the longer line (6.71em of advance in Anton,
+            plus tracking) lands at roughly 86% of the viewport, matching how
+            far the reference runs into its margins. */}
         <h1
-          className="font-[family-name:var(--font-poster)] leading-[0.86] tracking-[-0.02em] text-chalk uppercase"
-          style={{ fontSize: 'clamp(2.9rem, 10.4vw, 12rem)' }}
+          className="font-[family-name:var(--font-poster)] leading-[1.06] tracking-[0.012em] text-white uppercase"
+          style={{ fontSize: 'clamp(2.6rem, 12.4vw, 20rem)' }}
         >
           A voice built for
           <br />
           the room it fills
         </h1>
-        <p className="tracked-tight mt-10 text-xs text-mist md:text-sm">
-          {PROFILE.role} — {PROFILE.basedIn}
-        </p>
       </Overture>
 
       {/* ---------------- 2. the statement ---------------- */}

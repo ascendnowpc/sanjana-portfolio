@@ -59,7 +59,7 @@ export function Overture({ src, poster, children, length = 3.2 }: Props) {
 
   // The words are gone by the time the frame is two thirds open, so they never
   // sit on top of the picture competing with it.
-  const copyY = useTransform(open, [0, 1], ['-12vh', '-86vh'])
+  const copyY = useTransform(open, [0, 1], ['-14vh', '-88vh'])
   const copyOpacity = useTransform(open, [0, 0.42, 0.62], [1, 1, 0])
 
   // Autoplay is declarative, but Safari will refuse the promise if the tab was
@@ -86,7 +86,7 @@ export function Overture({ src, poster, children, length = 3.2 }: Props) {
   if (reduced) {
     return (
       <section className="relative bg-void px-6 pt-32 pb-16 md:px-12">
-        <div className="mx-auto max-w-[1500px] text-center">{children}</div>
+        <div className="w-full text-center">{children}</div>
         <div className="relative mt-16 h-[70vh] w-full overflow-hidden bg-ink">
           {film}
         </div>
@@ -121,7 +121,7 @@ export function Overture({ src, poster, children, length = 3.2 }: Props) {
           style={{ y: copyY, opacity: copyOpacity }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 md:px-12"
         >
-          <div className="pointer-events-auto mx-auto max-w-[1600px] text-center">
+          <div className="pointer-events-auto w-full text-center">
             {children}
           </div>
         </motion.div>
