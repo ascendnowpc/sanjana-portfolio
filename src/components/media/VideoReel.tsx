@@ -9,7 +9,7 @@ import {
 import { LoopingPreview } from '@/components/media/LoopingPreview'
 import { useIsMobile, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
-import { cn } from '@/lib/utils'
+import { clamp, cn } from '@/lib/utils'
 
 export interface ReelPiece {
   slug: string
@@ -29,8 +29,8 @@ interface Props {
   speed?: number
   /** Must be stable — the cards are memoised against it. */
   onOpen: (piece: ReelPiece, el: HTMLElement) => void
-  /** Told whether this row ended up drifting, so the page can decide whether
-   *  to promise motion the row is not going to deliver. */
+  /** Told whether this strip ended up drifting, so the page can decide
+   *  whether to promise motion it is not going to deliver. */
   onLoopingChange?: (looping: boolean) => void
   className?: string
 }
@@ -39,8 +39,9 @@ interface Props {
  * The card's shape, and how many of them a screen holds.
  *
  * Both taken off the reference: tall frames, four across, with air between
- * them. Everything else about the row's scale follows from these two numbers —
- * the card is a quarter of the screen wide, and as tall as that shape makes it.
+ * them. Everything else about the strip's scale follows from these two
+ * numbers — the card is a quarter of the screen wide, and as tall as that
+ * shape makes it.
  */
 const RATIO = 0.76
 function perView(width: number) {
@@ -60,72 +61,127 @@ function gapFor(width: number) {
  * A ceiling on card height, as a share of the window.
  *
  * A quarter of a 2560px screen is a 600px-wide card, which at this shape is
- * 790px tall — taller than the screen it is on. Past this point the row stops
- * growing and simply fits more cards on.
+ * 790px tall — taller than the screen it is on. Past this point the strip
+ * stops growing and simply fits more cards on.
  */
 const MAX_HEIGHT_VH = 0.56
 
+/** The size a card comes out at on a given screen. */
+export function reelCardSize(width: number, height: number) {
+  const gap = gapFor(width)
+  const across = perView(width)
+  const h = Math.min(
+    (width - across * gap) / across / RATIO,
+    height * MAX_HEIGHT_VH,
+  )
+  return { gap, width: Math.round(h * RATIO), height: Math.round(h) }
+}
+
 /**
- * How many cards may hold a video decoder at once.
+ * How many pieces belong in one strip.
  *
- * The same reasoning as the gallery wall's budget, at this surface's scale: a
- * browser has a small pool of hardware decoders, and a row that hands one to
- * every card it owns will stall the whole page — which is exactly what the
- * drift would show. Four across means the ones on screen are all playing.
+ * Short strips are the point — a handful of work each, several of them down
+ * the page — but a strip still has to be wider than the screen it loops
+ * across. One narrower than that would show the same piece twice at once,
+ * which reads as a bug rather than as a loop. So: the fewest cards that cover
+ * the screen, and never fewer than four.
  */
-const MAX_PLAYING = 5
+export function piecesPerReel(width: number, height: number) {
+  const card = reelCardSize(width, height)
+  return Math.max(4, Math.ceil((width + card.gap) / (card.width + card.gap)))
+}
+
+/**
+ * The 3D pose, as a function of where a card sits across the screen.
+ *
+ * The strip is read as the surface of a slowly turning cylinder: the card in
+ * the middle faces you, the ones at either end are angled away and set back.
+ * This is what stops a row of rectangles from looking like a contact sheet
+ * that happens to slide.
+ *
+ * The vanishing point is the card's own — `perspective()` inside its
+ * transform, rather than a `perspective` on the strip around it. Two reasons.
+ * A shared vanishing point projects a card at the edge of the screen off-axis,
+ * which skews its horizontal edges out of level: the row looked like it was
+ * sliding downhill. And a shared one needs `transform-style: preserve-3d` on
+ * the element the travel animates, which is the one thing that must stay a
+ * plain 2D transform if the compositor is to own it.
+ */
+const LENS = 2200
+const TILT = 13
+const DEPTH = 55
+
+/**
+ * How many cards may hold a video decoder at once, per strip.
+ *
+ * A browser has a small pool of hardware decoders, and strips that each hand
+ * one to every card they own would stall the page — which is exactly what the
+ * drift would show. Only the strips on screen play at all (see the observer
+ * below), and within one, only the cards nearest the middle.
+ */
+const MAX_PLAYING = 4
 const MAX_PLAYING_MOBILE = 2
+
+/**
+ * How much of a strip has to be on screen before it is given footage.
+ *
+ * Several strips down a page means several claims on the same small pool of
+ * decoders: at one point three strips had a sliver each in view and fifteen
+ * videos running between them. Travel is granted to any strip with a sliver
+ * showing — a frozen strip sliding into view looks broken — but footage only
+ * to one you are actually looking at.
+ */
+const PLAY_RATIO = 0.55
 
 /** Ranking nudge for a card that already holds a decoder, so it doesn't flap
  *  between two cards sitting the same distance from the middle. */
 const PLAY_STICKY = 90
 
-/** How often the budget is re-cut, in ms. Rarely, and never on the frames
- *  that matter: handing decoders around is the most expensive thing this
- *  component does, and the drift has to stay smooth through it. */
+/** How often the budget is re-cut, in ms. */
 const BUDGET_MS = 320
 
 /** Drag distance, in px, past which a pointer-up is a drag and not a click. */
 const DRAG_SLOP = 6
 
-/** The page gutter a still row is laid out inside, both sides together. */
+/** The page gutter a still strip is laid out inside, both sides together. */
 const STILL_GUTTER = 96
 
 /**
  * Where the crop is taken from.
  *
  * The archive is 21 landscape stage cameras and 15 vertical phone recordings
- * and the row has one card shape, so every frame is filled to it rather than
- * fitted inside it — a letterboxed clip in a tall card is a small picture in a
- * dark box, and next to a card that fills its frame it reads as broken. The
- * crop is taken above centre because what a wide stage shot has too much of is
- * floor, and what it cannot afford to lose is faces.
+ * and the strip has one card shape, so every frame is filled to it rather
+ * than fitted inside it — a letterboxed clip in a tall card is a small
+ * picture in a dark box, and next to a card that fills its frame it reads as
+ * broken. The crop is taken above centre because what a wide stage shot has
+ * too much of is floor, and what it cannot afford to lose is faces.
  */
 const CROP = '50% 42%'
 
 /**
- * A drifting row of performance videos.
+ * A drifting strip of performance videos.
  *
  * The work index used to be a static grid of posters, which is a strange way
  * to show singing: the one thing every piece here has is movement, and none of
- * it was on screen. This is the same archive as a reel — footage playing in
+ * it was on screen. This is the same archive as reels — footage playing in
  * rounded frames that travel steadily left to right, the way a strip of film
  * passes a gate.
  *
  * Three things about the mechanics:
  *
- * 1. The row is duplicated end to end and offset by a single transform, so the
- *    loop has no seam and no jump. Enough copies are mounted to cover the
- *    screen at any offset — two for the whole archive, more when a filter has
- *    cut it down to five pieces.
- * 2. The offset is driven by rAF rather than a CSS animation, because the same
- *    number has to be readable (for the decoder budget) and writable (by a
- *    drag, and by the Tab key). Positions come from one measurement, so the
- *    loop never asks the DOM anything and never forces a layout — the drift is
- *    one transform write a frame and nothing else.
+ * 1. The strip is duplicated end to end, so the loop has no seam and no jump.
+ *    Enough copies are mounted to cover the screen at any offset.
+ * 2. **The travel is a real animation, not a transform written every frame.**
+ *    It was the latter, and on a machine that is also decoding five videos
+ *    that is a promise the main thread cannot keep: every hitch in React, in
+ *    a decoder, in the garbage collector, was a hitch in the drift. Handing
+ *    the translation to the compositor as a `Web Animation` takes it off the
+ *    main thread entirely, and `currentTime` remains readable (for the decoder
+ *    budget and the 3D pose) and writable (by a drag, and by the Tab key), so
+ *    nothing was given up for it.
  * 3. It stops when it should: while hovered, while dragged, while focused, and
- *    while scrolled off screen. A row that keeps moving under a cursor trying
- *    to click it is a row you cannot use.
+ *    while scrolled off screen. A strip that keeps moving under a cursor
+ *    trying to click it is a strip you cannot use.
  */
 export function VideoReel({
   items,
@@ -141,102 +197,144 @@ export function VideoReel({
   const trackRef = useRef<HTMLDivElement>(null)
   const copyRef = useRef<HTMLUListElement>(null)
 
-  /** Repeats of the row mounted end to end. Two covers the whole archive; a
-   *  short row needs more to reach the far edge at every offset. */
+  /** Repeats of the strip mounted end to end. */
   const [copies, setCopies] = useState(2)
   const [playing, setPlaying] = useState<ReadonlySet<string>>(() => new Set())
   /**
-   * Whether the row has more work than fits on screen.
+   * Whether the strip has more work than fits on screen.
    *
    * A category with one piece in it does not: looping it filled the row with
-   * copies of the same frame drifting past each other, which reads as a bug
-   * rather than as a reel. A row that cannot overflow doesn't move — it just
-   * sits in the page's gutter like the short list it is.
+   * copies of the same frame drifting past each other. A strip that cannot
+   * overflow doesn't move — it just sits in the page's gutter like the short
+   * list it is.
    */
   const [looping, setLooping] = useState(true)
 
-  // Everything the loop reads lives in refs: it runs sixty times a second and
-  // must never be a reason to re-render.
-  const xRef = useRef(0)
-  const seededRef = useRef(false)
+  // Everything the animation and the frame loop read lives in refs.
+  const animRef = useRef<Animation | null>(null)
   const periodRef = useRef(0)
   const viewportRef = useRef(0)
   const offsetsRef = useRef<number[]>([])
   const widthsRef = useRef<number[]>([])
-  const onScreenRef = useRef(true)
+  const cellsRef = useRef<
+    { el: HTMLElement; copy: number; index: number; last: number }[]
+  >([])
+  const progressRef = useRef(1 / 3)
+  /** Any part on screen: enough to keep travelling. */
+  const onScreenRef = useRef(false)
+  /** Enough of it on screen to be worth a decoder. See PLAY_RATIO. */
+  const inViewRef = useRef(false)
   const playingRef = useRef(playing)
   const dragRef = useRef<{ last: number; moved: number } | null>(null)
   const suppressClickRef = useRef(false)
-  /** Detaches an in-flight drag's window listeners. Held so unmounting in the
-   *  middle of one — a filter changed with the pointer down — cannot leave
-   *  them behind, still writing to a row that no longer exists. */
   const endDragRef = useRef<(() => void) | null>(null)
   useEffect(() => () => endDragRef.current?.(), [])
 
-  // Hover and focus each hold the row still, and each has to let go on its own
-  // terms: tabbing away from a card while the cursor still rests on the row is
-  // not a reason to start moving again.
+  // Hover and focus each hold the strip still, and each has to let go on its
+  // own terms: tabbing away from a card while the cursor still rests on the
+  // strip is not a reason to start moving again.
   const hoverRef = useRef(false)
   const focusRef = useRef(false)
 
   const n = items.length
 
+  /** Plays only when every reason to hold still has gone away. */
+  const syncPlayState = useCallback(() => {
+    const anim = animRef.current
+    if (!anim) return
+    const hold =
+      hoverRef.current || focusRef.current || dragRef.current || !onScreenRef.current
+    if (hold) anim.pause()
+    else anim.play()
+  }, [])
+
+  /** Where the strip is right now, in px, without asking the DOM. */
+  const offsetNow = useCallback(() => {
+    const anim = animRef.current
+    const period = periodRef.current
+    if (!anim || !period) return 0
+    const duration = (anim.effect?.getTiming().duration as number) || 1
+    const t = Number(anim.currentTime ?? 0)
+    const progress = (((t % duration) + duration) % duration) / duration
+    return -period + progress * period
+  }, [])
+
   /**
-   * Size the cards to the screen, then measure where they landed.
+   * Size the cards to the screen, measure where they landed, and hand the
+   * travel to the compositor.
    *
    * The card size is written as custom properties rather than held in state:
-   * this runs on every resize, and a row that re-rendered thirty-six cards to
-   * change a width would be doing it during the drift.
-   *
-   * The measurement that follows is what lets the loop rank cards for the
+   * this runs on every resize, and a strip that re-rendered every card to
+   * change a width would be doing it mid-drift. The measurement that follows
+   * is what lets the frame loop place the 3D pose and rank cards for the
    * decoder budget with arithmetic instead of a few hundred
    * `getBoundingClientRect` calls a second.
    */
   useLayoutEffect(() => {
     const container = containerRef.current
     const copy = copyRef.current
+    const track = trackRef.current
     if (!container || !copy) return
 
     const measure = () => {
       const width = container.offsetWidth
       if (!width) return
 
-      const gap = gapFor(width)
-      const across = perView(width)
-      const height = Math.min(
-        (width - across * gap) / across / RATIO,
-        window.innerHeight * MAX_HEIGHT_VH,
-      )
-      container.style.setProperty('--reel-w', `${Math.round(height * RATIO)}px`)
-      container.style.setProperty('--reel-h', `${Math.round(height)}px`)
-      container.style.setProperty('--reel-gap', `${gap}px`)
+      const card = reelCardSize(width, window.innerHeight)
+      container.style.setProperty('--reel-w', `${card.width}px`)
+      container.style.setProperty('--reel-h', `${card.height}px`)
+      container.style.setProperty('--reel-gap', `${card.gap}px`)
 
       const kids = Array.from(copy.children) as HTMLElement[]
       if (!kids.length) return
       const base = kids[0].offsetLeft
       offsetsRef.current = kids.map((k) => k.offsetLeft - base)
       widthsRef.current = kids.map((k) => k.offsetWidth)
-      const period = copy.offsetWidth + gap
+      const period = copy.offsetWidth + card.gap
       periodRef.current = period
       viewportRef.current = width
 
-      // Start part-way in, so the row reads as already running rather than as
-      // a queue waiting to set off from the left edge.
-      if (!seededRef.current && period > 0) {
-        seededRef.current = true
-        xRef.current = -period / 3
-      }
-
-      // Cover the screen at every offset: the transform can be a full period
-      // to the left, so the mounted copies have to span that plus the width.
+      // Cover the screen at every offset: the travel is a full period wide, so
+      // the mounted copies have to span that plus the width.
       const needed = period > 0 ? Math.ceil(width / period) + 1 : 2
       setCopies((c) => (c === Math.max(2, needed) ? c : Math.max(2, needed)))
       // Measured against the unpadded width both ways round, so the branch
       // this decides can never change the measurement that decided it. The
-      // allowance is the page's own gutter: a still row is laid out inside it,
-      // and one that would spill out of it is better off drifting than sitting
-      // behind a scrollbar of its own.
+      // allowance is the page's own gutter: a still strip is laid out inside
+      // it, and one that would spill out of it is better off drifting than
+      // sitting behind a scrollbar of its own.
       setLooping(copy.offsetWidth > width - STILL_GUTTER)
+
+      if (!track || reduced) return
+      cellsRef.current = Array.from(track.children).flatMap((ul, c) =>
+        Array.from(ul.children).map((el, index) => ({
+          el: el as HTMLElement,
+          copy: c,
+          index,
+          last: NaN,
+        })),
+      )
+
+      // Rebuilt rather than retimed, because the distance changed with the
+      // card size — resumed at the same point in the loop so a resize does not
+      // send the strip back to the beginning.
+      const previous = animRef.current
+      if (previous) {
+        const d = (previous.effect?.getTiming().duration as number) || 1
+        const t = Number(previous.currentTime ?? 0)
+        progressRef.current = (((t % d) + d) % d) / d
+        previous.cancel()
+      }
+      const anim = track.animate(
+        [
+          { transform: `translate3d(${-period}px, 0, 0)` },
+          { transform: 'translate3d(0px, 0, 0)' },
+        ],
+        { duration: (period / speed) * 1000, iterations: Infinity, easing: 'linear' },
+      )
+      anim.currentTime = progressRef.current * (period / speed) * 1000
+      animRef.current = anim
+      syncPlayState()
     }
 
     measure()
@@ -247,75 +345,92 @@ export function VideoReel({
     return () => {
       ro.disconnect()
       window.removeEventListener('resize', measure)
+      animRef.current?.cancel()
+      animRef.current = null
     }
-    // `looping` and `reduced` are here because each swaps the row for a
-    // different pair of nodes: without them the observers would be left
-    // watching the elements the last branch mounted, which are no longer in
-    // the document.
-  }, [items, looping, reduced])
+    // `looping` and `reduced` are here because each swaps the strip for a
+    // different set of nodes: without them the observers would be left
+    // watching elements that are no longer in the document.
+  }, [items, looping, reduced, speed, copies, syncPlayState])
 
   useEffect(() => {
     onLoopingChange?.(looping && !reduced)
   }, [looping, reduced, onLoopingChange])
 
-  /** No decoders for a row nobody is looking at. */
+  /**
+   * Nothing runs for a strip nobody is looking at.
+   *
+   * There are several of these down the page now, and an off-screen one keeps
+   * neither a decoder nor an animation: no margin on the observer, because a
+   * strip one screen away is a strip whose five videos are worth nothing.
+   */
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
     const io = new IntersectionObserver(
       ([entry]) => {
         onScreenRef.current = entry.isIntersecting
-        if (!entry.isIntersecting && playingRef.current.size) {
+        // Read off the ratio rather than `isIntersecting`, which is true for a
+        // single overlapping pixel whatever thresholds are set.
+        inViewRef.current = entry.intersectionRatio >= PLAY_RATIO
+        syncPlayState()
+        if (!inViewRef.current && playingRef.current.size) {
           playingRef.current = new Set()
           setPlaying(playingRef.current)
         }
       },
-      { rootMargin: '160px 0px' },
+      { rootMargin: '0px', threshold: [0, PLAY_RATIO, 1] },
     )
     io.observe(container)
     return () => io.disconnect()
-  }, [looping, reduced])
+  }, [looping, reduced, syncPlayState])
 
-  /** The drift, and the decoder budget that rides on it. */
+  /**
+   * The 3D pose, and the decoder budget.
+   *
+   * This is all that is left on the main thread each frame: a handful of
+   * transform writes on the cards that are actually on screen. The travel
+   * itself is the compositor's, so a slow frame here tilts a card a moment
+   * late — it does not stutter the strip.
+   */
   useEffect(() => {
     if (reduced || !looping || !n) return
-    const track = trackRef.current
-    if (!track) return
 
     const max = mobile ? MAX_PLAYING_MOBILE : MAX_PLAYING
     let raf = 0
-    let last = performance.now()
     let nextBudget = 0
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
-      // Clamped: a backgrounded tab resumes with a gap of seconds, and an
-      // unclamped step would teleport the row.
-      const dt = Math.min(now - last, 64) / 1000
-      last = now
+      if (!onScreenRef.current) return
+      const scored = inViewRef.current
 
       const period = periodRef.current
-      if (period <= 0) return
-
-      const held = hoverRef.current || focusRef.current || dragRef.current
-      if (!held && onScreenRef.current) xRef.current += speed * dt
-
-      // Wrapped into (-period, 0], so every card on screen is one of the
-      // mounted copies and the arithmetic below stays finite.
-      let x = xRef.current % period
-      if (x > 0) x -= period
-      xRef.current = x
-      track.style.transform = `translate3d(${x.toFixed(2)}px, 0, 0)`
-
-      if (now < nextBudget || !onScreenRef.current) return
-      nextBudget = now + BUDGET_MS
-
+      const viewport = viewportRef.current
       const offsets = offsetsRef.current
       const widths = widthsRef.current
-      const viewport = viewportRef.current
-      if (!offsets.length || viewport <= 0) return
+      if (period <= 0 || viewport <= 0 || !offsets.length) return
 
+      const x = offsetNow()
       const centre = viewport / 2
+
+      for (const cell of cellsRef.current) {
+        const left = x + cell.copy * period + offsets[cell.index]
+        const t = clamp(
+          (left + widths[cell.index] / 2 - centre) / centre,
+          -1.35,
+          1.35,
+        )
+        // Skipped when nothing moved enough to see: a card parked off the side
+        // of the screen holds its pose for whole seconds at a time.
+        if (Math.abs(t - cell.last) < 0.004) continue
+        cell.last = t
+        cell.el.style.transform = `perspective(${LENS}px) translateZ(${(-Math.abs(t) * DEPTH).toFixed(1)}px) rotateY(${(-t * TILT).toFixed(2)}deg)`
+      }
+
+      if (now < nextBudget || !scored) return
+      nextBudget = now + BUDGET_MS
+
       const prev = playingRef.current
       const ranked: { key: string; d: number }[] = []
       for (let c = 0; c < copies; c++) {
@@ -342,35 +457,47 @@ export function VideoReel({
 
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
-  }, [reduced, looping, mobile, speed, copies, n])
+  }, [reduced, looping, mobile, copies, n, offsetNow])
+
+  /** Move the strip to a given offset — a drag, or a jump to a card. */
+  const travelTo = useCallback((x: number) => {
+    const anim = animRef.current
+    const period = periodRef.current
+    if (!anim || !period) return
+    const duration = (anim.effect?.getTiming().duration as number) || 1
+    let progress = ((x + period) / period) % 1
+    if (progress <= 0) progress += 1
+    // Never exactly 1. That is the boundary between two iterations, and the
+    // animation renders it as the *start* of the next one — a whole period to
+    // the left of where it was asked to go. Tabbing to one of the first cards
+    // in a strip asks for precisely that offset, and landed the focus ring on
+    // a card off the side of the screen.
+    anim.currentTime = Math.min(progress, 1 - 1e-6) * duration
+  }, [])
 
   /**
    * Bring a card the keyboard has just reached onto the screen.
    *
-   * Tab order runs the length of the archive, most of which is off screen at
-   * any moment; without this, focus would land somewhere invisible and the
-   * focus ring would be the only thing telling you so.
+   * Tab order runs the length of the strip, some of which is off screen at any
+   * moment; without this, focus could land somewhere invisible and the focus
+   * ring would be the only thing telling you so.
+   *
+   * Capped at zero rather than wrapped: centring one of the first cards wants
+   * a *positive* offset, and wrapping that back into the loop's range put the
+   * card a whole period to the left — off screen, with its identical twin from
+   * the next repeat sitting exactly where the focused card was meant to be.
    */
-  const centreCard = useCallback((index: number) => {
-    const period = periodRef.current
-    const offsets = offsetsRef.current
-    const widths = widthsRef.current
-    if (!period || index >= offsets.length) return
-
-    // Capped at zero rather than wrapped.
-    //
-    // Centring one of the first few cards wants a *positive* offset, and
-    // wrapping that back into the loop's (-period, 0] range put the card a
-    // whole period to the left — off screen, with its identical twin from the
-    // next repeat sitting exactly where the focused card was meant to be. The
-    // ring was on a frame nobody could see. Zero is the closest this row can
-    // come: the run starts flush at the left edge, and an early card is whole
-    // and on screen there, which is all the centring was ever for.
-    const wanted = viewportRef.current / 2 - offsets[index] - widths[index] / 2
-    let x = Math.min(0, wanted)
-    if (x <= -period) x = (x % period) || 0
-    xRef.current = x
-  }, [])
+  const centreCard = useCallback(
+    (index: number) => {
+      const offsets = offsetsRef.current
+      const widths = widthsRef.current
+      if (index >= offsets.length) return
+      const wanted =
+        viewportRef.current / 2 - offsets[index] - widths[index] / 2
+      travelTo(Math.min(0, wanted))
+    },
+    [travelTo],
+  )
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -379,8 +506,9 @@ export function VideoReel({
     // and the *next* visitor's click — a real one — would be the one swallowed.
     suppressClickRef.current = false
     dragRef.current = { last: e.clientX, moved: 0 }
+    syncPlayState()
 
-    // Listened for on the window rather than captured on the row: capturing
+    // Listened for on the window rather than captured on the strip: capturing
     // the pointer retargets the click that follows to the capturing element,
     // and the card underneath would never hear it.
     const move = (ev: PointerEvent) => {
@@ -389,7 +517,7 @@ export function VideoReel({
       const dx = ev.clientX - drag.last
       drag.last = ev.clientX
       drag.moved += Math.abs(dx)
-      xRef.current += dx
+      travelTo(offsetNow() + dx)
     }
     const up = () => {
       suppressClickRef.current = (dragRef.current?.moved ?? 0) > DRAG_SLOP
@@ -398,6 +526,7 @@ export function VideoReel({
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
       endDragRef.current = null
+      syncPlayState()
     }
     endDragRef.current = up
     window.addEventListener('pointermove', move)
@@ -415,12 +544,11 @@ export function VideoReel({
         piece={piece}
         index={i}
         // Only the first copy is the real one. The repeats exist to close the
-        // loop, and a screen reader or a Tab key finding the archive three
-        // times over would be a bug, not thoroughness.
+        // loop, and a screen reader or a Tab key finding the archive twice
+        // over would be a bug, not thoroughness.
         interactive={copy === 0}
-        // A row that never moves has no ranking to do: the cards that are on
-        // screen are the cards that are on screen, and the budget is just the
-        // first few of them.
+        // A strip that never moves has no ranking to do: the cards that are on
+        // screen are the cards that are on screen.
         playing={still ? i < max : playing.has(`${copy}:${i}`)}
         onOpen={onOpen}
         onCentre={centreCard}
@@ -428,7 +556,7 @@ export function VideoReel({
     ))
 
   /**
-   * Motion-sensitive visitors, and rows too short to travel, get the same
+   * Motion-sensitive visitors, and strips too short to travel, get the same
    * cards as a plain scroller: nothing drifting, nothing to chase.
    */
   if (reduced || !looping) {
@@ -437,11 +565,18 @@ export function VideoReel({
         ref={containerRef}
         className={cn('w-full overflow-x-auto overscroll-x-contain', className)}
       >
-        <div className="flex w-max px-6 md:px-12" style={{ gap: 'var(--reel-gap)' }}>
+        <div
+          className="flex w-max px-6 md:px-12"
+          style={{ gap: 'var(--reel-gap)' }}
+        >
           {/* The measuring copy either way: the layout effect reads this node
               to decide which of these two branches should be on screen. */}
-          <ul ref={copyRef} className="flex shrink-0" style={{ gap: 'var(--reel-gap)' }}>
-            {/* Stills only for a motion-sensitive visitor — a row of
+          <ul
+            ref={copyRef}
+            className="flex shrink-0"
+            style={{ gap: 'var(--reel-gap)' }}
+          >
+            {/* Stills only for a motion-sensitive visitor — a strip of
                 autoplaying video is the thing they asked not to be given. */}
             {row(0, !reduced)}
           </ul>
@@ -461,18 +596,22 @@ export function VideoReel({
       onDragStart={(e) => e.preventDefault()}
       onPointerEnter={() => {
         hoverRef.current = true
+        syncPlayState()
       }}
       onPointerLeave={() => {
         hoverRef.current = false
+        syncPlayState()
       }}
       onFocusCapture={() => {
         focusRef.current = true
+        syncPlayState()
       }}
       onBlurCapture={() => {
         focusRef.current = false
+        syncPlayState()
       }}
       // A card reached by Tab is scrolled into view by the browser, which would
-      // shift the row out from under the transform that positions it.
+      // shift the strip out from under the animation that positions it.
       onScroll={(e) => {
         e.currentTarget.scrollLeft = 0
       }}
@@ -514,17 +653,21 @@ interface CardProps {
 }
 
 /**
- * One frame in the reel.
+ * One frame in the strip.
  *
  * Memoised, and every prop it takes is either a primitive or a stable
- * callback: the row re-renders each time the decoder budget moves, and only
- * the two or three cards that actually changed hands should do any work.
+ * callback: the strip re-renders each time the decoder budget moves, and only
+ * the card that actually changed hands should do any work.
+ *
+ * The `<li>` is posed in 3D by the frame loop and nothing else touches its
+ * transform; the hover lift lives on the button inside it, so the two never
+ * write over each other.
  *
  * There is no colour in here on purpose. Each category used to light its own
- * hover — cyan, amber, violet, rose — so running a cursor along the row
+ * hover — cyan, amber, violet, rose — so running a cursor along the strip
  * flashed through a paintbox. The reference lifts a frame with nothing but its
- * own picture and a plain white edge, which is what makes a hover there look
- * clean; the gallery wall reached the same conclusion.
+ * own picture and plain white light, and the gallery wall reached the same
+ * conclusion.
  */
 const ReelCard = memo(function ReelCard({
   piece,
@@ -544,7 +687,15 @@ const ReelCard = memo(function ReelCard({
   return (
     <li
       className="shrink-0"
-      style={{ width: 'var(--reel-w)', height: 'var(--reel-h)' }}
+      style={{
+        width: 'var(--reel-w)',
+        height: 'var(--reel-h)',
+        transformStyle: 'preserve-3d',
+        backfaceVisibility: 'hidden',
+        // Posed by the strip's frame loop; the hover lift below lives on the
+        // button inside, so the two never write over each other.
+        transform: `perspective(${LENS}px)`,
+      }}
     >
       <button
         ref={ref}
@@ -559,7 +710,7 @@ const ReelCard = memo(function ReelCard({
           // Only for focus that arrived from the keyboard.
           //
           // Chromium focuses a button on mousedown, so centring on every focus
-          // meant pressing a card yanked the row sideways under the cursor —
+          // meant pressing a card yanked the strip sideways under the cursor —
           // and because mousedown and mouseup then landed on two different
           // cards, the browser dispatched the click on their common ancestor
           // instead of on either one. Clicking a frame did nothing at all.
@@ -571,14 +722,15 @@ const ReelCard = memo(function ReelCard({
         className="group relative block h-full w-full cursor-pointer overflow-hidden rounded-[20px] bg-ink text-left"
         style={{
           transition: 'box-shadow 600ms, transform 700ms var(--ease-out-expo)',
-          transform: hover ? 'translateY(-8px)' : 'none',
-          // Nothing at rest. A hairline is invisible over a bright frame and
-          // reads as a drawn border over a dark one, so a row of mixed footage
-          // wore it on some cards and not others — the reference gives its
-          // frames no edge at all, and picks one out with light on hover.
+          // Comes off the surface toward the viewer, rather than sliding up
+          // the page: the card is a thing standing in space now, and a lift
+          // that ignores that reads as a sticker peeling.
+          transform: hover ? 'translateZ(60px)' : 'none',
+          // The ground shadow is what sells the depth — a card with none looks
+          // painted on. It deepens and spreads as the card comes forward.
           boxShadow: hover
-            ? '0 0 0 1px rgba(255,255,255,0.45), 0 50px 90px -40px rgba(0,0,0,0.95)'
-            : 'none',
+            ? '0 0 0 1px rgba(255,255,255,0.4), 0 60px 90px -30px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.16)'
+            : '0 30px 55px -30px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.08)',
         }}
       >
         <img
@@ -597,7 +749,7 @@ const ReelCard = memo(function ReelCard({
 
         {/* Always the short silent loop, never the full recording: several of
             these run at once, and pointing them at four-minute files would
-            pull hundreds of megabytes through the row. */}
+            pull hundreds of megabytes through the page. */}
         {showVideo && (
           <LoopingPreview
             src={src!}
@@ -609,17 +761,22 @@ const ReelCard = memo(function ReelCard({
 
         {/* The rest state, as an overlay rather than a `filter: brightness()`.
             Compositing one flat layer is far cheaper than filtering every card
-            in the row, and this row is moving the whole time — the gallery
-            wall found the same thing. */}
+            in a strip that is moving the whole time. */}
         <div
           className="pointer-events-none absolute inset-0 bg-void"
+          style={{ transition: 'opacity 600ms', opacity: hover ? 0 : 0.12 }}
+        />
+
+        {/* A light raking across the face, brightest at the top left. Fixed to
+            the card rather than to the screen, so a card turning through the
+            middle of the strip catches it at an angle — which is most of what
+            makes the pose read as a surface rather than a picture. */}
+        <div
+          className="pointer-events-none absolute inset-0"
           style={{
-            transition: 'opacity 600ms',
-            // Light. Enough that the card being looked at lifts out of the
-            // row, not so much that the row reads as a wall of dimmed
-            // thumbnails — the reference's frames are at full strength and
-            // that is most of why it looks alive.
-            opacity: hover ? 0 : 0.12,
+            background:
+              'linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 32%, transparent 55%)',
+            mixBlendMode: 'overlay',
           }}
         />
 
