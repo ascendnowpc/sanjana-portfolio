@@ -79,14 +79,19 @@ export default function About() {
   return (
     <div className="bg-void">
       {/* ---------------- 1. the room opens ---------------- */}
-      <Overture src={ABOUT_FILM} poster={ABOUT_FILM_POSTER} label="About">
+      <Overture src={ABOUT_FILM} poster={ABOUT_FILM_POSTER}>
+        {/* Two deliberate lines, not a wrap: at this weight the break is part
+            of the composition, and letting the viewport choose it strands a
+            single word on line two on half the screens it renders at. */}
         <h1
-          className="mx-auto max-w-[15ch] font-[family-name:var(--font-poster)] leading-[0.88] tracking-tight text-chalk uppercase"
-          style={{ fontSize: 'clamp(2.6rem, 8.4vw, 8rem)' }}
+          className="font-[family-name:var(--font-poster)] leading-[0.86] tracking-[-0.02em] text-chalk uppercase"
+          style={{ fontSize: 'clamp(2.9rem, 10.4vw, 12rem)' }}
         >
-          {PROFILE.name} sings the <Em>room</Em> awake
+          A voice built for
+          <br />
+          the room it fills
         </h1>
-        <p className="tracked-tight mt-8 text-xs text-mist md:text-sm">
+        <p className="tracked-tight mt-10 text-xs text-mist md:text-sm">
           {PROFILE.role} — {PROFILE.basedIn}
         </p>
       </Overture>
