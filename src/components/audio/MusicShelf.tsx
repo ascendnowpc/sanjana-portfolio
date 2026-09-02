@@ -92,7 +92,7 @@ export function MusicShelf({ items }: { items: Performance[] }) {
        real margin either side rather than running the full 1600 — cards that
        fill a 1920 display stop reading as record sleeves and start reading as
        page sections. */
-    <section className="mx-auto max-w-[1160px] px-6 pb-32 md:px-12">
+    <section className="mx-auto max-w-[1160px] px-6 pt-32 pb-32 md:px-12 md:pt-44">
       <Reveal>
         {/* The same poster face the page opens on, at a fraction of the size.
             Held small deliberately: at display scale it would compete with the
