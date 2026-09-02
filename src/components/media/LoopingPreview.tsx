@@ -5,6 +5,9 @@ interface Props {
   src: string
   poster?: string
   className?: string
+  /** `object-position` for the crop, when the surface fills a frame that is
+   *  not the footage's own shape. */
+  objectPosition?: string
 }
 
 /**
@@ -23,6 +26,7 @@ export function LoopingPreview({
   src,
   poster,
   className = 'absolute inset-0 h-full w-full object-cover',
+  objectPosition,
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null)
 
@@ -82,6 +86,7 @@ export function LoopingPreview({
     <video
       ref={ref}
       className={className}
+      style={objectPosition ? { objectPosition } : undefined}
       // Its own poster, rather than fading in from transparent over the still
       // underneath. The two look identical — it is the same image — and this
       // way the element is opaque and visible from the moment it mounts,
