@@ -127,27 +127,29 @@ export function Overture({
   }, [])
 
   /**
-   * The edge, cast down onto the page below.
+   * Depth in the black, not a second edge.
    *
-   * The opening sits ten levels darker than the rest of the site, and butted
-   * straight against it that step reads as a seam — two flat fields meeting at
-   * a ruled line. Spilling a shadow past the boundary turns the same step into
-   * depth: the black becomes a surface with an edge, and the page below sits
-   * under it rather than next to it.
+   * A shadow spilled onto the section below only drew a second boundary a
+   * shadow's width from the first — two lines where the page wanted one. The
+   * depth belongs on the near side instead: the black deepens as it approaches
+   * its own bottom edge, so the surface reads as having thickness and falling
+   * away, and the hairline along the very bottom is the lit lip of it.
    *
-   * Black at low alpha rather than a ramp between the two greys, so it
-   * composites onto whatever section happens to follow and needs no knowledge
-   * of it.
+   * The step down to the site's own grey stays exactly as crisp as it was. It
+   * is the contrast that makes the edge an edge; this only gives the slab
+   * above it a body.
    */
-  const edgeShadow = (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 top-full z-10 h-40"
-      style={{
-        background:
-          'linear-gradient(to bottom, rgba(0,0,0,0.72), rgba(0,0,0,0.34) 38%, rgba(0,0,0,0) 100%)',
-      }}
-    />
+  const edgeDepth = (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+      <div
+        className="h-24 w-full"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0.92) 100%)',
+        }}
+      />
+      <div className="h-px w-full bg-white/[0.055]" />
+    </div>
   )
 
   const film = (
@@ -178,7 +180,7 @@ export function Overture({
         >
           {film}
         </div>
-        {edgeShadow}
+        {edgeDepth}
       </section>
     )
   }
@@ -212,7 +214,7 @@ export function Overture({
         </motion.div>
       </div>
 
-      {edgeShadow}
+      {edgeDepth}
     </section>
   )
 }
