@@ -6,11 +6,15 @@ import { mediaUrl } from '@/lib/media'
 /**
  * The black behind the opening, a shade under the site's own.
  *
+ * A shade off true black rather than #000. At #000 the section reads as a hole
+ * cut in the page; the few points of lift are what keep it a surface, and they
+ * also give the film's own black somewhere to sit against.
+ *
  * Scoped to this section rather than promoted to a token: the page returns to
  * --color-void the moment the film has finished opening, and the step between
  * them is small enough to read as depth rather than as a seam.
  */
-const OPENING_BLACK = '#000000'
+const OPENING_BLACK = '#070707'
 
 interface Props {
   /** Looping film, stored as a media key ("/media/video/x.mp4"). */
