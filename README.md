@@ -26,7 +26,7 @@ npm run preview
 | Route | What it is |
 |---|---|
 | `/` | The immersive index — the 3D wall |
-| `/work` | Filterable grid of everything, newest first |
+| `/work` | Filterable reels of everything, newest first, playing |
 | `/work/:slug` | A performance: video, recording, credits, stills |
 | `/about` | Editorial bio, portrait strip, stats, press |
 | `/contact` | Booking enquiry form |
@@ -155,7 +155,7 @@ src/
 ├── components/
 │   ├── gallery/     ImmersiveGallery, GalleryTile, layout maths
 │   ├── audio/       WaveformPlayer
-│   ├── media/       VideoStage
+│   ├── media/       VideoStage, VideoReel, LoopingPreview
 │   ├── layout/      Nav, Footer, Cursor, Preloader, route transition
 │   └── ui/          Reveal, SplitText, Marquee, MagneticLink
 ├── routes/          Home, Work, WorkDetail, About, Contact, NotFound
