@@ -94,12 +94,16 @@ export function MusicShelf({ items }: { items: Performance[] }) {
        page sections. */
     <section className="mx-auto max-w-[1160px] px-6 pb-32 md:px-12">
       <Reveal>
-        <p className="label mb-4 text-dust">Listen</p>
-        <p className="max-w-2xl text-sm leading-[1.9] font-light text-mist">
-          One sleeve a discipline, holding every recording filed under it. The
-          audio is lifted straight off the footage rather than re-recorded, so
-          what plays here is the room as it sounded.
-        </p>
+        {/* The same poster face the page opens on, at a fraction of the size.
+            Held small deliberately: at display scale it would compete with the
+            sleeves it is labelling, and the job here is to name the shelf, not
+            to start a second headline. */}
+        <h2
+          className="font-[family-name:var(--font-poster)] leading-none tracking-[0.012em] text-chalk uppercase"
+          style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}
+        >
+          Music
+        </h2>
       </Reveal>
 
       {/* The wide column opens up only at xl. Held at 1.9 all the way down,
