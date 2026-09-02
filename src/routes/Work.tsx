@@ -1,31 +1,38 @@
-import { useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useCallback, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import type { CategoryId } from '@/types/content'
+import type { CategoryId, Performance } from '@/types/content'
 import { CATEGORIES, CATEGORY_MAP } from '@/data/categories'
 import { usePerformances } from '@/hooks/useContent'
 import { useTransition } from '@/components/layout/TransitionProvider'
+import { VideoReel, type ReelPiece } from '@/components/media/VideoReel'
 import { Reveal } from '@/components/ui/Reveal'
 import { SplitText } from '@/components/ui/SplitText'
 import { cn } from '@/lib/utils'
-import { mediaUrl } from '@/lib/media'
 
 type Filter = CategoryId | 'all'
 
 /**
- * One frame for every card, whatever shape the piece is.
+ * Above this many pieces the archive is split across two reels.
  *
- * The archive mixes 16:9 stage cameras with 9:16 phone footage. The grid used
- * to force all of it into a 16:10 letterbox with `object-cover`, which cropped
- * about two-thirds off a vertical piece. Giving portrait work its own taller
- * frame fixed the cropping but wrecked the grid: a row is as tall as its
- * tallest cell, so every landscape card sat over a column of dead space.
- *
- * So the frame stays uniform and the poster is *contained* inside it instead,
- * over a blurred copy of itself. Slightly squarer than before, to leave a
- * vertical piece somewhere to stand.
+ * One row of thirty-six is a very long way to travel to reach the far end of
+ * it, and halving the journey costs nothing: both rows run the same direction
+ * at slightly different speeds, so they read as one moving surface rather than
+ * as two lists.
  */
-const CARD_FRAME = '4 / 3'
+const SPLIT_AT = 10
+
+/** Pixels per second per row. Slow — this is a room, not a ticker. */
+const SPEEDS = [30, 23]
+
+/**
+ * Row height, which sets the scale of everything in the reel.
+ *
+ * Chosen against the fold rather than by eye: the page carries a heading, a
+ * filter bar and a hint above the first row, and a card whose caption lands
+ * below the bottom of the screen is a card nobody can read without scrolling
+ * past the thing it labels.
+ */
+const ROW_HEIGHT = 'clamp(190px, 23vw, 340px)'
 
 export default function Work() {
   const { items } = usePerformances()
@@ -41,27 +48,46 @@ export default function Work() {
     [items, active],
   )
 
+  /** The reels, newest first, dealt into one or two rows. */
+  const rows = useMemo(() => {
+    const pieces = filtered.map(toPiece)
+    if (pieces.length <= SPLIT_AT) return [pieces]
+    const half = Math.ceil(pieces.length / 2)
+    return [pieces.slice(0, half), pieces.slice(half)]
+  }, [filtered])
+
+  // Stable, so the cards inside the reels stay memoised while the rows drift.
+  const open = useCallback(
+    (piece: ReelPiece, el: HTMLElement) =>
+      zoomTo(el, piece.poster, piece.title, `/work/${piece.slug}`),
+    [zoomTo],
+  )
+
+  // Reported by the first reel, which is always the longest: whether it ended
+  // up with more work than fits on screen, and so with somewhere to travel.
+  const [drifting, setDrifting] = useState(true)
+
   const setFilter = (f: Filter) => {
     if (f === 'all') setParams({}, { replace: true })
     else setParams({ category: f }, { replace: true })
   }
 
   return (
-    <div className="min-h-screen bg-void pt-36 pb-32">
+    <div className="min-h-screen bg-void pt-24 pb-28 md:pt-32">
       <div className="mx-auto max-w-[1600px] px-6 md:px-12">
-        <header className="mb-16">
+        <header className="mb-10">
           <p className="label mb-6 text-bloom">The Work</p>
           <h1 className="tracked text-[clamp(2rem,6vw,4.75rem)] leading-[1.1] text-chalk">
             <SplitText text="Every Room" />
           </h1>
-          <p className="mt-8 max-w-xl text-sm leading-relaxed font-light text-mist">
+          <p className="mt-6 max-w-xl text-sm leading-relaxed font-light text-mist">
             Concert halls, black boxes, chapels and garages — sorted newest
             first. Open anything to watch it in full and hear the recording.
           </p>
         </header>
 
         {/* Filters */}
-        <div className="mb-14 flex flex-wrap items-center gap-x-8 gap-y-4 border-y border-edge/50 py-5">
+        <div className="mb-6 flex flex-wrap items-center gap-x-8 gap-y-4 border-y border-edge/50 py-4">
           {(
             [{ id: 'all', label: 'All Work', accent: '#4fd8e8' }, ...CATEGORIES] as const
           ).map((c) => {
@@ -99,180 +125,67 @@ export default function Work() {
         </div>
 
         {active !== 'all' && (
-          <p className="mb-10 max-w-lg text-sm font-light text-mist">
+          <p className="mb-4 max-w-lg text-sm font-light text-mist">
             {CATEGORY_MAP[active].blurb}
           </p>
         )}
 
-        {/* Grid */}
-        <motion.ul
-          layout
-          // items-start: a two-line title makes its card taller than the rest,
-          // and stretching the others to match would strand their captions.
-          className="grid grid-cols-1 items-start gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          <AnimatePresence mode="popLayout">
-            {filtered.map((p, i) => (
-              <WorkCard
-                key={p.slug}
-                index={i}
-                slug={p.slug}
-                title={p.title}
-                subtitle={p.subtitle}
-                year={p.year}
-                city={p.city}
-                poster={p.poster}
-                accent={p.accent ?? CATEGORY_MAP[p.category].accent}
-                trackCount={p.tracks.length}
-                onOpen={(el) => zoomTo(el, p.poster, p.title, `/work/${p.slug}`)}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.ul>
-
-        {!filtered.length && (
-          <Reveal>
-            <p className="py-24 text-center text-sm text-dust">
-              Nothing filed under this category yet.
-            </p>
-          </Reveal>
+        {/* Two hints, because the row answers to two different hands: a cursor
+            can rest on a frame to stop it, a thumb cannot. Neither is offered
+            for a category short enough that its reel holds still — nothing
+            there travels, and there is nothing to hold. */}
+        {filtered.length > 0 && (
+          <p className="label mb-6 text-dust">
+            {drifting ? (
+              <>
+                <span className="hidden md:inline">
+                  Hover to hold a frame — drag to travel — click to open
+                </span>
+                <span className="md:hidden">Drag to travel — tap to open</span>
+              </>
+            ) : (
+              <span>Click any frame to open it</span>
+            )}
+          </p>
         )}
       </div>
+
+      {/* The reels run edge to edge, outside the page's gutter: a frame cut off
+          by the side of the screen is what says the row continues past it. */}
+      <div className="flex flex-col gap-4">
+        {rows.map((pieces, i) => (
+          <VideoReel
+            key={i}
+            items={pieces}
+            speed={SPEEDS[i] ?? SPEEDS[0]}
+            height={ROW_HEIGHT}
+            onOpen={open}
+            onLoopingChange={i === 0 ? setDrifting : undefined}
+          />
+        ))}
+      </div>
+
+      {!filtered.length && (
+        <Reveal>
+          <p className="py-24 text-center text-sm text-dust">
+            Nothing filed under this category yet.
+          </p>
+        </Reveal>
+      )}
     </div>
   )
 }
 
-interface CardProps {
-  index: number
-  slug: string
-  title: string
-  subtitle: string
-  year: number
-  city: string
-  poster: string
-  accent: string
-  trackCount: number
-  onOpen: (el: HTMLElement) => void
-}
-
-function WorkCard({
-  index,
-  title,
-  subtitle,
-  year,
-  city,
-  poster,
-  accent,
-  trackCount,
-  onOpen,
-}: CardProps) {
-  const [hover, setHover] = useState(false)
-  const frameRef = useRef<HTMLDivElement>(null)
-
-  return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 34 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -14 }}
-      transition={{
-        duration: 0.7,
-        delay: Math.min(index * 0.05, 0.4),
-        ease: [0.16, 1, 0.3, 1],
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => frameRef.current && onOpen(frameRef.current)}
-        onPointerEnter={() => setHover(true)}
-        onPointerLeave={() => setHover(false)}
-        onFocus={() => setHover(true)}
-        onBlur={() => setHover(false)}
-        className="group block w-full text-left"
-      >
-        <div
-          ref={frameRef}
-          className="relative overflow-hidden bg-ink"
-          style={{
-            aspectRatio: CARD_FRAME,
-            transition: 'box-shadow 600ms',
-            boxShadow: hover
-              ? `0 0 0 1px ${accent}55, 0 40px 80px -40px ${accent}99`
-              : '0 0 0 1px rgba(29,42,63,0.6)',
-          }}
-        >
-          {/* Fills what the contained poster leaves over, so the card still
-              reads as a solid frame rather than a picture floating on ink. */}
-          <img
-            src={mediaUrl(poster)}
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl"
-          />
-
-          <img
-            src={mediaUrl(poster)}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="relative h-full w-full object-contain"
-            style={{
-              transition: 'transform 1.4s var(--ease-out-expo), filter 700ms',
-              transform: hover ? 'scale(1.07)' : 'scale(1)',
-              filter: hover
-                ? 'brightness(1) saturate(1.1)'
-                : 'brightness(0.62) saturate(0.8)',
-            }}
-          />
-
-          {/* Light sweep on hover */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div
-              className="absolute inset-y-0 w-1/3 opacity-0 group-hover:opacity-100"
-              style={{
-                background: `linear-gradient(100deg, transparent, ${accent}26, transparent)`,
-                animation: hover ? 'sweep 1.1s var(--ease-out-expo)' : 'none',
-              }}
-            />
-          </div>
-
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
-            style={{
-              background:
-                'linear-gradient(to top, var(--color-void), transparent)',
-            }}
-          />
-
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4">
-            <span className="label text-mist">{city}</span>
-            <span
-              className="label flex items-center gap-1.5"
-              style={{ color: accent }}
-            >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5l12 7-12 7z" />
-              </svg>
-              {trackCount} {trackCount === 1 ? 'track' : 'tracks'}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-5 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2
-              className="tracked-tight truncate text-base transition-colors duration-300"
-              style={{ color: hover ? accent : '#e8f1f8' }}
-            >
-              {title}
-            </h2>
-            <p className="mt-1.5 truncate text-xs font-light text-mist">{subtitle}</p>
-          </div>
-          <span className="label shrink-0 pt-1 text-dust tabular-nums">{year}</span>
-        </div>
-      </button>
-    </motion.li>
-  )
+/** A performance as the reel wants it: one frame, one caption, one shape. */
+function toPiece(p: Performance): ReelPiece {
+  return {
+    slug: p.slug,
+    title: p.title,
+    meta: `${CATEGORY_MAP[p.category].label} — ${p.year}`,
+    poster: p.poster,
+    // The short cut, never the full recording — see the note in VideoReel.
+    src: p.previewSrc ?? p.videoSrc,
+    aspect: p.aspect ?? 16 / 9,
+    accent: p.accent ?? CATEGORY_MAP[p.category].accent,
+  }
 }
