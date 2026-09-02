@@ -3,6 +3,15 @@ import { cubicBezier, motion, useScroll, useSpring, useTransform } from 'framer-
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
+/**
+ * The black behind the opening, a shade under the site's own.
+ *
+ * Scoped to this section rather than promoted to a token: the page returns to
+ * --color-void the moment the film has finished opening, and the step between
+ * them is small enough to read as depth rather than as a seam.
+ */
+const OPENING_BLACK = '#0b0b0b'
+
 interface Props {
   /** Looping film, stored as a media key ("/media/video/x.mp4"). */
   src: string
@@ -105,7 +114,10 @@ export function Overture({ src, poster, children, length = 2 }: Props) {
 
   if (reduced) {
     return (
-      <section className="relative bg-void px-6 pt-32 pb-16 md:px-12">
+      <section
+        style={{ backgroundColor: OPENING_BLACK }}
+        className="relative px-6 pt-32 pb-16 md:px-12"
+      >
         <div className="w-full text-center">{children}</div>
         <div className="relative mt-16 h-[70vh] w-full overflow-hidden bg-ink">
           {film}
@@ -117,8 +129,8 @@ export function Overture({ src, poster, children, length = 2 }: Props) {
   return (
     <section
       ref={ref}
-      style={{ height: `${length * 100}vh` }}
-      className="relative bg-void"
+      style={{ height: `${length * 100}vh`, backgroundColor: OPENING_BLACK }}
+      className="relative"
     >
       <div className="sticky top-0 h-screen overflow-hidden">
         {/* The film. Flex-centred so only y and the frame's size animate — no

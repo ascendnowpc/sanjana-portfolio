@@ -92,16 +92,22 @@ export default function About() {
             related reason: the face is already condensed, and pulling it
             tighter fuses the verticals into a picket fence.
 
-            The size is set off the longer line's real advance in Anton (6.71em,
-            plus tracking), so it lands at roughly three quarters of the
-            viewport rather than being tuned by eye per screen. */}
+            The two lines are also chosen so the second sits *inside* the
+            first, the way the reference does it — 6.10em of advance against
+            7.03em, so line two lands at about 87% of line one and the block
+            tapers instead of squaring off. Both lines being the same length is
+            what made the earlier wording read as a slab.
+
+            The size is set off line one's real advance in Anton (7.03em, plus
+            tracking), so it lands at roughly three quarters of the viewport
+            rather than being tuned by eye per screen. */}
         <h1
           className="font-[family-name:var(--font-poster)] leading-[1.06] tracking-[0.012em] text-white uppercase"
           style={{ fontSize: 'clamp(2.3rem, 10.6vw, 16rem)' }}
         >
-          A voice built for
+          A voice for every
           <br />
-          the room it fills
+          room it enters
         </h1>
       </Overture>
 
