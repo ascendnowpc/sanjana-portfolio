@@ -92,12 +92,12 @@ export default function About() {
             related reason: the face is already condensed, and pulling it
             tighter fuses the verticals into a picket fence.
 
-            The size is set so the longer line (6.71em of advance in Anton,
-            plus tracking) lands at roughly 86% of the viewport, matching how
-            far the reference runs into its margins. */}
+            The size is set off the longer line's real advance in Anton (6.71em,
+            plus tracking), so it lands at roughly three quarters of the
+            viewport rather than being tuned by eye per screen. */}
         <h1
           className="font-[family-name:var(--font-poster)] leading-[1.06] tracking-[0.012em] text-white uppercase"
-          style={{ fontSize: 'clamp(2.6rem, 12.4vw, 20rem)' }}
+          style={{ fontSize: 'clamp(2.3rem, 10.6vw, 16rem)' }}
         >
           A voice built for
           <br />

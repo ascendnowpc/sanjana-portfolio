@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { cubicBezier, motion, useScroll, useSpring, useTransform } from 'framer-motion'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
@@ -32,7 +32,7 @@ interface Props {
  * Reduced-motion visitors get the end state — headline above, film wide and
  * still playing — which is the same information without the travel.
  */
-export function Overture({ src, poster, children, length = 3.2 }: Props) {
+export function Overture({ src, poster, children, length = 2 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const reduced = usePrefersReducedMotion()
@@ -42,20 +42,40 @@ export function Overture({ src, poster, children, length = 3.2 }: Props) {
     offset: ['start start', 'end end'],
   })
 
-  // Full bleed is reached before the section ends, so there is a beat of held
-  // picture rather than a hard cut into the statement that follows.
-  const open = useTransform(scrollYProgress, [0, 0.78], [0, 1], { clamp: true })
+  // Scroll position drives the gesture, but not directly: a wheel or a
+  // trackpad delivers position in coarse jumps, and mapping those straight
+  // onto a growing frame makes the growth step rather than glide. The spring
+  // is what turns the jumps into travel — critically damped enough that it
+  // never wobbles past its target, loose enough to keep up with a fast flick.
+  const smooth = useSpring(scrollYProgress, {
+    stiffness: 260,
+    damping: 40,
+    mass: 0.35,
+    restDelta: 0.0005,
+  })
+
+  // The frame is open well before the section ends, so there is a beat of held
+  // picture rather than a hard cut into the statement that follows. Eased, not
+  // linear: the frame leaves fast and settles into its final size.
+  const open = useTransform(smooth, [0, 0.62], [0, 1], {
+    clamp: true,
+    ease: cubicBezier(0.16, 1, 0.3, 1),
+  })
 
   // The card starts a little over a centimetre wider and taller than a
   // straight 30vw/26vh: measured against a 1440x800 screen, where 1cm is
   // ~2.6vw across and ~4.7vh down.
-  const width = useTransform(open, [0, 1], ['32.6vw', '100vw'])
-  const height = useTransform(open, [0, 1], ['30.7vh', '100vh'])
+  //
+  // It stops short of full bleed. A frame that runs to the exact edge of the
+  // window reads as a background the page happens to sit on; leaving a couple
+  // of centimetres of void around it keeps it a *picture*, which is what the
+  // whole gesture has been opening.
+  const width = useTransform(open, [0, 1], ['32.6vw', '94vw'])
+  const height = useTransform(open, [0, 1], ['30.7vh', '84vh'])
   // The card sits low, under the headline; it rises into the middle of the
   // screen as it grows, which is what makes the two movements read as one.
   const filmY = useTransform(open, [0, 1], ['30vh', '0vh'])
   const filmScale = useTransform(open, [0, 1], [1.28, 1])
-  const filmRadius = useTransform(open, [0, 0.85], ['2px', '0px'], { clamp: true })
 
   // The words are gone by the time the frame is two thirds open, so they never
   // sit on top of the picture competing with it.
@@ -105,8 +125,8 @@ export function Overture({ src, poster, children, length = 3.2 }: Props) {
             transform is spent on the centring itself. */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
-            style={{ width, height, y: filmY, borderRadius: filmRadius }}
-            className="relative overflow-hidden bg-ink"
+            style={{ width, height, y: filmY }}
+            className="relative overflow-hidden rounded-[2px] bg-ink"
           >
             {/* Counter-zoom lives on the video, never on the frame: scaling the
                 frame would undo the width and height being animated above. */}
