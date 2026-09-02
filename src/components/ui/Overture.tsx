@@ -126,6 +126,30 @@ export function Overture({
     videoRef.current?.play().catch(() => {})
   }, [])
 
+  /**
+   * The edge, cast down onto the page below.
+   *
+   * The opening sits ten levels darker than the rest of the site, and butted
+   * straight against it that step reads as a seam — two flat fields meeting at
+   * a ruled line. Spilling a shadow past the boundary turns the same step into
+   * depth: the black becomes a surface with an edge, and the page below sits
+   * under it rather than next to it.
+   *
+   * Black at low alpha rather than a ramp between the two greys, so it
+   * composites onto whatever section happens to follow and needs no knowledge
+   * of it.
+   */
+  const edgeShadow = (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 top-full z-10 h-40"
+      style={{
+        background:
+          'linear-gradient(to bottom, rgba(0,0,0,0.72), rgba(0,0,0,0.34) 38%, rgba(0,0,0,0) 100%)',
+      }}
+    />
+  )
+
   const film = (
     <video
       ref={videoRef}
@@ -154,6 +178,7 @@ export function Overture({
         >
           {film}
         </div>
+        {edgeShadow}
       </section>
     )
   }
@@ -186,6 +211,8 @@ export function Overture({
           </div>
         </motion.div>
       </div>
+
+      {edgeShadow}
     </section>
   )
 }
