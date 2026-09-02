@@ -1,18 +1,28 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { CategoryId, Performance } from '@/types/content'
 import { CATEGORIES, CATEGORY_MAP } from '@/data/categories'
 import { usePerformances } from '@/hooks/useContent'
 import { useTransition } from '@/components/layout/TransitionProvider'
-import { VideoReel, type ReelPiece } from '@/components/media/VideoReel'
+import {
+  VideoReel,
+  piecesPerReel,
+  type ReelPiece,
+} from '@/components/media/VideoReel'
 import { Reveal } from '@/components/ui/Reveal'
 import { SplitText } from '@/components/ui/SplitText'
 import { cn } from '@/lib/utils'
 
 type Filter = CategoryId | 'all'
 
-/** Pixels per second. Slow — this is a room, not a ticker. */
-const SPEED = 34
+/**
+ * Pixels per second, cycled through the strips.
+ *
+ * Slow — this is a room, not a ticker — and no two neighbours share a rate, so
+ * the strips drift out of step with each other instead of marching down the
+ * page in formation.
+ */
+const SPEEDS = [34, 26, 30, 22]
 
 export default function Work() {
   const { items } = usePerformances()
@@ -28,9 +38,55 @@ export default function Work() {
     [items, active],
   )
 
-  /** One reel, newest first. The archive is a single run of work, and cutting
-   *  it into stacked rows made it read as two separate lists. */
-  const pieces = useMemo(() => filtered.map(toPiece), [filtered])
+  /**
+   * The window, as the strip sizes see it.
+   *
+   * How many pieces belong in a strip depends on how many cards fit across the
+   * screen, so the deal has to be redone when the screen changes.
+   */
+  const [screen, setScreen] = useState(() => ({
+    width: typeof window === 'undefined' ? 1440 : window.innerWidth,
+    height: typeof window === 'undefined' ? 900 : window.innerHeight,
+  }))
+  useEffect(() => {
+    const onResize = () =>
+      setScreen((s) =>
+        s.width === window.innerWidth && s.height === window.innerHeight
+          ? s
+          : { width: window.innerWidth, height: window.innerHeight },
+      )
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  /**
+   * The archive dealt into short strips, newest first.
+   *
+   * A handful of pieces each, several strips down the page — not one run of
+   * thirty-six. The size is the fewest cards that still cover the screen (see
+   * `piecesPerReel`), which is five on most displays: fewer and a strip would
+   * be showing the same piece twice at once as it loops.
+   *
+   * The last strip is not left with the remainder. Dealing 36 into fives ends
+   * with a strip of one, which cannot loop at all and sits there as a single
+   * stranded card; sharing the shortfall out gives strips of 5 and 4 instead.
+   */
+  const strips = useMemo(() => {
+    const pieces = filtered.map(toPiece)
+    const size = piecesPerReel(screen.width, screen.height)
+    if (pieces.length <= size) return [pieces]
+    const count = Math.ceil(pieces.length / size)
+    const each = Math.floor(pieces.length / count)
+    const extra = pieces.length % count
+    const out: ReelPiece[][] = []
+    let at = 0
+    for (let i = 0; i < count; i++) {
+      const take = each + (i < extra ? 1 : 0)
+      out.push(pieces.slice(at, at + take))
+      at += take
+    }
+    return out
+  }, [filtered, screen])
 
   // Stable, so the cards inside the reels stay memoised while the rows drift.
   const open = useCallback(
@@ -39,9 +95,10 @@ export default function Work() {
     [zoomTo],
   )
 
-  // Reported by the reel: whether it ended up with more work than fits on
-  // screen, and so with somewhere to travel.
+  // Reported by the first strip: whether it ended up with more work than fits
+  // on screen, and so with somewhere to travel.
   const [drifting, setDrifting] = useState(true)
+
 
   const setFilter = (f: Filter) => {
     if (f === 'all') setParams({}, { replace: true })
@@ -126,14 +183,20 @@ export default function Work() {
         )}
       </div>
 
-      {/* The reel runs edge to edge, outside the page's gutter: a frame cut off
-          by the side of the screen is what says the row continues past it. */}
-      <VideoReel
-        items={pieces}
-        speed={SPEED}
-        onOpen={open}
-        onLoopingChange={setDrifting}
-      />
+      {/* The strips run edge to edge, outside the page's gutter: a frame cut
+          off by the side of the screen is what says the strip continues past
+          it. */}
+      <div className="flex flex-col gap-7 md:gap-9">
+        {strips.map((pieces, i) => (
+          <VideoReel
+            key={`${active}-${i}`}
+            items={pieces}
+            speed={SPEEDS[i % SPEEDS.length]}
+            onOpen={open}
+            onLoopingChange={i === 0 ? setDrifting : undefined}
+          />
+        ))}
+      </div>
 
       {!filtered.length && (
         <Reveal>
