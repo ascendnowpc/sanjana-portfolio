@@ -6,12 +6,16 @@ import { PROFILE } from '@/data/site'
 import { CATEGORIES } from '@/data/categories'
 import { usePerformances } from '@/hooks/useContent'
 import { Reveal } from '@/components/ui/Reveal'
-import { Aperture } from '@/components/ui/Aperture'
+import { Overture } from '@/components/ui/Overture'
 import { ScrollWords } from '@/components/ui/ScrollWords'
 import { CountUp } from '@/components/ui/CountUp'
 import { Marquee } from '@/components/ui/Marquee'
 import { MusicShelf } from '@/components/audio/MusicShelf'
 import { mediaUrl } from '@/lib/media'
+
+/** The looping film the About page opens on. */
+const ABOUT_FILM = '/media/video/about-intro.mp4'
+const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
 
 /** Italic serif word inside the poster-weight headline. */
 const Em = ({ children }: { children: React.ReactNode }) => (
@@ -75,20 +79,17 @@ export default function About() {
   return (
     <div className="bg-void">
       {/* ---------------- 1. the room opens ---------------- */}
-      <Aperture src={PROFILE.portraits[0]} alt={`${PROFILE.name} — portrait`}>
-        <div className="text-center">
-          <p className="label text-bloom">About</p>
-          <h1
-            className="tracked mt-6 leading-none text-chalk"
-            style={{ fontSize: 'clamp(2.4rem, 7vw, 6rem)' }}
-          >
-            {PROFILE.name}
-          </h1>
-          <p className="tracked-tight mt-6 text-xs text-mist md:text-sm">
-            {PROFILE.role}
-          </p>
-        </div>
-      </Aperture>
+      <Overture src={ABOUT_FILM} poster={ABOUT_FILM_POSTER} label="About">
+        <h1
+          className="mx-auto max-w-[15ch] font-[family-name:var(--font-poster)] leading-[0.88] tracking-tight text-chalk uppercase"
+          style={{ fontSize: 'clamp(2.6rem, 8.4vw, 8rem)' }}
+        >
+          {PROFILE.name} sings the <Em>room</Em> awake
+        </h1>
+        <p className="tracked-tight mt-8 text-xs text-mist md:text-sm">
+          {PROFILE.role} — {PROFILE.basedIn}
+        </p>
+      </Overture>
 
       {/* ---------------- 2. the statement ---------------- */}
       <section className="relative flex min-h-screen items-center overflow-hidden bg-void">
