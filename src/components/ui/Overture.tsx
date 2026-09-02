@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { cubicBezier, motion, useScroll, useSpring, useTransform } from 'framer-motion'
+import { motion, useScroll, useSpring, useTransform } from 'framer-motion'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
@@ -10,7 +10,7 @@ import { mediaUrl } from '@/lib/media'
  * --color-void the moment the film has finished opening, and the step between
  * them is small enough to read as depth rather than as a seam.
  */
-const OPENING_BLACK = '#0b0b0b'
+const OPENING_BLACK = '#000000'
 
 interface Props {
   /** Looping film, stored as a media key ("/media/video/x.mp4"). */
@@ -63,13 +63,18 @@ export function Overture({ src, poster, children, length = 2 }: Props) {
     restDelta: 0.0005,
   })
 
-  // The frame is open well before the section ends, so there is a beat of held
-  // picture rather than a hard cut into the statement that follows. Eased, not
-  // linear: the frame leaves fast and settles into its final size.
-  const open = useTransform(smooth, [0, 0.62], [0, 1], {
-    clamp: true,
-    ease: cubicBezier(0.16, 1, 0.3, 1),
-  })
+  // Mapped across the whole section, not part of it. Finishing early leaves
+  // the rest of the sticky section as scroll that changes nothing: the film
+  // has stopped growing but the page has not started moving again, which is
+  // felt as the frame catching on something. Ending exactly where the section
+  // releases means the last frame of the gesture and the first frame of the
+  // page moving on are the same frame.
+  //
+  // Linear, for the same reason. An ease-out spends its last third creeping
+  // the final few percent, which reads as the same stall in miniature — the
+  // spring above is what makes the motion smooth, so the curve does not have
+  // to be. Clamped only because a spring can overshoot its target.
+  const open = useTransform(smooth, [0, 1], [0, 1], { clamp: true })
 
   // The card starts a little over a centimetre wider and taller than a
   // straight 30vw/26vh: measured against a 1440x800 screen, where 1cm is
@@ -119,7 +124,10 @@ export function Overture({ src, poster, children, length = 2 }: Props) {
         className="relative px-6 pt-32 pb-16 md:px-12"
       >
         <div className="w-full text-center">{children}</div>
-        <div className="relative mt-16 h-[70vh] w-full overflow-hidden bg-ink">
+        <div
+          style={{ backgroundColor: OPENING_BLACK }}
+          className="relative mt-16 h-[70vh] w-full overflow-hidden"
+        >
           {film}
         </div>
       </section>
@@ -137,8 +145,8 @@ export function Overture({ src, poster, children, length = 2 }: Props) {
             transform is spent on the centring itself. */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
-            style={{ width, height, y: filmY }}
-            className="relative overflow-hidden rounded-[2px] bg-ink"
+            style={{ width, height, y: filmY, backgroundColor: OPENING_BLACK }}
+            className="relative overflow-hidden rounded-[2px]"
           >
             {/* Counter-zoom lives on the video, never on the frame: scaling the
                 frame would undo the width and height being animated above. */}
