@@ -29,9 +29,15 @@ interface Props {
  * the loop is cut at 480px for the gallery wall, where a dozen play at once
  * and decode is the constraint, and blown up to a quarter of a wide screen it
  * is visibly softer than the poster it replaced. The poster is a frame off the
- * full transcode, so leaving it up is both sharper and cheaper. Hover is
- * carried by what is around it instead — the rest of the page drops away, the
- * still eases in, the name arrives.
+ * full transcode, so leaving it up is both sharper and cheaper.
+ *
+ * Hover is therefore carried entirely by what is *around* the picture, which
+ * is how the reference does it: the rest of the page falls to a seventh of
+ * its opacity and a single word arrives in the middle of the one frame left
+ * lit. Nothing moves and nothing scales — the reference's stills are dead
+ * still under the pointer, and against a page that has just gone dark the
+ * absence of motion is what makes the lit frame read as the subject rather
+ * than as an animation playing.
  */
 export const WorkFrame = memo(function WorkFrame({
   piece,
@@ -54,7 +60,7 @@ export const WorkFrame = memo(function WorkFrame({
       aria-label={`${piece.title} — ${piece.year}`}
       className="group relative block aspect-video w-full cursor-pointer overflow-hidden bg-ink"
       style={{
-        opacity: dimmed ? 0.18 : 1,
+        opacity: dimmed ? 0.14 : 1,
         transition: 'opacity 500ms ease-out',
       }}
     >
@@ -65,31 +71,38 @@ export const WorkFrame = memo(function WorkFrame({
         decoding="async"
         draggable={false}
         className="h-full w-full object-cover"
-        style={{
-          objectPosition,
-          transform: active && !reduced ? 'scale(1.045)' : 'scale(1)',
-          transition: 'transform 1200ms var(--ease-out-expo)',
-        }}
+        style={{ objectPosition }}
       />
 
-      {/* Mounted with the hover rather than faded from opacity-0: the frames
-          carry no titles at rest — that is the whole look — so this is the
-          only place the name appears, and it should arrive with the picture
-          rather than sit there invisible on thirty-six frames at once. */}
+      {/* The one word, centred, exactly as the reference has it — mounted
+          with the hover rather than faded from opacity-0, because the frames
+          carry no lettering at rest and thirty-six invisible labels are
+          thirty-six nodes to composite for nothing.
+
+          It replaced a title-and-year caption along the bottom edge under its
+          own gradient. That was more informative and it was the wrong shape:
+          a band of gradient at the foot of the one bright frame on a dark
+          page reads as a second, softer edge, and the eye goes to it instead
+          of the picture. The name is a click away on the detail page, and the
+          list view carries all thirty-six of them in full. */}
       {active && (
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 md:p-4"
-          style={{
-            background:
-              'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.22) 48%, transparent 78%)',
-            animation: 'tile-caption 420ms var(--ease-out-expo) both',
-          }}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          style={
+            reduced
+              ? undefined
+              : { animation: 'tile-caption 420ms var(--ease-out-expo) both' }
+          }
         >
-          <span className="mono-label min-w-0 truncate text-[0.5625rem] text-white md:text-[0.625rem]">
-            {piece.title}
-          </span>
-          <span className="mono-label shrink-0 text-[0.5625rem] text-white/60 md:text-[0.625rem]">
-            {piece.year}
+          <span
+            className="mono-label text-[0.5625rem] text-white md:text-[0.625rem]"
+            // A shadow rather than a plate or a scrim: the label has to sit on
+            // whatever frame it lands on — a stage lit white as readily as a
+            // blackout — and this is the only treatment that survives both
+            // without laying a rectangle over the picture.
+            style={{ textShadow: '0 1px 12px rgba(0,0,0,0.85)' }}
+          >
+            Discover
           </span>
         </div>
       )}
