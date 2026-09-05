@@ -34,6 +34,7 @@ export const CATEGORIES: Category[] = [
   {
     id: 'collaboration',
     label: 'Duet/Group Performances',
+    short: 'Duet / Group',
     blurb: 'Duets, ensembles and one-night-only rooms.',
     accent: '#f0568f',
   },

@@ -26,13 +26,15 @@ npm run preview
 | Route | What it is |
 |---|---|
 | `/` | The immersive index — the 3D wall |
-| `/work` | Filterable reels of everything, newest first, playing |
+| `/work` | The archive index — grid of frames or list of names |
 | `/work/:slug` | A performance: video, recording, credits, stills |
 | `/about` | Editorial bio, portrait strip, stats, press |
 | `/contact` | Booking enquiry form |
 
-`/work` also reads `?category=` (`solo-concert`, `musical-theatre`,
-`studio-session`, `collaboration`) so filtered views are linkable.
+`/work` reads `?category=` (`solo-concert`, `musical-theatre`,
+`classical-repertoire`, `hindi-singing`, `honor-choir`, `collaboration`) and
+`?view=` (`grid`, the default, or `list`), so any state of the index is a
+link somebody can send.
 
 ### Deploying: these routes need a fallback
 
@@ -91,6 +93,35 @@ past ~8px the click is suppressed. (The container deliberately does *not* call
 Tiles are `aria-hidden` and not tabbable — they repeat down the tunnel, so
 tabbing them would be nonsense. A visually-hidden `<nav>` on the same page
 carries the real linear index for keyboard and screen-reader users.
+
+## The archive index
+
+`/work` is two readings of the same catalogue, switched from the key at the
+foot of the page and both built from one `IndexRow` — name on the left,
+section at the halfway mark, year and runtime in the last quarter — so a title
+sits in the same place whichever way you are reading.
+
+**Grid** bands the archive by category: a heading, then that category's
+footage four across and cut to the edges of the screen. **List** drops the
+pictures and is nothing but the names.
+
+The hover is the whole interaction. Pointing at one entry drops everything
+else to a sixteenth of its opacity and gives the survivor its footage — inside
+its own frame in grid view, and filling the viewport behind the type in list
+view, where a preview has nowhere else to go. Only the hovered entry is ever
+given a decoder; thirty-six simultaneous `<video>` elements is not a thing to
+do to a browser. The nav never dims: the page goes down *under* it.
+
+Two details worth not undoing:
+
+- The section keys along the top sit inside the nav bar above ~1560px and drop
+  below it under that. Seven category names are considerably wider than the
+  reference's four, and at narrower widths they collide with the site name on
+  one side and the nav links on the other.
+- `IndexRow`'s three columns align on their **centres**, not their baselines.
+  A grid item with clipped overflow reports its bottom margin edge as its
+  baseline, so the moment a long title needs an ellipsis, baseline alignment
+  drops the two small columns to the floor of the row.
 
 ## Audio
 
@@ -155,7 +186,8 @@ src/
 ├── components/
 │   ├── gallery/     ImmersiveGallery, GalleryTile, layout maths
 │   ├── audio/       WaveformPlayer
-│   ├── media/       VideoStage, VideoReel, LoopingPreview
+│   ├── media/       VideoStage, LoopingPreview
+│   ├── works/       the /work index: IndexRow, WorkFrame, Segmented
 │   ├── layout/      Nav, Footer, Cursor, Preloader, route transition
 │   └── ui/          Reveal, SplitText, Marquee, MagneticLink
 ├── routes/          Home, Work, WorkDetail, About, Contact, NotFound

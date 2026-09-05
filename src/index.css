@@ -40,6 +40,12 @@
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
   --font-poster: "Anton", "Arial Narrow", sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* The archive index sets every small label in this rather than Inter. A
+     proportional sans with heavy tracking approximates a mono; it does not
+     read as one, and the reference's category labels and control keys are
+     unmistakably monospaced — the even column of a fixed advance is the
+     thing being copied, not just the width. */
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
@@ -117,6 +123,28 @@
   font-weight: 500;
   letter-spacing: 0.32em;
   text-transform: uppercase;
+}
+
+/* The archive index's small type: category names, counts, and the lettering
+   inside the control keys. Deliberately carries no font-size — every caller
+   sets its own, and a size here would win or lose against theirs depending on
+   which utility Tailwind happened to emit first. */
+@utility mono-label {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* For the control strips, which scroll sideways on a narrow screen. A visible
+   bar under a floating pill group would draw a second, heavier rectangle
+   around it. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* The track lists inside the music cards scroll on their own. The global
