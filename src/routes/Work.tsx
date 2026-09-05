@@ -1,223 +1,342 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { CategoryId, Performance } from '@/types/content'
 import { CATEGORIES, CATEGORY_MAP } from '@/data/categories'
 import { usePerformances } from '@/hooks/useContent'
+import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { useTransition } from '@/components/layout/TransitionProvider'
-import {
-  VideoReel,
-  piecesPerReel,
-  type ReelPiece,
-} from '@/components/media/VideoReel'
-import { Reveal } from '@/components/ui/Reveal'
-import { SplitText } from '@/components/ui/SplitText'
-import { cn } from '@/lib/utils'
+import { LoopingPreview } from '@/components/media/LoopingPreview'
+import { IndexRow, splitTitle } from '@/components/works/IndexRow'
+import { Segmented, type SegmentedOption } from '@/components/works/Segmented'
+import { WorkFrame } from '@/components/works/WorkFrame'
+import { mediaUrl } from '@/lib/media'
 
 type Filter = CategoryId | 'all'
+type View = 'grid' | 'list'
 
 /**
- * Pixels per second, cycled through the strips.
+ * The archive index.
  *
- * Slow — this is a room, not a ticker — and no two neighbours share a rate, so
- * the strips drift out of step with each other instead of marching down the
- * page in formation.
+ * Two readings of the same thirty-six pieces, switched from the key at the
+ * foot of the page: a **list** that is nothing but names and their sections,
+ * and a **grid** that is nothing but pictures, banded by section. Both are
+ * built out of the same row (`IndexRow`), so a title sits in exactly the same
+ * place whichever way you are reading.
+ *
+ * The behaviour that ties them together is the hover: pointing at one entry
+ * drops everything else to a sixteenth of its opacity, and the one thing left
+ * lit gets its footage. In list view that footage has nowhere to go but
+ * behind the page, so it fills the viewport; in grid view it plays inside the
+ * frame the pointer is already on. Nothing about that reaches the nav — the
+ * page dims under it, not with it.
+ *
+ * Both the filter and the view live in the query string (`?category=`,
+ * `?view=`), so any state of this page is a link somebody can send.
  */
-const SPEEDS = [34, 26, 30, 22]
+
+/**
+ * The inset the index's type sits at.
+ *
+ * Deliberately the nav's own container and padding rather than a tighter
+ * gutter of its own: the reference's titles start exactly under its wordmark,
+ * and copying the *offset* — 24px, because its bar is full width — instead of
+ * the relationship would leave every heading on this page staggered against
+ * the site name above it. The frames ignore this and run to the screen edges,
+ * which is the one place the reference does break its own gutter.
+ */
+const GUTTER = 'mx-auto w-full max-w-[1600px] px-6 md:px-12'
+
+const VIEW_OPTIONS: readonly SegmentedOption<View>[] = [
+  { value: 'grid', label: 'Grid View' },
+  { value: 'list', label: 'List View' },
+]
 
 export default function Work() {
   const { items } = usePerformances()
   const [params, setParams] = useSearchParams()
-  const active = (params.get('category') as Filter) ?? 'all'
   const { zoomTo } = useTransition()
+  const reduced = usePrefersReducedMotion()
+
+  // Read, not trusted: `?category=nonsense` falls back to everything rather
+  // than filtering the page down to nothing.
+  const raw = params.get('category')
+  const active: Filter =
+    raw && raw in CATEGORY_MAP ? (raw as CategoryId) : 'all'
+  const view: View = params.get('view') === 'list' ? 'list' : 'grid'
 
   const filtered = useMemo(
     () =>
       (active === 'all' ? items : items.filter((p) => p.category === active))
         .slice()
-        .sort((a, b) => b.year - a.year),
+        .sort((a, b) => b.year - a.year || a.slug.localeCompare(b.slug)),
     [items, active],
   )
 
   /**
-   * The window, as the strip sizes see it.
-   *
-   * How many pieces belong in a strip depends on how many cards fit across the
-   * screen, so the deal has to be redone when the screen changes.
+   * The grid's bands: one per category, in the order the categories are
+   * declared rather than by size, so the shape of the page is the same every
+   * visit. Empty ones are dropped — a heading over no frames reads as a
+   * loading failure.
    */
-  const [screen, setScreen] = useState(() => ({
-    width: typeof window === 'undefined' ? 1440 : window.innerWidth,
-    height: typeof window === 'undefined' ? 900 : window.innerHeight,
-  }))
-  useEffect(() => {
-    const onResize = () =>
-      setScreen((s) =>
-        s.width === window.innerWidth && s.height === window.innerHeight
-          ? s
-          : { width: window.innerWidth, height: window.innerHeight },
-      )
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+  const sections = useMemo(() => {
+    const wanted =
+      active === 'all' ? CATEGORIES : CATEGORIES.filter((c) => c.id === active)
+    return wanted
+      .map((category) => {
+        const pieces = filtered.filter((p) => p.category === category.id)
+        const years = pieces.map((p) => p.year)
+        const lo = Math.min(...years)
+        const hi = Math.max(...years)
+        return {
+          category,
+          pieces,
+          range: lo === hi ? `${lo}` : `${lo} — ${hi}`,
+        }
+      })
+      .filter((s) => s.pieces.length > 0)
+  }, [filtered, active])
+
+  const [hovered, setHovered] = useState<string | null>(null)
+
+  // Filtering or switching view pulls the page out from under the pointer, and
+  // a slug left behind by the old layout would dim everything in the new one.
+  useEffect(() => setHovered(null), [view, active])
 
   /**
-   * The archive dealt into short strips, newest first.
+   * What the backdrop is showing.
    *
-   * A handful of pieces each, several strips down the page — not one run of
-   * thirty-six. The size is the fewest cards that still cover the screen (see
-   * `piecesPerReel`), which is five on most displays: fewer and a strip would
-   * be showing the same piece twice at once as it loops.
-   *
-   * The last strip is not left with the remainder. Dealing 36 into fives ends
-   * with a strip of one, which cannot loop at all and sits there as a single
-   * stranded card; sharing the shortfall out gives strips of 5 and 4 instead.
+   * Held separately from `hovered` so the picture has something to fade *out*
+   * of. Clearing the hover unmounts the layer through `AnimatePresence`, and
+   * an exiting layer still needs its source for the half-second it takes to
+   * go.
    */
-  const strips = useMemo(() => {
-    const pieces = filtered.map(toPiece)
-    const size = piecesPerReel(screen.width, screen.height)
-    if (pieces.length <= size) return [pieces]
-    const count = Math.ceil(pieces.length / size)
-    const each = Math.floor(pieces.length / count)
-    const extra = pieces.length % count
-    const out: ReelPiece[][] = []
-    let at = 0
-    for (let i = 0; i < count; i++) {
-      const take = each + (i < extra ? 1 : 0)
-      out.push(pieces.slice(at, at + take))
-      at += take
-    }
-    return out
-  }, [filtered, screen])
+  const hoveredPiece = hovered
+    ? filtered.find((p) => p.slug === hovered)
+    : undefined
+  const [backdrop, setBackdrop] = useState<Performance | null>(null)
+  useEffect(() => {
+    if (hoveredPiece) setBackdrop(hoveredPiece)
+  }, [hoveredPiece])
 
-  // Stable, so the cards inside the reels stay memoised while the rows drift.
+  // Stable, so the memoised frames survive a hover on one of their neighbours.
   const open = useCallback(
-    (piece: ReelPiece, el: HTMLElement) =>
+    (piece: Performance, el: HTMLElement) =>
       zoomTo(el, piece.poster, piece.title, `/work/${piece.slug}`),
     [zoomTo],
   )
 
-  // Reported by the first strip: whether it ended up with more work than fits
-  // on screen, and so with somewhere to travel.
-  const [drifting, setDrifting] = useState(true)
-
-
-  const setFilter = (f: Filter) => {
-    if (f === 'all') setParams({}, { replace: true })
-    else setParams({ category: f }, { replace: true })
+  const setParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(params)
+    if (value === null) next.delete(key)
+    else next.set(key, value)
+    setParams(next, { replace: true })
   }
+
+  const categoryOptions = useMemo<readonly SegmentedOption<Filter>[]>(
+    () => [
+      { value: 'all', label: 'All' },
+      ...CATEGORIES.map((c) => ({
+        value: c.id as Filter,
+        label: c.short ?? c.label,
+      })),
+    ],
+    [],
+  )
+
+  const backdropSrc = backdrop
+    ? (backdrop.previewSrc ?? backdrop.videoSrc)
+    : undefined
 
   return (
-    <div className="min-h-screen bg-void pt-20 pb-28 md:pt-28">
-      <div className="mx-auto max-w-[1600px] px-6 md:px-12">
-        <header className="mb-8">
-          <p className="label mb-6 text-bloom">The Work</p>
-          <h1 className="tracked text-[clamp(2rem,6vw,4.75rem)] leading-[1.1] text-chalk">
-            <SplitText text="Every Room" />
-          </h1>
-          <p className="mt-5 max-w-xl text-sm leading-relaxed font-light text-mist">
-            Concert halls, black boxes, chapels and garages — sorted newest
-            first. Open anything to watch it in full and hear the recording.
-          </p>
-        </header>
+    <div className="relative min-h-screen bg-void">
+      {/* The page has no visible title — the reference opens on empty black
+          and the first thing on it is work. Screen readers still need to be
+          told what they have arrived at. */}
+      <h1 className="sr-only">Work — the archive</h1>
 
-        {/* Filters */}
-        <div className="mb-5 flex flex-wrap items-center gap-x-8 gap-y-4 border-y border-edge/50 py-3.5">
-          {(
-            [{ id: 'all', label: 'All Work', accent: '#4fd8e8' }, ...CATEGORIES] as const
-          ).map((c) => {
-            const on = active === c.id
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setFilter(c.id as Filter)}
-                className="group relative py-1"
-              >
-                <span
-                  className={cn(
-                    'label transition-colors duration-300',
-                    on ? 'text-chalk' : 'text-dust hover:text-mist',
-                  )}
-                >
-                  {c.label}
-                </span>
-                <span
-                  className="absolute -bottom-0.5 left-0 h-px transition-all duration-500"
-                  style={{
-                    width: on ? '100%' : 0,
-                    background: c.accent,
-                    boxShadow: on ? `0 0 12px ${c.accent}` : 'none',
-                  }}
-                />
-              </button>
-            )
-          })}
+      {/* The section keys.
 
-          <span className="label ml-auto text-dust tabular-nums">
-            {String(filtered.length).padStart(2, '0')} pieces
-          </span>
-        </div>
-
-        {active !== 'all' && (
-          <p className="mb-4 max-w-lg text-sm font-light text-mist">
-            {CATEGORY_MAP[active].blurb}
-          </p>
-        )}
-
-        {/* Two hints, because the row answers to two different hands: a cursor
-            can rest on a frame to stop it, a thumb cannot. Neither is offered
-            for a category short enough that its reel holds still — nothing
-            there travels, and there is nothing to hold. */}
-        {filtered.length > 0 && (
-          <p className="label mb-5 text-dust">
-            {drifting ? (
-              <>
-                <span className="hidden md:inline">
-                  Hover to hold a frame — drag to travel — click to open
-                </span>
-                <span className="md:hidden">Drag to travel — tap to open</span>
-              </>
-            ) : (
-              <span>Click any frame to open it</span>
-            )}
-          </p>
-        )}
-      </div>
-
-      {/* The strips run edge to edge, outside the page's gutter: a frame cut
-          off by the side of the screen is what says the strip continues past
-          it. */}
-      <div className="flex flex-col gap-7 md:gap-9">
-        {strips.map((pieces, i) => (
-          <VideoReel
-            key={`${active}-${i}`}
-            items={pieces}
-            speed={SPEEDS[i % SPEEDS.length]}
-            onOpen={open}
-            onLoopingChange={i === 0 ? setDrifting : undefined}
+          Centred in the top bar on a wide screen, exactly as the reference has
+          them, and parked just under it below ~1560px, where seven category
+          names no longer clear the site name on one side and the nav links on
+          the other. The wrapper takes no pointer events so it cannot swallow
+          clicks meant for the page across the full width it spans. */}
+      <div className="pointer-events-none fixed top-[86px] left-1/2 z-50 w-full -translate-x-1/2 px-4 min-[1560px]:top-[22px]">
+        {/* `safe center` so the keys stay centred when they fit and stay
+            *reachable* when they do not — plain centring parks the overflow
+            past the left edge with no way to scroll back to it. The fade on
+            the right lands on empty space at any width where the whole set
+            fits, and only shows up as an edge once there is something past
+            it. */}
+        <div className="no-scrollbar pointer-events-none flex overflow-x-auto [justify-content:safe_center] [mask-image:linear-gradient(to_right,#000_0%,#000_calc(100%-3rem),transparent_100%)]">
+          <Segmented
+            className="pointer-events-auto"
+            options={categoryOptions}
+            value={active}
+            onChange={(v) => setParam('category', v === 'all' ? null : v)}
+            label="Filter the archive by category"
           />
-        ))}
+        </div>
       </div>
 
-      {!filtered.length && (
-        <Reveal>
-          <p className="py-24 text-center text-sm text-dust">
+      {/* The hovered piece, playing behind the list.
+
+          List view is text on black, so there is nowhere for a preview to go
+          but underneath all of it. Held at a little over half strength with a
+          scrim on top: any brighter and the lit row stops being the brightest
+          thing on the page, which is the entire point of dimming the rest. */}
+      <AnimatePresence>
+        {view === 'list' && hovered && backdrop && (
+          <motion.div
+            key={backdrop.slug}
+            className="pointer-events-none fixed inset-0 z-0"
+            initial={{ opacity: 0, scale: 1.035 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="absolute inset-0 opacity-40">
+              <img
+                src={mediaUrl(backdrop.poster)}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+              {!reduced && backdropSrc && (
+                <LoopingPreview
+                  src={mediaUrl(backdropSrc)!}
+                  poster={mediaUrl(backdrop.poster)}
+                />
+              )}
+            </div>
+            {/* Darkest at the edges, where the nav and the keys sit. */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  'radial-gradient(115% 88% at 50% 44%, rgba(17,17,17,0.30) 0%, rgba(17,17,17,0.66) 60%, rgba(17,17,17,0.93) 100%)',
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* The reference opens on roughly a third of a screen of nothing before
+          the first entry. It is not dead space — it is what makes the archive
+          read as something you descend into rather than a table. */}
+      <div className="relative z-10 pt-[max(10rem,32vh)] pb-40">
+        {view === 'list' ? (
+          <div onMouseLeave={() => setHovered(null)}>
+            {filtered.map((p) => {
+              const { lead, tail } = splitTitle(p.title)
+              const c = CATEGORY_MAP[p.category]
+              const name = c.short ?? c.label
+              const other = hovered !== null && hovered !== p.slug
+              return (
+                <Link
+                  key={p.slug}
+                  to={`/work/${p.slug}`}
+                  onMouseEnter={() => setHovered(p.slug)}
+                  onFocus={() => setHovered(p.slug)}
+                  onBlur={() => setHovered(null)}
+                  // Edge to edge, with the rule running the full width of the
+                  // screen and only the type inset — the reference's ruling,
+                  // and what keeps the list flush with the grid's frames.
+                  className={`block border-b ${
+                    // Once a picture is up, the one surviving rule underlines
+                    // the row it belongs to. Leaving all thirty-six at full
+                    // strength lays a ladder across the footage.
+                    hovered === p.slug ? 'on-scrim' : ''
+                  }`}
+                  style={{
+                    borderColor: other
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'rgba(255,255,255,0.11)',
+                    transition: 'border-color 500ms ease-out',
+                  }}
+                >
+                  <div className={`${GUTTER} py-2.5 md:py-3`}>
+                    <IndexRow
+                      as="h2"
+                      lead={lead}
+                      tail={tail}
+                      category={name}
+                      meta={p.runtime ? `${p.year} · ${p.runtime}` : `${p.year}`}
+                      subline={`${name} — ${p.year}`}
+                      dim={other}
+                    />
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        ) : (
+          <div>
+            {sections.map((s, si) => (
+              <section key={s.category.id} className="mb-12 md:mb-16">
+                <div className={`${GUTTER} pb-3 md:pb-4`}>
+                  <IndexRow
+                    as="h2"
+                    lead={s.category.short ?? s.category.label}
+                    category={`${s.pieces.length} ${
+                      s.pieces.length === 1 ? 'piece' : 'pieces'
+                    }`}
+                    meta={s.range}
+                    subline={`${s.pieces.length} pieces · ${s.range}`}
+                    // The band under the pointer keeps its heading lit; every
+                    // other heading goes down with the rest of the page.
+                    dim={
+                      hovered !== null &&
+                      !s.pieces.some((p) => p.slug === hovered)
+                    }
+                  />
+                </div>
+
+                {/* Four across, cut to the edges of the screen, with the
+                    hairline of ground between them that the reference has
+                    instead of a gutter. Leaving the band is what clears the
+                    hover — the gaps belong to the band, so crossing one on
+                    the way to the next frame never flickers the page back to
+                    full brightness. */}
+                <div
+                  className="grid grid-cols-2 gap-[3px] sm:grid-cols-3 xl:grid-cols-4"
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  {s.pieces.map((p, i) => (
+                    <WorkFrame
+                      key={p.slug}
+                      piece={p}
+                      active={hovered === p.slug}
+                      dimmed={hovered !== null && hovered !== p.slug}
+                      eager={si === 0 && i < 4}
+                      onEnter={setHovered}
+                      onOpen={open}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+
+        {!filtered.length && (
+          <p className={`${GUTTER} mono-label py-24 text-center text-[0.625rem] text-white/40`}>
             Nothing filed under this category yet.
           </p>
-        </Reveal>
-      )}
+        )}
+      </div>
+
+      {/* The view key, floating at the foot of the screen — the one control
+          that is always within reach however far down the archive you are. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+        <Segmented
+          className="pointer-events-auto"
+          options={VIEW_OPTIONS}
+          value={view}
+          onChange={(v) => setParam('view', v === 'grid' ? null : v)}
+          label="Choose how the archive is laid out"
+        />
+      </div>
     </div>
   )
-}
-
-/** A performance as the reel wants it: one frame, one caption, one shape. */
-function toPiece(p: Performance): ReelPiece {
-  return {
-    slug: p.slug,
-    title: p.title,
-    meta: `${CATEGORY_MAP[p.category].label} — ${p.year}`,
-    poster: p.poster,
-    // The short cut, never the full recording — see the note in VideoReel.
-    src: p.previewSrc ?? p.videoSrc,
-    aspect: p.aspect ?? 16 / 9,
-  }
 }

@@ -17,6 +17,10 @@ export type CategoryId =
 export interface Category {
   id: CategoryId
   label: string
+  /** The name as the /work index sets it: filter keys, the column beside each
+   *  row, the section heading. Falls back to `label`, and only exists for the
+   *  one category whose full name is too long to key. */
+  short?: string
   /** Shown under the filter chip on /work. */
   blurb: string
   /** Hex accent used for glows and rules when this category is active. */
