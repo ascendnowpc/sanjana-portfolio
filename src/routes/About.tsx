@@ -7,6 +7,7 @@ import { Reveal } from '@/components/ui/Reveal'
 import { Overture } from '@/components/ui/Overture'
 import { Marquee } from '@/components/ui/Marquee'
 import { MusicShelf } from '@/components/audio/MusicShelf'
+import { PortraitStage } from '@/components/about/PortraitStage'
 import { mediaUrl } from '@/lib/media'
 
 /**
@@ -80,10 +81,13 @@ export default function About() {
         </h1>
       </Overture>
 
-      {/* ---------------- 2. the recordings ---------------- */}
+      {/* ---------------- 2. the portrait ---------------- */}
+      <PortraitStage />
+
+      {/* ---------------- 3. the recordings ---------------- */}
       <MusicShelf items={items} />
 
-      {/* ---------------- 3. portraits over the drifting name ---------------- */}
+      {/* ---------------- 4. portraits over the drifting name ---------------- */}
       <div ref={stripRef} className="relative overflow-hidden py-16">
         <Marquee
           text={`${PROFILE.name} `}
@@ -118,7 +122,7 @@ export default function About() {
         </motion.div>
       </div>
 
-      {/* ---------------- 4. press ---------------- */}
+      {/* ---------------- 5. press ---------------- */}
       <section className="border-t border-edge/50 bg-ink/40">
         <div className="mx-auto max-w-[1600px] px-6 py-32 md:px-12">
           <p className="label mb-16 text-dust">Press</p>
@@ -137,7 +141,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* ---------------- 5. the ask ---------------- */}
+      {/* ---------------- 6. the ask ---------------- */}
       <section className="px-6 py-40 text-center md:px-12">
         <Reveal>
           <p className="label text-dust">Next</p>
