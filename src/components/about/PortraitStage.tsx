@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { useMotionValue, useScroll, useSpring } from 'framer-motion'
 import type { Framing, Piece, Pose } from '@/components/three/ModelStage'
-import { PORTRAIT_BEATS, PROFILE } from '@/data/site'
+import { PORTRAIT, PROFILE } from '@/data/site'
 import { Reveal } from '@/components/ui/Reveal'
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
@@ -325,14 +325,12 @@ export function PortraitStage() {
                 round
               </h2>
               <p className="mt-10 max-w-[46ch] text-lg leading-[1.7] font-light text-mist">
-                {PROFILE.bioShort} Turn her around and the instrument is still
-                the same one — a voice trained in one tradition, put to work in
-                another, and recorded without a safety net.
+                {PORTRAIT.lead}
               </p>
             </Reveal>
 
             <div className="mt-24 space-y-20 md:mt-32 md:space-y-[20vh]">
-              {PORTRAIT_BEATS.map((beat) => (
+              {PORTRAIT.beats.map((beat) => (
                 <Reveal key={beat.accent}>
                   <h3 className="mono-label text-xs text-chalk">
                     {beat.heading}{' '}
