@@ -156,7 +156,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
         }}
         className="relative h-24 w-full cursor-pointer md:h-32"
       >
-        {bars(barsBase, '#55647a', 0.42)}
+        {bars(barsBase, '#6b6b6b', 0.42)}
         <div ref={clipRef} className="absolute inset-0">
           {bars(barsPlayed, accent, 1)}
         </div>
@@ -267,7 +267,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
               >
                 <span
                   className="w-6 shrink-0 text-xs tabular-nums transition-colors"
-                  style={{ color: active ? accent : '#55647a' }}
+                  style={{ color: active ? accent : '#6b6b6b' }}
                 >
                   {active && playing ? (
                     <span className="flex h-3 items-end gap-[2px]">
@@ -291,7 +291,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
                 <span className="min-w-0 flex-1">
                   <span
                     className="block truncate text-sm transition-colors"
-                    style={{ color: active ? '#e8f1f8' : '#8ea6c0' }}
+                    style={{ color: active ? '#f2f2f2' : '#9a9a9a' }}
                   >
                     {t.title}
                   </span>
