@@ -299,9 +299,21 @@ export default function Work() {
                     instead of a gutter. Leaving the band is what clears the
                     hover — the gaps belong to the band, so crossing one on
                     the way to the next frame never flickers the page back to
-                    full brightness. */}
+                    full brightness.
+
+                    The two gaps are deliberately different sizes. Sideways it
+                    is the reference's 3px hairline, because four frames across
+                    read as one strip and a real gutter would break it into
+                    four pictures. Downwards it is a proper rule of space: the
+                    reference never wraps — every piece there is exactly one
+                    row of four under its own title — so a band of eleven is
+                    ours to shape, and on 3px the rows fuse into a slab with no
+                    way to tell where one line of work ends. Wide enough to
+                    separate the rows, still well short of the 48/64px between
+                    the bands themselves, so the band stays one thing. Bands of
+                    four or fewer never wrap, so this costs them nothing. */}
                 <div
-                  className="grid grid-cols-2 gap-[3px] sm:grid-cols-3 xl:grid-cols-4"
+                  className="grid grid-cols-2 gap-x-[3px] gap-y-4 sm:grid-cols-3 md:gap-y-6 xl:grid-cols-4"
                   onMouseLeave={() => setHovered(null)}
                 >
                   {s.pieces.map((p, i) => (
