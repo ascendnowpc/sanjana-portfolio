@@ -54,11 +54,11 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x07070a);
 scene.fog = new THREE.Fog(0x07070a, 4.5, 11);
 
-const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0.9, 1.55, 3.1);
+const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(1.15, 1.45, 4.3);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 1.02, 0);
+controls.target.set(0, 0.92, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.minDistance = 1.2;
@@ -77,10 +77,17 @@ key.shadow.bias = -0.0012;
 key.shadow.normalBias = 0.02;
 scene.add(key, key.target);
 
-const rim = new THREE.SpotLight(0x9fc4ff, 30, 14, THREE.MathUtils.degToRad(42), 0.6, 1.6);
-rim.position.set(1.7, 2.9, -2.7);
+// Tight and strong: the rim is what separates the figure from a dark
+// background, so it needs to read as a distinct cool edge, not ambient wash.
+const rim = new THREE.SpotLight(0xa8c8ff, 90, 16, THREE.MathUtils.degToRad(30), 0.5, 1.5);
+rim.position.set(2.0, 2.6, -3.0);
 rim.target.position.set(0, 1.3, 0);
-scene.add(rim, rim.target);
+// Second rim from the opposite rear quarter, so the silhouette stays readable
+// through a full turntable rotation rather than only from the front.
+const rim2 = new THREE.SpotLight(0x8fb4f5, 55, 16, THREE.MathUtils.degToRad(34), 0.55, 1.5);
+rim2.position.set(-2.4, 2.4, -2.4);
+rim2.target.position.set(0, 1.25, 0);
+scene.add(rim, rim.target, rim2, rim2.target);
 
 // Low warm bounce off the stage floor, so shadowed sides don't go to pure black.
 const fill = new THREE.PointLight(0xffb98a, 5.5, 7, 2);
@@ -140,7 +147,11 @@ function fitTo(object3d, fitHeight, ground) {
 
 function makeProxy(name, cfg) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color: 0x4a4f63, wireframe: true });
+  // Lit matte, not wireframe: the point of the proxies is to show the lighting
+  // rig and framing working. The HUD still labels them as placeholders.
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x8d8579, roughness: 0.85, metalness: 0.05,
+  });
   if (name === 'girl') {
     const h = cfg.fitHeight;
     const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, h * 0.52, 6, 14), mat);
@@ -163,6 +174,7 @@ function makeProxy(name, cfg) {
     capsule.position.y = h;
     g.add(pole, capsule);
   }
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   proxies.push(g);
   return g;
 }
@@ -213,7 +225,11 @@ for (const [name, cfg] of Object.entries(PLACEMENT)) loadPart(name, cfg);
 // ---------------------------------------------------------------------------
 // Loop
 // ---------------------------------------------------------------------------
-let spinning = true;
+const params = new URLSearchParams(location.search);
+let spinning = params.get('spin') !== '0';
+if (params.has('angle')) {
+  turntable.rotation.y = THREE.MathUtils.degToRad(Number(params.get('angle')));
+}
 addEventListener('keydown', (e) => {
   if (e.code === 'Space') { spinning = !spinning; e.preventDefault(); }
   if (e.code === 'KeyP') proxies.forEach((p) => { p.visible = !p.visible; });
