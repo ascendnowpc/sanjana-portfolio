@@ -58,3 +58,44 @@ export const PROFILE: SiteProfile = {
     spotify: 'https://open.spotify.com/',
   },
 }
+
+/**
+ * The beats that run down the left of the About page's portrait section,
+ * beside the model.
+ *
+ * PLACEHOLDER COPY — swap for Sanjana's real bio. Written to the same brief
+ * as `PROFILE.bio` above and against the same invented credits, so the two
+ * agree with each other; neither is a source of fact.
+ *
+ * Kept as headed beats rather than as prose because the column is read at
+ * scroll speed against something moving beside it. A reader who looks up at
+ * the model and back down needs a line to land on, and a paragraph does not
+ * give them one. The last word of each heading is set in reverse on the page
+ * — the copy carries the split so the emphasis is written, not guessed at by
+ * a regex over the string.
+ */
+export interface PortraitBeat {
+  /** Small caps heading, all but its final word. */
+  heading: string
+  /** The final word, which the page reverses out. */
+  accent: string
+  body: string
+}
+
+export const PORTRAIT_BEATS: PortraitBeat[] = [
+  {
+    heading: 'Trained before',
+    accent: 'taught',
+    body: 'Nine years of Hindustani classical before a single stage, then musical theatre performance at the Royal Conservatory on top of it. The two do not blend so much as argue, and most of what her voice does now comes out of that argument — ornament held against line, weight held against carry.',
+  },
+  {
+    heading: 'The room picks the',
+    accent: 'voice',
+    body: 'A four-thousand-seat arena and a ninety-seat black box are different instruments, and she treats them that way. The arena take is built to survive a delay tower; the black box take is built to be overheard. Neither is the other one scaled up or down.',
+  },
+  {
+    heading: 'Recorded',
+    accent: 'live',
+    body: 'Neon Hymns was cut over eleven nights with the band in the room and every vocal kept as one continuous take. Nothing was comped and nothing was tuned. What is on the record is what happened on the night it was played.',
+  },
+]
