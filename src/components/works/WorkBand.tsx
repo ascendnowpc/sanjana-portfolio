@@ -36,7 +36,7 @@ function useColumns() {
  * about the *row* rather than the frame the pointer is on.
  *
  * The first is what lights. Pointing at one frame lights the whole line it
- * sits on and drops every other line to a twentieth — the reference's own
+ * sits on and drops every other line to a twelfth — the reference's own
  * behaviour, where a row is one piece in four stills and lighting only the
  * still under the cursor would tear the piece into quarters. Ours is four
  * performances to a row, so this is a looser reading than the reference

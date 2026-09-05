@@ -60,7 +60,7 @@ export function IndexRow({
         'transition-opacity duration-500 ease-out',
         className,
       )}
-      style={{ opacity: dim ? 0.08 : 1 }}
+      style={{ opacity: dim ? 0.11 : 1 }}
     >
       {/* The name never truncates; only the descriptor after it does. A row
           reading "BEAUTY AND THE BEA…" has lost the one word the reader was
