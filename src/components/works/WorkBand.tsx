@@ -36,10 +36,10 @@ function useColumns() {
  * about the *row* rather than the frame the pointer is on.
  *
  * The first is what lights. Pointing at one frame lights the whole line it
- * sits on and drops every other line to a tenth — the reference's behaviour,
- * where a row is one piece shown in four stills and lighting only the still
- * under the cursor would tear the piece into quarters. Ours is four separate
- * performances to a row, so this is a looser reading of it than the reference
+ * sits on and drops every other line to a twentieth — the reference's own
+ * behaviour, where a row is one piece in four stills and lighting only the
+ * still under the cursor would tear the piece into quarters. Ours is four
+ * performances to a row, so this is a looser reading than the reference
  * gets to make; it is still the right one to copy, because what the gesture
  * communicates is *here is the band of the page you are reading*, and a single
  * lit tile in a dark row communicates something narrower and fussier.

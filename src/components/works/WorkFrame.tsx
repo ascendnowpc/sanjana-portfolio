@@ -49,7 +49,7 @@ export const WorkFrame = memo(function WorkFrame({
       aria-label={`${piece.title} — ${piece.year}`}
       className="relative block aspect-video w-full cursor-pointer overflow-hidden bg-ink"
       style={{
-        opacity: dimmed ? 0.1 : 1,
+        opacity: dimmed ? 0.05 : 1,
         transition: 'opacity 500ms ease-out',
       }}
     >

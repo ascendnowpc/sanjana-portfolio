@@ -28,9 +28,16 @@ interface Props<T extends string> {
  * The rule is the part that is easy to leave off and the part that does the
  * work — without it the well is a floating dark rectangle on a dark page,
  * and the control stops reading as a control.
+ *
+ * The radii are held as raw pixels, not Tailwind's scale, because what they
+ * have to be is a fraction of the height: the reference's arcs are about a
+ * seventh of the key and a sixth of the well. `rounded-lg` on a 31px key is a
+ * quarter of it, which is a pill trying to be a key — visibly softer than the
+ * reference and the first thing that reads as wrong when the two are put side
+ * by side.
  */
 export const TROUGH =
-  'flex w-max items-center gap-1 rounded-[13px] bg-[#2f2f2f]/95 p-[5px] ' +
+  'flex w-max items-center gap-1 rounded-[8px] bg-[#2f2f2f]/95 p-[5px] ' +
   'ring-1 ring-[#8d8d8d]/55 backdrop-blur-md'
 
 /**
@@ -42,7 +49,7 @@ export const TROUGH =
  */
 export function chip(on: boolean) {
   return cn(
-    'mono-label rounded-[9px] px-3.5 py-2.5 text-[0.6875rem] leading-none whitespace-nowrap',
+    'mono-label rounded-[5px] px-3.5 py-2.5 text-[0.6875rem] leading-none whitespace-nowrap',
     'text-[#111111] transition-colors duration-300',
     on ? 'bg-white' : 'bg-[#8d8d8d] hover:bg-[#a9a9a9]',
   )
