@@ -9,7 +9,7 @@ import { useTransition } from '@/components/layout/TransitionProvider'
 import { LoopingPreview } from '@/components/media/LoopingPreview'
 import { IndexRow, splitTitle } from '@/components/works/IndexRow'
 import { Segmented, type SegmentedOption } from '@/components/works/Segmented'
-import { WorkFrame } from '@/components/works/WorkFrame'
+import { WorkBand } from '@/components/works/WorkBand'
 import { mediaUrl } from '@/lib/media'
 
 type Filter = CategoryId | 'all'
@@ -28,10 +28,10 @@ type View = 'grid' | 'list'
  * drops everything else to a sixteenth of its opacity, and the one thing left
  * lit comes forward. In list view there are no pictures on the page at all,
  * so the piece's footage has nowhere to go but behind the type, where it
- * fills the viewport. In grid view the picture is already there, and it stays
- * a **still** — the frame eases in and takes its name, and nothing swaps to
- * video. Nothing about that reaches the nav: the page dims under it, not with
- * it.
+ * fills the viewport. In grid view the picture is already there: the whole
+ * *row* the pointer is on holds at full strength, every other row drops to a
+ * tenth, and one word rides the cursor across the frames — see `WorkBand`.
+ * Nothing about that reaches the nav: the page dims under it, not with it.
  *
  * Both the filter and the view live in the query string (`?category=`,
  * `?view=`), so any state of this page is a link somebody can send.
@@ -127,6 +127,8 @@ export default function Work() {
       zoomTo(el, piece.poster, piece.title, `/work/${piece.slug}`),
     [zoomTo],
   )
+
+  const clearHover = useCallback(() => setHovered(null), [])
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params)
@@ -294,40 +296,14 @@ export default function Work() {
                   />
                 </div>
 
-                {/* Four across, cut to the edges of the screen, with the
-                    hairline of ground between them that the reference has
-                    instead of a gutter. Leaving the band is what clears the
-                    hover — the gaps belong to the band, so crossing one on
-                    the way to the next frame never flickers the page back to
-                    full brightness.
-
-                    The two gaps are deliberately different sizes. Sideways it
-                    is the reference's 3px hairline, because four frames across
-                    read as one strip and a real gutter would break it into
-                    four pictures. Downwards it is a proper rule of space: the
-                    reference never wraps — every piece there is exactly one
-                    row of four under its own title — so a band of eleven is
-                    ours to shape, and on 3px the rows fuse into a slab with no
-                    way to tell where one line of work ends. Wide enough to
-                    separate the rows, still well short of the 48/64px between
-                    the bands themselves, so the band stays one thing. Bands of
-                    four or fewer never wrap, so this costs them nothing. */}
-                <div
-                  className="grid grid-cols-2 gap-x-[3px] gap-y-4 sm:grid-cols-3 md:gap-y-6 xl:grid-cols-4"
-                  onMouseLeave={() => setHovered(null)}
-                >
-                  {s.pieces.map((p, i) => (
-                    <WorkFrame
-                      key={p.slug}
-                      piece={p}
-                      active={hovered === p.slug}
-                      dimmed={hovered !== null && hovered !== p.slug}
-                      eager={si === 0 && i < 4}
-                      onEnter={setHovered}
-                      onOpen={open}
-                    />
-                  ))}
-                </div>
+                <WorkBand
+                  pieces={s.pieces}
+                  hovered={hovered}
+                  first={si === 0}
+                  onEnter={setHovered}
+                  onLeave={clearHover}
+                  onOpen={open}
+                />
               </section>
             ))}
           </div>

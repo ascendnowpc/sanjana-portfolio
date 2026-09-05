@@ -1,9 +1,21 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------
-   Design tokens — a midnight/ice palette taken from the Billie Eilish
-   reference: near-black blues as ground, one cold cyan as the only
-   light source, violet + ember reserved for category accents.
+   Design tokens — greyscale.
+
+   There is no accent colour on this site and there is not meant to be
+   one. An earlier palette ran a cold cyan (#4fd8e8) as "the only light
+   source", with blue-tinted whites and greys to sit against it; on a page
+   whose entire content is stage photography, that read as a filter laid
+   over somebody else's work. The reference is black, white and grey, and
+   the only colour on it is whatever is inside the frames.
+
+   The old names are kept — `bloom`, `chalk`, `mist`, `dust` are spread
+   across three dozen files — and pointed at neutrals instead. Renaming
+   them would be a rename, not a redesign, and every one of those files
+   wants the neutral anyway. `bloom` in particular is now plain white:
+   everything that used it was an active state or a hover, and white *is*
+   the active state here.
 ------------------------------------------------------------------- */
 @theme {
   /* Neutral charcoal, not a navy and not pure black. Two separate findings
@@ -18,24 +30,23 @@
   --color-void: #111111;
   --color-ink: #171717;
   --color-abyss: #1c1c1c;
-  --color-slate-deep: #131d2f;
-  --color-edge: #1d2a3f;
+  --color-slate-deep: #1a1a1a;
+  --color-edge: #2e2e2e;
 
-  /* The listening shelf's one accent — brass, off the reference player. It is
-     deliberately the only colour in that section: six cards each glowing in
-     their own category accent turned a quiet page into a fruit salad. */
-  --color-gilt: #c8a45c;
+  /* The listening shelf's own value. It was brass (#c8a45c) when the site
+     still had accents; it is a light grey now, for the reason above. */
+  --color-gilt: #d6d6d6;
 
-  --color-bloom: #4fd8e8;
-  --color-halo: #9df3ff;
-  --color-surge: #3f7dfb;
-  --color-violet-glow: #8b5cf6;
-  --color-ember: #f0a23c;
-  --color-rose-stage: #f0568f;
+  --color-bloom: #ffffff;
+  --color-halo: #f4f4f4;
+  --color-surge: #b4b4b4;
+  --color-violet-glow: #8d8d8d;
+  --color-ember: #c9c9c9;
+  --color-rose-stage: #a3a3a3;
 
-  --color-chalk: #e8f1f8;
-  --color-mist: #8ea6c0;
-  --color-dust: #55647a;
+  --color-chalk: #f2f2f2;
+  --color-mist: #9a9a9a;
+  --color-dust: #6b6b6b;
 
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
   --font-poster: "Anton", "Arial Narrow", sans-serif;
