@@ -30,14 +30,17 @@ interface Props<T extends string> {
  * and the control stops reading as a control.
  *
  * The radii are held as raw pixels, not Tailwind's scale, because what they
- * have to be is a fraction of the height: the reference's arcs are about a
- * seventh of the key and a sixth of the well. `rounded-lg` on a 31px key is a
- * quarter of it, which is a pill trying to be a key — visibly softer than the
- * reference and the first thing that reads as wrong when the two are put side
- * by side.
+ * have to be is a fraction of the height, and a small one: 3px on a 31px key
+ * and 5px on the well around it — a tenth and a seventh. Tailwind's smallest
+ * named step is `rounded-sm` at 2px and its next is 4px, so the scale can
+ * express this range but not tune inside it, and this is a range that wants
+ * tuning: every step softer reads as a pill trying to be a key, and softness
+ * was the first thing that showed up wrong against the reference. The arcs
+ * are meant to be just enough to take the sharpness off a corner, not enough
+ * to be seen as a curve.
  */
 export const TROUGH =
-  'flex w-max items-center gap-1 rounded-[8px] bg-[#2f2f2f]/95 p-[5px] ' +
+  'flex w-max items-center gap-1 rounded-[5px] bg-[#2f2f2f]/95 p-[5px] ' +
   'ring-1 ring-[#8d8d8d]/55 backdrop-blur-md'
 
 /**
@@ -49,7 +52,7 @@ export const TROUGH =
  */
 export function chip(on: boolean) {
   return cn(
-    'mono-label rounded-[5px] px-3.5 py-2.5 text-[0.6875rem] leading-none whitespace-nowrap',
+    'mono-label rounded-[3px] px-3.5 py-2.5 text-[0.6875rem] leading-none whitespace-nowrap',
     'text-[#111111] transition-colors duration-300',
     on ? 'bg-white' : 'bg-[#8d8d8d] hover:bg-[#a9a9a9]',
   )
