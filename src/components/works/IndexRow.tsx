@@ -7,8 +7,9 @@ interface Props {
   /** The part after the dash, set italic and grey. Optional — plenty of
    *  entries are one phrase and get no second half. */
   tail?: string
-  /** The middle column: which section this belongs to. */
-  category: string
+  /** The middle column: which section this belongs to. Omitted by the grid's
+   *  band headings, which are a name on a line and nothing else. */
+  category?: string
   /** The right column — year, runtime, a count. */
   meta?: ReactNode
   /** Repeated under the title on phones, where the two columns are gone. */
@@ -59,7 +60,7 @@ export function IndexRow({
         'transition-opacity duration-500 ease-out',
         className,
       )}
-      style={{ opacity: dim ? 0.16 : 1 }}
+      style={{ opacity: dim ? 0.08 : 1 }}
     >
       {/* The name never truncates; only the descriptor after it does. A row
           reading "BEAUTY AND THE BEA…" has lost the one word the reader was
@@ -80,13 +81,20 @@ export function IndexRow({
         </span>
       )}
 
-      <span className="mono-label hidden min-w-0 truncate text-[0.625rem] text-white/70 md:block">
-        {category}
-      </span>
+      {/* Both are dropped from the DOM rather than rendered empty: the row is
+          a three-column grid, and two empty cells still claim their tracks and
+          hold the title to the left 2fr of the line. */}
+      {category && (
+        <span className="mono-label hidden min-w-0 truncate text-[0.625rem] text-white/70 md:block">
+          {category}
+        </span>
+      )}
 
-      <span className="mono-label hidden min-w-0 truncate text-right text-[0.625rem] text-white/40 md:block">
-        {meta}
-      </span>
+      {meta && (
+        <span className="mono-label hidden min-w-0 truncate text-right text-[0.625rem] text-white/40 md:block">
+          {meta}
+        </span>
+      )}
     </div>
   )
 }

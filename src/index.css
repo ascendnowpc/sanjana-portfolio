@@ -18,18 +18,20 @@
    the active state here.
 ------------------------------------------------------------------- */
 @theme {
-  /* Neutral charcoal, not a navy and not pure black. Two separate findings
-     sit in these three values. First: any blue in the ground (this was once
-     #04070f) casts back onto every frame, which made stage photography look
-     tinted and the page read cooler than the footage in it — so the greys are
-     dead neutral. Second: #000 is *too* far down. A hair of lift is what
-     separates the frames from the void behind them and lets a white hairline
-     border read as a drawn edge rather than a glare, which is the whole look
-     the reference is built on. The three stay ordered — ground, panel, well —
-     so a raised surface is never darker than what it sits on. */
-  --color-void: #111111;
-  --color-ink: #171717;
-  --color-abyss: #1c1c1c;
+  /* Flat black, not a charcoal and not a navy. Three findings, in the order
+     they were made. Any blue in the ground (this was once #04070f) casts back
+     onto every frame, which made stage photography look tinted — so the greys
+     are dead neutral. Then #111 was held for a while on the theory that a
+     hair of lift separates the frames from the void behind them; it does, and
+     it is also visibly *not* the reference's ground, which is flat #000. The
+     lift was solving a problem the reference simply does not have: with the
+     frames run edge to edge and 3px apart, the ground between them is a rule,
+     not a field, and a rule reads as drawn at #000 exactly as well.
+     The three stay ordered — ground, panel, well — so a raised surface is
+     never darker than what it sits on. */
+  --color-void: #000000;
+  --color-ink: #0b0b0b;
+  --color-abyss: #141414;
   --color-slate-deep: #1a1a1a;
   --color-edge: #2e2e2e;
 
@@ -185,8 +187,8 @@
    through the centre, and the scrim alone is not enough to hold contrast. */
 @utility on-scrim {
   text-shadow:
-    0 1px 26px rgba(17, 17, 17, 0.96),
-    0 0 10px rgba(17, 17, 17, 0.92);
+    0 1px 26px rgba(0, 0, 0, 0.96),
+    0 0 10px rgba(0, 0, 0, 0.92);
 }
 
 @utility text-glow {

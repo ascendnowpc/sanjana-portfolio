@@ -85,17 +85,10 @@ export default function Work() {
     const wanted =
       active === 'all' ? CATEGORIES : CATEGORIES.filter((c) => c.id === active)
     return wanted
-      .map((category) => {
-        const pieces = filtered.filter((p) => p.category === category.id)
-        const years = pieces.map((p) => p.year)
-        const lo = Math.min(...years)
-        const hi = Math.max(...years)
-        return {
-          category,
-          pieces,
-          range: lo === hi ? `${lo}` : `${lo} — ${hi}`,
-        }
-      })
+      .map((category) => ({
+        category,
+        pieces: filtered.filter((p) => p.category === category.id),
+      }))
       .filter((s) => s.pieces.length > 0)
   }, [filtered, active])
 
@@ -218,7 +211,7 @@ export default function Work() {
               className="absolute inset-0"
               style={{
                 background:
-                  'radial-gradient(115% 88% at 50% 44%, rgba(17,17,17,0.30) 0%, rgba(17,17,17,0.66) 60%, rgba(17,17,17,0.93) 100%)',
+                  'radial-gradient(115% 88% at 50% 44%, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0.70) 60%, rgba(0,0,0,0.95) 100%)',
               }}
             />
           </motion.div>
@@ -279,14 +272,16 @@ export default function Work() {
             {sections.map((s, si) => (
               <section key={s.category.id} className="mb-12 md:mb-16">
                 <div className={`${GUTTER} pb-3 md:pb-4`}>
+                  {/* The name and nothing else. It carried a count and a year
+                      range in the two right-hand columns; the reference puts
+                      real information there — what a piece is, who it was for
+                      — and a tally of how many things are filed under a
+                      heading is not that. It is the page telling you about
+                      itself instead of about the work, and it dated the
+                      archive on sight. */}
                   <IndexRow
                     as="h2"
                     lead={s.category.short ?? s.category.label}
-                    category={`${s.pieces.length} ${
-                      s.pieces.length === 1 ? 'piece' : 'pieces'
-                    }`}
-                    meta={s.range}
-                    subline={`${s.pieces.length} pieces · ${s.range}`}
                     // The band under the pointer keeps its heading lit; every
                     // other heading goes down with the rest of the page.
                     dim={
