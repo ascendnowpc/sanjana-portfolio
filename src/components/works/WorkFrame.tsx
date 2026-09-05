@@ -1,6 +1,5 @@
 import { memo } from 'react'
 import type { Performance } from '@/types/content'
-import { LoopingPreview } from '@/components/media/LoopingPreview'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
@@ -25,8 +24,14 @@ interface Props {
  * mic stand. Portrait sources are therefore pulled up so the crop lands on
  * the face; landscape ones are already framed and stay centred.
  *
- * Only the hovered frame gets a decoder. A band of eleven all playing at once
- * is eleven video elements, and the archive has thirty-six.
+ * The frame is a **still**, at rest and on hover alike. It used to swap in the
+ * looping preview under the pointer, and that read as the picture going soft:
+ * the loop is cut at 480px for the gallery wall, where a dozen play at once
+ * and decode is the constraint, and blown up to a quarter of a wide screen it
+ * is visibly softer than the poster it replaced. The poster is a frame off the
+ * full transcode, so leaving it up is both sharper and cheaper. Hover is
+ * carried by what is around it instead — the rest of the page drops away, the
+ * still eases in, the name arrives.
  */
 export const WorkFrame = memo(function WorkFrame({
   piece,
@@ -37,7 +42,6 @@ export const WorkFrame = memo(function WorkFrame({
   onOpen,
 }: Props) {
   const reduced = usePrefersReducedMotion()
-  const preview = piece.previewSrc ?? piece.videoSrc
   const poster = mediaUrl(piece.poster)
   const objectPosition = (piece.aspect ?? 16 / 9) < 1 ? '50% 28%' : '50% 50%'
 
@@ -63,18 +67,10 @@ export const WorkFrame = memo(function WorkFrame({
         className="h-full w-full object-cover"
         style={{
           objectPosition,
-          transform: active ? 'scale(1.045)' : 'scale(1)',
+          transform: active && !reduced ? 'scale(1.045)' : 'scale(1)',
           transition: 'transform 1200ms var(--ease-out-expo)',
         }}
       />
-
-      {active && !reduced && preview && (
-        <LoopingPreview
-          src={mediaUrl(preview)!}
-          poster={poster}
-          objectPosition={objectPosition}
-        />
-      )}
 
       {/* Mounted with the hover rather than faded from opacity-0: the frames
           carry no titles at rest — that is the whole look — so this is the

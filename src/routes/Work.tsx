@@ -26,10 +26,12 @@ type View = 'grid' | 'list'
  *
  * The behaviour that ties them together is the hover: pointing at one entry
  * drops everything else to a sixteenth of its opacity, and the one thing left
- * lit gets its footage. In list view that footage has nowhere to go but
- * behind the page, so it fills the viewport; in grid view it plays inside the
- * frame the pointer is already on. Nothing about that reaches the nav — the
- * page dims under it, not with it.
+ * lit comes forward. In list view there are no pictures on the page at all,
+ * so the piece's footage has nowhere to go but behind the type, where it
+ * fills the viewport. In grid view the picture is already there, and it stays
+ * a **still** — the frame eases in and takes its name, and nothing swaps to
+ * video. Nothing about that reaches the nav: the page dims under it, not with
+ * it.
  *
  * Both the filter and the view live in the query string (`?category=`,
  * `?view=`), so any state of this page is a link somebody can send.
