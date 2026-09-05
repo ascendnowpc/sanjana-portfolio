@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>3D Singer Scene</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #07070a; overflow: hidden; }
+  canvas { display: block; }
+  #hud {
+    position: fixed; left: 16px; bottom: 16px; z-index: 10;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #b9b4ad; background: rgba(10,10,14,.72);
+    border: 1px solid rgba(255,255,255,.10); border-radius: 8px;
+    padding: 10px 12px; max-width: 340px; backdrop-filter: blur(6px);
+  }
+  #hud b { color: #f0e9df; font-weight: 600; }
+  #hud .row { display: flex; justify-content: space-between; gap: 14px; }
+  #hud .miss { color: #e08a6a; }
+  #hud .ok { color: #86c08a; }
+  #hud hr { border: 0; border-top: 1px solid rgba(255,255,255,.10); margin: 8px 0; }
+  #hud .keys { color: #7d7871; }
+</style>
+</head>
+<body>
+  <div id="hud">
+    <div><b>3D Singer Scene</b></div>
+    <hr />
+    <div id="status"></div>
+    <hr />
+    <div class="keys">drag orbit · scroll zoom · <b>space</b> turntable · <b>p</b> proxies</div>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/three.module.js",
+      "three/addons/": "./vendor/three/addons/"
+    }
+  }
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
