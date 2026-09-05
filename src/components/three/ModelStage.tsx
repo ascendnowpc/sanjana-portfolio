@@ -25,46 +25,81 @@ export interface Pose {
   lift: number
 }
 
+/**
+ * One .glb placed on the stage.
+ *
+ * Everything is expressed in *stage units*, where 1 is the height of the first
+ * piece. A .glb arrives at whatever scale it was exported at — these scans are
+ * each normalised into a unit box by their generator, so nothing about their
+ * raw numbers relates them to each other — and a composition of two of them
+ * has to be stated in terms of one of them or it means nothing. Saying the
+ * guitar is 0.62 is saying it comes up to just past the singer's waist, which
+ * is a fact about the picture and survives either file being re-exported.
+ */
+export interface Piece {
+  /**
+   * The .glb, as a site-root path.
+   *
+   * Not run through `mediaUrl`: the models sit at the root of public/, outside
+   * the public/media/ tree that scripts/upload-media.mjs mirrors into R2, so
+   * the bucket has no such key.
+   */
+  src: string
+  /** Its height in stage units. Leave at 1 for the piece the stage is sized by. */
+  height?: number
+  /** Where its anchor sits, in stage units from the turn axis. */
+  position?: [number, number, number]
+  /**
+   * Turn and lean, in radians, about the piece's own centre.
+   *
+   * About the centre rather than the anchor, which means a leaned piece walks
+   * its base sideways by half its height times the sine of the lean. At the
+   * few degrees a lean wants that is under a centimetre of stage unit, and
+   * there is no floor in the shot for it to be measured against.
+   */
+  rotation?: [number, number, number]
+  /**
+   * Which point of the piece `position` places.
+   *
+   * 'base' is what puts two pieces on the same floor without having to know
+   * either one's height: the guitar stands where the singer stands because
+   * both their bases are at the same y, not because their centres are.
+   */
+  anchor?: 'centre' | 'base'
+}
+
 export interface Framing {
   /**
-   * Where the subject's own centre sits, relative to the centre of the mesh's
-   * bounding box, in units of the model's height.
+   * Half the width the frame must hold, in stage units.
    *
-   * It is not always zero and on these scans it never is. A .glb of a singer
-   * with a mic stand has a bounding box that spans both, so its centre falls
-   * in the empty air between them — turn about that and the person swings
-   * around a point beside herself, and frame on it and she sits off to one
-   * side with a stand in the middle of the shot. This moves the axis onto the
-   * subject, which is both where the turn should happen and where the camera
-   * should point.
-   */
-  subject: { x: number; y: number; z: number }
-  /**
-   * Half the width the frame must hold, in units of the model's height.
-   *
-   * Stated as a box to fill rather than as a margin around the bounding box,
-   * because the bounding box is the wrong thing to frame on — most of this
-   * one's width is a boom arm reaching away from the person, and holding all
-   * of it costs a third of the frame to keep an empty arm on screen. Letting
-   * the boom leave the frame is the better picture, so the shot is sized to
-   * the subject and the box says so directly.
+   * Stated as a box to fill rather than as a margin around what is on stage,
+   * because what is on stage changes size as it turns — the guitar swings out
+   * beside the singer at one end of the move and tucks in behind her at the
+   * other — and a fit computed from the bounding box would breathe in and out
+   * with it. A fixed box means the camera holds still and the scene moves
+   * inside it, which is the whole illusion.
    */
   halfWidth: number
-  /** Half the height the frame must hold, same units. Under 0.5 crops the model. */
+  /** Half the height the frame must hold, same units. Under 0.5 crops. */
   halfHeight: number
-  /** Vertical aim, in units of the model's height above the subject's centre. */
-  aim: number
+  /**
+   * Where the camera points, in stage units from the turn axis.
+   *
+   * Separate from the axis itself, and it has to be. The axis belongs on the
+   * singer — she is what the scene turns about — but she is not what the
+   * frame is about once there is a guitar standing beside her, and centring
+   * the shot on her leaves the composition heavy on one side and empty on the
+   * other. So the camera trucks across to sit over the pair. It trucks rather
+   * than swivels: pointing a camera off its own axis skews everything in the
+   * frame, and a subject leaning out of the picture is a worse fault than an
+   * off-centre one.
+   */
+  aim: { x: number; y: number }
 }
 
 interface Props {
-  /**
-   * The .glb to show, as a site-root path.
-   *
-   * Not run through `mediaUrl`: the models sit at the root of public/ rather
-   * than under public/media/, so they are bundle assets served from the site's
-   * own origin and the R2 rewrite would point them at a key that is not there.
-   */
-  src: string
+  /** What stands on the stage. The first piece defines the unit of every other. */
+  pieces: Piece[]
   /** Scroll position through the section, 0 to 1. */
   progress: MotionValue<number>
   /** The move, as poses in ascending `at` order. */
@@ -125,7 +160,7 @@ function poseAt(poses: Pose[], t: number): Omit<Pose, 'at'> {
  * decision, and `ModelSection` makes it off an IntersectionObserver.
  */
 export default function ModelStage({
-  src,
+  pieces,
   progress,
   poses,
   framing,
@@ -173,7 +208,7 @@ export default function ModelStage({
     // accent colour is a tint applied to the one thing that has real colour
     // in it. Neutral rolls off the highlights and leaves the hue alone.
     renderer.toneMapping = THREE.NeutralToneMapping
-    renderer.toneMappingExposure = 1.15
+    renderer.toneMappingExposure = 1.2
     host.appendChild(renderer.domElement)
     renderer.domElement.style.display = 'block'
     renderer.domElement.style.width = '100%'
@@ -183,97 +218,160 @@ export default function ModelStage({
     const camera = new THREE.PerspectiveCamera(FOV, 1, 0.01, 100)
 
     /* ---------------- light ----------------
-       Four white lights and no environment map. The scan's material declares
+       Five white lights and no environment map. The scans' material declares
        metalness 1 and leans on its metallic-roughness texture to bring that
        back down, so anything the texture leaves metallic has nothing to
-       reflect and renders black. Every light here is therefore direct, and
-       the ambient is high enough that a fully metallic pixel still reads.
+       reflect and renders black. Every light here is therefore direct.
 
-       The rim is the one doing the real work: the stage is black and the
-       subject is lit warm-neutral, so without a light behind her the dark
-       side of the figure has no edge and she dissolves into the ground. */
-    scene.add(new THREE.AmbientLight(0xffffff, 1.15))
+       The two rims are doing most of the work, and they are why the ambient
+       and the key stay low. The subject is a woman dressed head to foot in
+       black leather standing on a black ground: raise the front light until
+       the jacket reads and her face and arms blow out long before it does,
+       because skin is already three stops up on the clothes. Light from
+       behind solves the actual problem — it draws the edge of the coat, the
+       chain, the hair and the guitar necks as lines rather than trying to
+       fill them, and it leaves the front exposed for the skin. Two of them,
+       from opposite quarters, so the edge survives the turn: one rim alone
+       goes dark down one side halfway through the move.
+    */
+    scene.add(new THREE.AmbientLight(0xffffff, 1.3))
 
-    const key = new THREE.DirectionalLight(0xffffff, 2.1)
+    const key = new THREE.DirectionalLight(0xffffff, 2.2)
     key.position.set(2.5, 3.4, 4)
     scene.add(key)
 
-    const fill = new THREE.DirectionalLight(0xffffff, 0.65)
+    const fill = new THREE.DirectionalLight(0xffffff, 0.8)
     fill.position.set(-3.5, 0.6, 2)
     scene.add(fill)
 
-    const rim = new THREE.DirectionalLight(0xffffff, 1.5)
-    rim.position.set(-1.2, 2.2, -3.5)
-    scene.add(rim)
+    const rimLeft = new THREE.DirectionalLight(0xffffff, 3)
+    rimLeft.position.set(-1.6, 2, -3.2)
+    scene.add(rimLeft)
 
-    /* ---------------- the subject ----------------
-       A pivot the loaded scene hangs under, so `yaw` turns the model about
-       its own centre no matter where the .glb happened to put its origin. */
+    const rimRight = new THREE.DirectionalLight(0xffffff, 2)
+    rimRight.position.set(2.4, 1.4, -3)
+    scene.add(rimRight)
+
+    /* ---------------- the scene ----------------
+       Everything hangs off one pivot, so `yaw` turns the whole composition
+       about a single axis. That is what makes two separate scans read as one
+       place rather than as two objects being animated near each other: the
+       guitar keeps its station beside the singer through the entire move,
+       because it is not being moved at all — the room is. */
     const pivot = new THREE.Group()
     scene.add(pivot)
 
-    let height = 1
+    /** The height every stage unit is measured in, set by the first piece. */
+    const UNIT = 1
     let disposed = false
 
-    const loader = new GLTFLoader()
-    loader.load(
-      src,
-      (gltf) => {
-        if (disposed) return
-        const model = gltf.scene
+    const maxAnisotropy = renderer.capabilities.getMaxAnisotropy()
 
-        const box = new THREE.Box3().setFromObject(model)
-        const size = box.getSize(new THREE.Vector3())
-        const centre = box.getCenter(new THREE.Vector3())
+    function place(gltf: { scene: THREE.Group }, piece: Piece) {
+      const model = gltf.scene
+      const box = new THREE.Box3().setFromObject(model)
+      const size = box.getSize(new THREE.Vector3())
+      const centre = box.getCenter(new THREE.Vector3())
 
-        // Normalised on height rather than on the longest side. The longest
-        // side of the singer is the mic boom, so scaling by it would size the
-        // shot to a piece of hardware and make the person smaller the further
-        // the stand reaches.
-        const scale = 1 / (size.y || 1)
-        model.scale.setScalar(scale)
-        // Scale applies to the geometry, position does not, so landing a
-        // point of the mesh on the pivot means placing it at minus that point
-        // *scaled*. Subtracting the raw centre instead leaves the model off by
-        // centre × (scale − 1), which is invisible on a mesh that is already
-        // near the origin and badly wrong on one that is not.
-        model.position.copy(centre).multiplyScalar(-scale)
-        // Then off the bounding centre and onto the subject, so the turn
-        // happens about her and the stand swings around her rather than the
-        // other way about.
-        model.position.x -= framing.subject.x
-        model.position.y -= framing.subject.y
-        model.position.z -= framing.subject.z
-        height = 1
+      // Normalised on height rather than on the longest side. A scan's
+      // longest side may well be a mic boom or a guitar neck, and sizing the
+      // shot to a piece of hardware makes the subject smaller the further
+      // that hardware happens to reach.
+      const scale = (piece.height ?? 1) / (size.y || 1)
+      model.scale.setScalar(scale)
+      // Scale applies to the geometry, position does not, so landing a point
+      // of the mesh on its parent's origin means placing it at minus that
+      // point *scaled*. Subtracting the raw centre instead leaves the model
+      // off by centre × (scale − 1) — invisible on a mesh already near the
+      // origin, and badly wrong on one that is not.
+      model.position.copy(centre).multiplyScalar(-scale)
 
-        const maxAnisotropy = renderer.capabilities.getMaxAnisotropy()
-        model.traverse((node) => {
-          if (!(node as THREE.Mesh).isMesh) return
-          const mesh = node as THREE.Mesh
-          mesh.frustumCulled = false
-          const material = mesh.material as THREE.MeshStandardMaterial
-          const map = material.map
-          if (map) {
-            // Photogrammetry-style texture on a surface seen at every angle
-            // as it turns; without this the far side of the figure smears.
-            map.anisotropy = maxAnisotropy
-            map.needsUpdate = true
-          }
-        })
+      model.traverse((node) => {
+        if (!(node as THREE.Mesh).isMesh) return
+        const mesh = node as THREE.Mesh
+        // The pieces sit close together and the camera is long; culling them
+        // against a frustum they are always inside costs more than it saves,
+        // and gets it wrong on a mesh whose bounds three.js computed before
+        // the group above it was rotated.
+        mesh.frustumCulled = false
+        const map = (mesh.material as THREE.MeshStandardMaterial).map
+        if (map) {
+          // Photogrammetry-style texture on a surface seen at every angle as
+          // it turns; without this the far side of the figure smears.
+          map.anisotropy = maxAnisotropy
+          map.needsUpdate = true
+        }
+      })
 
-        pivot.add(model)
+      // The holder is what carries the piece's own turn and lean, so those
+      // happen about its centre and stay independent of where it stands.
+      const holder = new THREE.Group()
+      holder.add(model)
+      const [rx, ry, rz] = piece.rotation ?? [0, 0, 0]
+      holder.rotation.set(rx, ry, rz)
+      const [px, py, pz] = piece.position ?? [0, 0, 0]
+      const base = piece.anchor === 'base' ? (size.y * scale) / 2 : 0
+      holder.position.set(px, py + base, pz)
+      pivot.add(holder)
+    }
+
+    /* ---------------- loading ----------------
+       Two scans of eleven-odd megabytes each, in flight together. The bar has
+       to mean something across both of them, so bytes are tracked per file
+       rather than counting files done — a bar that sits at 0% and then jumps
+       to 50% is worse than no bar. */
+    const bytes = new Map<string, { loaded: number; total: number }>()
+    let outstanding = pieces.length
+    let placed = 0
+
+    function report() {
+      let loaded = 0
+      let total = 0
+      for (const entry of bytes.values()) {
+        loaded += entry.loaded
+        total += entry.total
+      }
+      if (!bytes.size) return
+      // A file that has not sent its first progress event yet is assumed to
+      // be the size of the average of those that have. These scans are within
+      // a tenth of each other, so the bar does not lurch when the second one
+      // starts reporting.
+      const projected = (total / bytes.size) * pieces.length
+      live.current.onProgress?.(Math.min(1, loaded / projected))
+    }
+
+    function settle() {
+      if (--outstanding > 0 || disposed) return
+      // Anything at all on stage is worth showing; only a scene that came back
+      // completely empty is a failure the caller should swap a photograph for.
+      if (placed) {
         resize()
         live.current.onReady?.()
-      },
-      (event) => {
-        if (event.lengthComputable && event.total > 0) {
-          live.current.onProgress?.(event.loaded / event.total)
-        }
-      },
-      () => {
-        if (!disposed) live.current.onError?.()
-      },
-    )
+      } else {
+        live.current.onError?.()
+      }
+    }
+
+    const loader = new GLTFLoader()
+    for (const piece of pieces) {
+      loader.load(
+        piece.src,
+        (gltf) => {
+          if (!disposed) {
+            place(gltf, piece)
+            placed++
+          }
+          settle()
+        },
+        (event) => {
+          if (event.lengthComputable && event.total > 0) {
+            bytes.set(piece.src, { loaded: event.loaded, total: event.total })
+            report()
+          }
+        },
+        settle,
+      )
+    }
 
     /* ---------------- fitting ---------------- */
     const target = new THREE.Vector3()
@@ -292,9 +390,9 @@ export default function ModelStage({
       // narrow column and a short wide one. Everything outside the box is
       // free to leave the frame; that is the point of stating it as a box.
       const halfFov = (FOV * Math.PI) / 180 / 2
-      const vertical = (framing.halfHeight * height) / Math.tan(halfFov)
+      const vertical = (framing.halfHeight * UNIT) / Math.tan(halfFov)
       const horizontal =
-        (framing.halfWidth * height) / (Math.tan(halfFov) * camera.aspect)
+        (framing.halfWidth * UNIT) / (Math.tan(halfFov) * camera.aspect)
       fitted = Math.max(vertical, horizontal)
     }
 
@@ -328,10 +426,14 @@ export default function ModelStage({
 
       pivot.rotation.y = pose.yaw + sway
 
-      target.set(0, (framing.aim + pose.lift) * height + bob, 0)
+      target.set(
+        framing.aim.x * UNIT,
+        (framing.aim.y + pose.lift) * UNIT + bob,
+        0,
+      )
       const distance = fitted * pose.dolly
       camera.position.set(
-        0,
+        target.x,
         target.y + Math.sin(pose.elevation) * distance,
         Math.cos(pose.elevation) * distance,
       )
@@ -371,10 +473,10 @@ export default function ModelStage({
       renderer.domElement.remove()
     }
     // The three things that really do mean "build a different scene". Callers
-    // pass module constants for `poses` and `framing`, so in practice only a
-    // change of model ever tears this down — which is exactly right, because
-    // a different model is a different download.
-  }, [src, poses, framing])
+    // pass module constants for all of them, so in practice this is built
+    // once — which is right, because rebuilding it is a fresh download of
+    // twenty-odd megabytes.
+  }, [pieces, poses, framing])
 
   return <div ref={hostRef} className="h-full w-full" aria-hidden />
 }

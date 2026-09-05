@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { useMotionValue, useScroll, useSpring } from 'framer-motion'
-import type { Framing, Pose } from '@/components/three/ModelStage'
+import type { Framing, Piece, Pose } from '@/components/three/ModelStage'
 import { PORTRAIT_BEATS, PROFILE } from '@/data/site'
 import { Reveal } from '@/components/ui/Reveal'
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
@@ -14,30 +14,46 @@ import { mediaUrl } from '@/lib/media'
 const ModelStage = lazy(() => import('@/components/three/ModelStage'))
 
 /**
- * The scan on the stage: the singer, her acoustic guitar and the mic stand,
- * all of it one mesh.
+ * What stands on the stage.
  *
- * Served from the site's own origin rather than through `mediaUrl`. It sits at
- * the root of public/, outside the public/media/ tree that
- * scripts/upload-media.mjs mirrors into R2, so the bucket has no such key.
+ * Two scans that were made separately and have never met. `singer2.glb` is a
+ * standing figure with a handheld mic and, importantly, nothing in her other
+ * hand; `guitar.glb` is the double-neck, on its own. Neither has a skeleton —
+ * both are single fused static meshes — so nothing here poses anybody. What is
+ * being built is a *stage*: two objects standing in the same place, at sizes
+ * and distances that make them read as the same place.
  *
- * public/guitar.glb — the double-neck — is deliberately not here, and cannot
- * be without a different singer scan. Three things are true of these files at
- * once. The singer is a single fused static mesh with no skeleton, so there
- * are no wrists to parent anything to and no way to re-pose her arms. Her
- * hands are already closed around an acoustic guitar that is part of that same
- * mesh, so a second instrument in the same place intersects the first rather
- * than replacing it. And the two were scanned separately, so nothing about
- * their scales or origins relates them. Putting the double-neck in her hands
- * is a modelling job, not a transform.
+ * The guitar still cannot go in her hands, and no arrangement of transforms
+ * will put it there. Her fingers are closed around a microphone in the mesh
+ * itself and her free arm hangs at her side, so an instrument brought up to
+ * her would pass through a forearm rather than be held by one. Re-posing an
+ * arm needs bones the file does not have. Standing it beside her is a
+ * different problem and an ordinary one, which is what this does.
  *
- * What the double-neck *can* do without touching the mesh is stand on its own
- * — beside her, or as its own beat further down. That is a composition choice
- * and it doubles the section's download to twenty-three megabytes, so it is
- * left out until someone asks for it. Everything needed to add it is a prop:
- * this component's stage takes any .glb with its own poses and framing.
+ * The numbers are the composition, so they are worth reading as such. 0.62 is
+ * the guitar against her height — a double-neck is about two thirds of a
+ * standing adult, and getting this one wrong is the single thing that would
+ * make the pair read as a collage. It stands 0.40 to her side, far enough out
+ * to clear her jacket at every angle of the turn, and 0.05 behind her, so
+ * that when the move brings it round toward the camera it passes behind her
+ * shoulder rather than through it. The twenty-four degrees of turn and the
+ * eight of lean are what stop it reading as a cut-out standing to attention:
+ * an instrument left on a stage is never square to the room.
+ *
+ * Neither is run through `mediaUrl`. Both sit at the root of public/, outside
+ * the public/media/ tree that scripts/upload-media.mjs mirrors into R2, so the
+ * bucket has no such key.
  */
-const MODEL = '/singer.glb'
+const PIECES: Piece[] = [
+  { src: '/singer2.glb' },
+  {
+    src: '/guitar.glb',
+    height: 0.62,
+    position: [0.4, -0.5, -0.05],
+    anchor: 'base',
+    rotation: [0, 0.42, -0.14],
+  },
+]
 
 /**
  * The move, read down the page.
@@ -61,15 +77,18 @@ const POSES: Pose[] = [
 ]
 
 /**
- * Measured off the scan rather than guessed: her own centre sits about
- * 0.18 of the model's height to the +X side of the bounding centre, because
- * the mic stand hangs off the other side and drags the box with it.
+ * Wide enough to hold the pair at every angle of the turn, which is wider
+ * than either of them needs alone. See `Framing` — the box is fixed on
+ * purpose, so the guitar swinging out beside her does not make the camera
+ * flinch to keep up with it.
  */
 const FRAMING: Framing = {
-  subject: { x: 0.18, y: 0, z: 0 },
-  halfWidth: 0.62,
-  halfHeight: 0.70,
-  aim: 0.0,
+  halfWidth: 0.58,
+  halfHeight: 0.6,
+  // Across toward the guitar, so the pair sits in the middle of the column
+  // instead of the singer sitting in the middle with the guitar hanging off
+  // one edge and a screenful of black on the other.
+  aim: { x: 0.14, y: 0 },
 }
 
 /** The pose a reader who has asked for no motion gets, held still. */
@@ -123,8 +142,8 @@ function saveData() {
  * When any of those fails the column shows a portrait instead and the section
  * reads exactly the same — the words were never waiting on the renderer.
  *
- * The double-neck is not in this section on purpose; the note on MODEL above
- * says why.
+ * The double-neck stands beside her rather than in her hands; the note on
+ * PIECES above says why beside is the only place it can go.
  */
 export function PortraitStage() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -252,7 +271,7 @@ export function PortraitStage() {
                 {stage !== 'idle' && (
                   <Suspense fallback={null}>
                     <ModelStage
-                      src={MODEL}
+                      pieces={PIECES}
                       progress={progress}
                       poses={POSES}
                       framing={FRAMING}
