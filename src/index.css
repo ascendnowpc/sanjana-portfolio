@@ -311,11 +311,6 @@
   50% { opacity: 0.75; transform: scale(1.06); }
 }
 
-@keyframes drift-marquee {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-50%, 0, 0); }
-}
-
 @keyframes disc-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -339,11 +334,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.marquee-track {
-  animation: drift-marquee 34s linear infinite;
-  will-change: transform;
-}
-
 /* The record turning in a testimonial card.
  *
  * Twenty-two seconds a revolution, which is nothing like 33⅓ and is not
@@ -363,7 +353,6 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .grain::after,
-  .marquee-track,
   .breathe,
   .disc-spin {
     animation: none !important;
