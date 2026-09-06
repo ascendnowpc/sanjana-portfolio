@@ -10,12 +10,20 @@
    black, white and grey, and the colour on it is whatever is inside the
    frames.
 
-   `gilt` is the exception, and the only one: the listening shelf's brass.
-   That shelf is the one place on the site where a state has to be found
-   rather than read — which of six cards is making sound — and a neutral
-   cannot say it, because every value near enough to `chalk` to read as lit
-   is also near enough to read as not lit. It was flattened to a light grey
-   in the greyscale pass and the cards lost their playing state with it.
+   `gilt` is one of two exceptions: the listening shelf's brass. That shelf
+   is the one place on the site where a *state* has to be found rather than
+   read — which of six cards is making sound — and a neutral cannot say it,
+   because every value near enough to `chalk` to read as lit is also near
+   enough to read as not lit. It was flattened to a light grey in the
+   greyscale pass and the cards lost their playing state with it.
+
+   The other is the About page's testimonial rims, and it is a different kind
+   of exception: not a state, but the reference's own card treatment, matched
+   as it is. Those five hues live in the data rather than here, because they
+   belong to five cards and to nothing else — two pixels on the outside edge
+   of a white panel, carrying no meaning and claiming no ground. Everything
+   inside the card is still neutral, and the rule the rest of this file keeps
+   is unchanged: the colour on the page is whatever is inside the frames.
 
    The old names are kept — `bloom`, `chalk`, `mist`, `dust` are spread
    across three dozen files — and pointed at neutrals instead. Renaming
@@ -308,6 +316,11 @@
   to { transform: translate3d(-50%, 0, 0); }
 }
 
+@keyframes disc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @keyframes bar-pulse {
   0%, 100% { transform: scaleY(0.25); }
   50% { transform: scaleY(1); }
@@ -331,6 +344,18 @@
   will-change: transform;
 }
 
+/* The record turning in a testimonial card.
+ *
+ * Twenty-two seconds a revolution, which is nothing like 33⅓ and is not
+ * meant to be: at record speed this is a strobe, and the point of the move is
+ * that a reader notices the label has moved rather than watching it spin.
+ * Linear, because a record turning at anything but a constant rate is a
+ * record that is broken. */
+.disc-spin {
+  animation: disc-spin 22s linear infinite;
+  will-change: transform;
+}
+
 .breathe {
   animation: breathe 7s var(--ease-in-out-soft) infinite;
 }
@@ -339,7 +364,8 @@
   html { scroll-behavior: auto; }
   .grain::after,
   .marquee-track,
-  .breathe {
+  .breathe,
+  .disc-spin {
     animation: none !important;
   }
   /* Dropped outright rather than shortened: the global duration override

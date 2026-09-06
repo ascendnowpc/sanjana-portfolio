@@ -107,8 +107,28 @@ export interface Testimonial {
   /** Small mono label inside the card — the night, the run, the record. */
   context: string
   quote: string
-  /** Media key for the still that sits in the record's label. */
+  /**
+   * The still that sits in the record's label.
+   *
+   * A media key ("/media/…") or an absolute https URL — `mediaUrl` passes
+   * absolute values through untouched, so one of these can point at a hosted
+   * photograph without the file joining the bucket.
+   */
   portrait: string
+  /**
+   * `object-position` for that still, when the middle of the frame is not the
+   * part worth keeping. Omitted means centred.
+   */
+  focus?: string
+  /**
+   * Hex accent for the card's rim, per the reference's coloured cards.
+   *
+   * Same field as `Category.accent` and `Performance.accent`, and used the
+   * same way: it is the one colour on an otherwise neutral element, and it
+   * never touches the type or the ground. Off the palette's greyscale rule on
+   * purpose — see the note over the tokens in index.css.
+   */
+  accent: string
 }
 
 export interface SiteProfile {
