@@ -265,6 +265,31 @@
   box-shadow: -26px 30px 66px -30px rgba(0, 0, 0, 0.95);
 }
 
+/* ------------------------------------------------------------------
+   Testimonial cards — the tilt on the About page's horizontal run.
+
+   The angle is a variable rather than five classes because it is per card and
+   set in the data's order; the transition lives here rather than on the node
+   so that the reduced-motion block at the foot of this file can take the whole
+   gesture away in one place, the way it does for the sleeves.
+
+   Straightening on hover rather than tilting further: the tilt is the resting
+   state of a card lying on a table, and picking one up squares it to the
+   reader. Lifting it at the same time is what makes the two read as one
+   gesture rather than as a wobble.
+------------------------------------------------------------------- */
+.testimonial-card {
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 700ms var(--ease-out-expo),
+    box-shadow 700ms var(--ease-out-expo);
+}
+
+.testimonial-card:hover,
+.testimonial-card:focus-within {
+  transform: rotate(0deg) translateY(-8px);
+}
+
 @keyframes grain-shift {
   0% { transform: translate(0, 0); }
   25% { transform: translate(-3%, 2%); }
@@ -322,6 +347,14 @@
      motion sensitivity actually objects to. */
   .sleeve-frame:hover .sleeve,
   .sleeve-frame:focus-visible .sleeve {
+    transform: none;
+  }
+  /* Same argument, and one more on top of it: a reader who has asked for no
+     motion is reading the testimonials as a grid, and a grid of cards each
+     sitting at its own angle is a layout rather than a gesture. */
+  .testimonial-card,
+  .testimonial-card:hover,
+  .testimonial-card:focus-within {
     transform: none;
   }
   *,
