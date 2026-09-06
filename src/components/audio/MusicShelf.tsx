@@ -142,7 +142,18 @@ export function MusicShelf({ items }: { items: Performance[] }) {
                 phone there is no hole to fill, and a decorative panel between
                 two record sleeves would just be something to scroll past. */}
             {col === 0 && (
-              <PrismStack className="hidden min-h-[320px] flex-1 lg:block" />
+              <PrismStack
+                /* Bled out to the left edge of the window, past the shelf's
+                   own margin. The reference is a page-scale thing that runs
+                   off the side of the screen, and a cascade stopped neatly at
+                   a column edge is a different drawing — the cut is what makes
+                   it scenery rather than an illustration in a box. The margin
+                   is the shelf's max-width gutter plus its padding, so it
+                   lands on the window edge at any width and collapses to just
+                   the padding once the page stops being wider than the
+                   shelf. */
+                className="ml-[calc(-1*max(0px,(100vw-1160px)/2)-3rem)] hidden min-h-[420px] flex-1 lg:block"
+              />
             )}
           </div>
         ))}
