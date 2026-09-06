@@ -7,6 +7,7 @@ import { usePerformances } from '@/hooks/useContent'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { useTransition } from '@/components/layout/TransitionProvider'
 import { LoopingPreview } from '@/components/media/LoopingPreview'
+import { CursorGrid } from '@/components/works/CursorGrid'
 import { IndexRow, splitTitle } from '@/components/works/IndexRow'
 import { Segmented, type SegmentedOption } from '@/components/works/Segmented'
 import { WorkBand } from '@/components/works/WorkBand'
@@ -151,6 +152,19 @@ export default function Work() {
           and the first thing on it is work. Screen readers still need to be
           told what they have arrived at. */}
       <h1 className="sr-only">Work — the archive</h1>
+
+      {/* The grid the pointer finds in the empty parts of the page.
+
+          It answers a plain fact about this layout: most of it is nothing.
+          A third of a screen before the first band, a gutter of black between
+          every two of them, the tail of a short row, and the long run under
+          the last frame — all of it ground the reference fills with a ruled
+          lattice. Laying that lattice down flat would put a texture behind
+          thirty-six photographs and compete with every one of them, so it is
+          only ever lit in a soft circle around the cursor, and only while
+          nothing on the page is. Sitting below the archive's own layer is what
+          keeps it off the covers; see the component. */}
+      <CursorGrid idle={hovered === null} />
 
       {/* The section keys.
 
