@@ -85,6 +85,32 @@ export interface SitePressQuote {
   source: string
 }
 
+/**
+ * One card in the About page's testimonial run.
+ *
+ * A superset of `SitePressQuote` rather than a replacement for it: the quote
+ * and the name are the same two facts, and everything added here exists to
+ * fill a *card* — the line that says who is speaking, the work they are
+ * speaking about, and a still to sit in the record's label. A press list is
+ * three lines of type; a card that has to hold a screen on its own needs more
+ * than a quotation mark.
+ *
+ * Local-only, like `PORTRAIT`. The `profile` table carries `press` and knows
+ * nothing about this shape, so it is not on `SiteProfile` — see the note over
+ * TESTIMONIALS in data/site.ts.
+ */
+export interface Testimonial {
+  /** Who is speaking. Set beside the number, above the card. */
+  source: string
+  /** The grey line under the name: who they are, or where the notice ran. */
+  role: string
+  /** Small mono label inside the card — the night, the run, the record. */
+  context: string
+  quote: string
+  /** Media key for the still that sits in the record's label. */
+  portrait: string
+}
+
 export interface SiteProfile {
   name: string
   role: string

@@ -8,6 +8,7 @@ import { Overture } from '@/components/ui/Overture'
 import { Marquee } from '@/components/ui/Marquee'
 import { MusicShelf } from '@/components/audio/MusicShelf'
 import { PortraitStage } from '@/components/about/PortraitStage'
+import { Testimonials } from '@/components/about/Testimonials'
 import { Starfield } from '@/components/layout/Starfield'
 import { mediaUrl } from '@/lib/media'
 
@@ -52,9 +53,12 @@ export default function About() {
       {/* The field the whole page sits on. It is a sibling of the content
           rather than a layer over it, and the content is lifted above it,
           because points drawn on top of a face read as dirt on the lens. Any
-          section that wants to hide them only has to paint its own ground —
-          which is what the press band does, and why it reads as a panel
-          resting on the page rather than a hole in it. */}
+          section that wants to hide them only has to paint its own ground.
+          The testimonial run deliberately does not: it pins for three screens
+          while the field, which is fixed to the viewport too, holds exactly as
+          still as the word behind the cards does. Painting a ground there
+          would have swapped a sky the cards travel across for a hole in the
+          page three screens deep. */}
       <Starfield />
 
       <div className="relative z-10">
@@ -132,24 +136,8 @@ export default function About() {
           </motion.div>
         </div>
 
-        {/* ---------------- 5. press ---------------- */}
-        <section className="border-t border-edge/50 bg-ink/40">
-          <div className="mx-auto max-w-[1600px] px-6 py-32 md:px-12">
-            <p className="label mb-16 text-dust">Press</p>
-            <div className="grid gap-14 md:grid-cols-3">
-              {PROFILE.press.map((q, i) => (
-                <Reveal key={q.source} delay={i * 0.09}>
-                  <blockquote>
-                    <p className="font-[family-name:var(--font-display)] text-xl leading-[1.45] font-light text-chalk italic">
-                      “{q.quote}”
-                    </p>
-                    <footer className="label mt-6 text-bloom">— {q.source}</footer>
-                  </blockquote>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* ---------------- 5. testimonials ---------------- */}
+        <Testimonials />
 
         {/* ---------------- 6. the ask ---------------- */}
         <section className="px-6 py-40 text-center md:px-12">
