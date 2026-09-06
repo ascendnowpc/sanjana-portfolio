@@ -144,6 +144,13 @@ export const PORTRAIT = {
  * over before the reader has understood that scrolling is what moves them.
  * They are ordered loudest room first, quietest last, which is also the order
  * that walks the reader from the arena to the vocal booth.
+ *
+ * The accents are the reference's four card hues — amber, red, violet, green —
+ * plus a blue to carry the fifth card, kept in that order so no two
+ * neighbours share a corner of the wheel. Each is used for one thing: the
+ * two-pixel rim on the outside of that card. Nothing inside the card is
+ * coloured by it, so a hue swapped here cannot land anywhere but its own
+ * edge.
  */
 export const TESTIMONIALS: Testimonial[] = [
   {
@@ -153,6 +160,7 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'She sings the way a room sounds after everyone has stopped talking — you lean in without deciding to.',
     portrait: '/media/portraits/portrait-1.jpg',
+    accent: '#f2b13c',
   },
   {
     source: 'Stage & Signal',
@@ -161,6 +169,7 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'The most disciplined Sally Bowles this city has seen in a decade, and by some distance the saddest.',
     portrait: '/media/portraits/portrait-2.jpg',
+    accent: '#ee5a35',
   },
   {
     source: 'Long Player Quarterly',
@@ -169,6 +178,7 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'Neon Hymns is a debut with nothing hidden behind the mix. Rare, and slightly terrifying.',
     portrait: '/media/portraits/portrait-3.jpg',
+    accent: '#8a6cf0',
   },
   {
     source: 'Ilya Verhoeven',
@@ -177,6 +187,7 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'Fifty-two players and one voice, and it was the voice that set the tempo. She never once asked to be louder.',
     portrait: '/media/portraits/portrait-4.jpg',
+    accent: '#3ec489',
   },
   {
     source: 'Marisol Tan',
@@ -185,5 +196,6 @@ export const TESTIMONIALS: Testimonial[] = [
     quote:
       'Nothing comped, nothing tuned, every vocal a single pass. Twenty years of records and I have never taken so little out of one.',
     portrait: '/media/portraits/portrait-5.jpg',
+    accent: '#3f9fef',
   },
 ]

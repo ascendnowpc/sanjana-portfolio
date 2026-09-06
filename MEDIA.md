@@ -12,6 +12,7 @@ videoSrc              /media/video/<slug>.mp4               <R2 base>/media/vide
 previewSrc            /media/preview/<slug>-480.mp4         <R2 base>/media/preview/<slug>-480.mp4
 tracks[].audioSrc     /media/audio/<slug>.mp3               <R2 base>/media/audio/<slug>.mp3
 portraits[]           /media/portraits/portrait-N.jpg       <R2 base>/media/portraits/portrait-N.jpg
+TESTIMONIALS[].portrait  /media/testimonials/<n>.jpg        <R2 base>/media/testimonials/<n>.jpg
 MUSIC_COVERS[cat]     /media/covers/<category>-4x5.jpg      <R2 base>/media/covers/<category>-4x5.jpg
 ```
 
@@ -33,6 +34,7 @@ Drop the real files here, using these exact names:
 | Index-wall preview | `public/media/preview/<slug>-480.mp4` | ~8s, silent, 480px, 15fps. Size is in the name on purpose — see below. |
 | Track audio | `public/media/audio/<slug>.mp3` | Lifted off the recording; drives the waveform player. |
 | Portrait | `public/media/portraits/portrait-N.jpg` | 4:5, for the About strip. |
+| Testimonial label | `public/media/testimonials/<n>.jpg` | **Square.** Sits in the label of the record on each About testimonial card, at roughly 180px across and cropped to a circle, so it wants one subject filling the frame — a wide stage shot reads as mush at that size. Set `focus` on the entry (an `object-position`) when the subject is not in the middle of the frame. `portrait` also takes an absolute `https://` URL, which `mediaUrl` passes through untouched, so a hosted photograph can go in without the file joining the bucket. |
 | Music cover | `public/media/covers/<category>-4x5.jpg` | **4:5** (Instagram portrait), one a discipline, for the About listening cards. The sleeve is 4:5 too, so art exported at that ratio goes in untouched. Optional — `src/data/music.ts` falls back to a poster. |
 | Gallery still | `public/media/posters/<name>.jpg` | Any name; referenced from `gallery[]`. |
 

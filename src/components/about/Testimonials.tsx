@@ -55,7 +55,7 @@ function Card({
   return (
     <article className={className}>
       {/* ---------------- who ---------------- */}
-      <header className="mb-12">
+      <header className="mb-14">
         <h3
           className="font-[family-name:var(--font-display)] leading-[1.15] font-light text-chalk"
           style={{ fontSize: 'clamp(1.35rem, 2.1vw, 1.9rem)' }}
@@ -77,43 +77,101 @@ function Card({
       </header>
 
       {/* ---------------- what they said ----------------
-          Two nested boxes, not one with a border. The outer is a 3px gradient
-          sheet showing along the top and left edges only — the reference's
-          coloured rim, which on a page with no second colour is carried by
-          value instead: light where the light would fall, gone by the time it
-          reaches the bottom right. A uniform 3px outline would draw a
-          rectangle; this draws an edge catching light, which is the thing the
-          rim was doing in the first place. */}
+          Two nested boxes, not one with a border. The outer is a two-pixel
+          sheet of the card's accent, gradient-faded so it shows along the top
+          and left edges and is gone before the bottom right — the reference's
+          coloured rim, exactly as it draws it.
+
+          This was a grey gradient first, on the argument that the palette
+          carries no second colour. It failed for a reason worth recording: a
+          mid-grey hairline against a near-white card is not read as an edge,
+          it is read as a second white sheet sitting a couple of pixels out of
+          register behind the first, which is a printing fault rather than a
+          design. A hue has nowhere to be mistaken for the card, which is why
+          the reference's rims are hues. */}
       <div
-        className="testimonial-card relative rounded-[21px] p-[3px]"
+        className="testimonial-card relative rounded-[16px] p-[2px]"
         style={{
           '--tilt': `${TILTS[index % TILTS.length]}deg`,
-          background:
-            'linear-gradient(142deg, #ffffff 0%, #9a9a9a 26%, #4a4a4a 46%, rgba(74,74,74,0) 64%)',
-          boxShadow: '0 46px 90px -54px rgba(0,0,0,0.95)',
+          // The accent at zero alpha rather than `transparent`, which some
+          // engines interpolate through transparent *black* and which greys
+          // the middle of the fade.
+          background: `linear-gradient(132deg, ${item.accent} 0%, ${item.accent} 44%, ${item.accent}00 70%)`,
+          boxShadow: '0 34px 76px -40px rgba(0,0,0,0.8)',
         } as CSSProperties}
       >
-        <div className="rounded-[18px] bg-chalk px-7 pt-0 pb-9">
-          {/* The disc. In flow with a negative top margin rather than absolutely
-              positioned, so the type below it never has to be told how tall it
-              is — percentage margins resolve against the card's width, so the
-              overlap holds at every size the column takes. */}
+        {/* `flow-root`, and it is load-bearing. The disc below is lifted by a
+            negative top margin, and with no padding or border at the top of
+            this panel that margin collapses straight *through* it: the white
+            sheet itself rode up with the record, hung a centimetre clear of
+            the rim it is supposed to sit inside, and left the rim showing
+            along the bottom edge instead of the top. A flow root is the
+            smallest thing that stops a child's margin escaping its parent. */}
+        <div className="flow-root rounded-[14px] bg-chalk px-7 pt-0 pb-9">
+          {/* The record. In flow with a negative top margin rather than
+              absolutely positioned, so the type below it never has to be told
+              how tall it is — percentage margins resolve against the card's
+              width, so the overlap holds at every size the column takes.
+
+              Three layers, because only the middle one turns. The shadow it
+              casts belongs to the disc as an object and would wobble if it
+              rotated with it; the sheen is the light in the room, and light
+              does not travel with the record. What is left in between is the
+              record itself — grooves and label together, the way a record
+              turns — which is also the only layer with anything asymmetric on
+              it to make the turn visible at all. Spin the grooves alone and
+              nothing appears to happen: concentric circles look identical at
+              every angle. */}
           <div
-            className="relative -mt-[6%] ml-[24%] w-[52%] rounded-full"
+            className="relative -mt-[10%] ml-[23%] w-[54%] rounded-full"
             style={{
               aspectRatio: '1',
-              background:
-                'repeating-radial-gradient(circle at 50% 50%, #0a0a0a 0 1.5px, #171717 1.5px 3px)',
+              // Two shadows doing opposite jobs. The dark one drops the record
+              // onto the card. The light one is a rim: a fifth of this disc
+              // hangs off the top of the card, over a page whose ground is
+              // #000, and at the vinyl's first value — #0a0a0a — that fifth
+              // was invisible. The circle read as stopping dead at the card's
+              // edge, which is the one thing it must not do.
               boxShadow:
-                '0 22px 42px -22px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.09)',
+                '0 22px 42px -22px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.22), 0 0 26px -6px rgba(255,255,255,0.14)',
             }}
           >
-            <img
-              src={mediaUrl(item.portrait)}
-              alt=""
-              loading="lazy"
-              className="absolute inset-[20%] h-[60%] w-[60%] rounded-full object-cover grayscale-[35%]"
-            />
+            <div
+              className="disc-spin absolute inset-0 overflow-hidden rounded-full"
+              style={{
+                // Charcoal rather than near-black, for the same reason: a
+                // record photographed on a dark stage is still visibly a
+                // lighter object than the dark behind it, and the grooves are
+                // only grooves if there is enough value between them to see.
+                background:
+                  'repeating-radial-gradient(circle at 50% 50%, #1c1c1c 0 1.5px, #2e2e2e 1.5px 3px)',
+              }}
+            >
+              {/* The width and height are not redundant with the inset. An
+                  `img` is a replaced element: with all four insets set but no
+                  size, the over-constrained equation is resolved by dropping
+                  `right` and the box takes the file's *intrinsic* width, so
+                  the label rendered at the JPEG's own size, spilled past the
+                  grooves, and was clipped to a crescent by the disc. The inset
+                  centres it; the size is what makes it 72% of the disc. */}
+              <img
+                src={mediaUrl(item.portrait)}
+                alt=""
+                loading="lazy"
+                className="absolute inset-[14%] h-[72%] w-[72%] rounded-full object-cover grayscale-[35%]"
+                style={{
+                  // Where the crop lands. A stage still is mostly room, and
+                  // the subject in one is rarely in the middle of the frame —
+                  // this is how each photograph is aimed at the part of it
+                  // worth seeing at the size of a record label.
+                  objectPosition: item.focus ?? '50% 50%',
+                  // The label's edge, which is what separates a photograph in
+                  // a hole from a label pressed onto a record.
+                  boxShadow: '0 0 0 3px rgba(255,255,255,0.5)',
+                }}
+              />
+            </div>
+
             {/* The sheen. A record is read as a record by the light crossing
                 it, not by the grooves — without this the disc is a black
                 circle with a photo in the middle. */}
@@ -121,12 +179,12 @@ function Card({
               className="pointer-events-none absolute inset-0 rounded-full"
               style={{
                 background:
-                  'linear-gradient(128deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0) 64%, rgba(255,255,255,0.09) 100%)',
+                  'linear-gradient(128deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0) 64%, rgba(255,255,255,0.10) 100%)',
               }}
             />
           </div>
 
-          <p className="mono-label mt-[8%] text-[0.5625rem] text-dust">
+          <p className="mono-label mt-[6%] text-[0.5625rem] text-dust">
             {item.context}
           </p>
           <blockquote className="mt-4">
