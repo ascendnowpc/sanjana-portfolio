@@ -5,7 +5,6 @@ import { PROFILE } from '@/data/site'
 import { usePerformances } from '@/hooks/useContent'
 import { Reveal } from '@/components/ui/Reveal'
 import { Overture } from '@/components/ui/Overture'
-import { Marquee } from '@/components/ui/Marquee'
 import { MusicShelf } from '@/components/audio/MusicShelf'
 import { PortraitStage } from '@/components/about/PortraitStage'
 import { Testimonials } from '@/components/about/Testimonials'
@@ -46,7 +45,12 @@ export default function About() {
     target: stripRef,
     offset: ['start end', 'end start'],
   })
-  const stripX = useTransform(scrollYProgress, [0, 1], ['4%', '-12%'])
+  // Percentages of the row's *own* width, which is 116% of the window — so
+  // -12% here is 13.9% of the window, and the pair is chosen so the row's
+  // left edge never falls below 0 and its right edge never rises above the
+  // window at either end of the travel. Getting this wrong shows as a band of
+  // void down one side of the stack.
+  const stripX = useTransform(scrollYProgress, [0, 1], ['-1%', '-12%'])
 
   return (
     <div className="relative bg-void">
@@ -101,39 +105,79 @@ export default function About() {
         {/* ---------------- 3. the recordings ---------------- */}
         <MusicShelf items={items} />
 
-        {/* ---------------- 4. portraits over the drifting name ---------------- */}
-        <div ref={stripRef} className="relative overflow-hidden py-16">
-          <Marquee
-            text={`${PROFILE.name} `}
-            className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-edge/60 select-none"
-          />
-          <motion.div
-            style={{ x: stripX }}
-            className="relative flex gap-3 px-3 md:gap-4 md:px-4"
-          >
-            {PROFILE.portraits.map((src, i) => (
-              <motion.div
-                key={src}
-                className="relative min-w-0 flex-1 overflow-hidden bg-ink"
-                style={{ aspectRatio: '4 / 5' }}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{
-                  duration: 0.9,
-                  delay: i * 0.07,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-              >
-                <img
-                  src={mediaUrl(src)}
-                  alt={`${PROFILE.name} — portrait ${i + 1}`}
-                  loading="lazy"
-                  className="h-full w-full object-cover grayscale-[35%] transition-all duration-1000 hover:scale-105 hover:grayscale-0"
-                />
-              </motion.div>
-            ))}
-          </motion.div>
+        {/* ---------------- 4. portraits over the name ---------------- */}
+        {/* The bottom padding is the name's other half, and nothing else. The
+            strip clips (the row is wider than the window and slides inside
+            it), so whatever hangs below the pictures has to be given room
+            here or it is cut off at the knees. */}
+        <div ref={stripRef} className="relative overflow-hidden pt-16 pb-24 md:pb-36">
+          <div className="relative">
+            {/* The name, held still.
+                It used to drift — a marquee looping the name across the band
+                behind the pictures — and standing it still is the whole point
+                of this arrangement rather than a simplification of it. A word
+                that travels is read as texture: the eye follows it, loses it
+                behind a picture, picks up a different letter on the far side,
+                and never assembles the name. One instance, centred and
+                stationary, is read once and stays read.
+
+                It sits on the pictures' bottom edge rather than in the middle
+                of them: `bottom-0` of the box the row fills puts its own
+                bottom there, and lifting it by half its height leaves the top
+                half behind the stack and the bottom half in the open. Half a
+                word is enough to read a name you have already met at the top
+                of the page, and a word cut by a hard edge reads as printed
+                *under* the pictures rather than laid behind them.
+
+                Hidden from the reading order: the page has already said whose
+                it is, in the nav and in the h1, and a third announcement is
+                one a screen reader has to sit through rather than glance
+                past. */}
+            <p
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1/2 text-center font-[family-name:var(--font-poster)] leading-[0.8] tracking-[0.01em] text-edge/60 uppercase select-none"
+              style={{ fontSize: 'clamp(4rem, 15vw, 14rem)' }}
+            >
+              {PROFILE.name}
+            </p>
+
+            {/* The stack. Flush — no gap and no gutter, so the five read as
+                one band across the page rather than as five cards on it.
+
+                Wider than the window on purpose. The row slides as the band
+                crosses the viewport, and at exactly 100% that slide drags one
+                end off the screen and opens a strip of void at the other. The
+                16% of overhang is sized against the 11% of travel set on
+                `stripX` above, so both edges stay covered at both ends of the
+                move and the band never shows where it stops. */}
+            <motion.div
+              style={{ x: stripX }}
+              className="relative flex w-[116%]"
+            >
+              {PROFILE.portraits.slice(0, 5).map((src, i) => (
+                <motion.div
+                  key={src}
+                  className="relative min-w-0 flex-1 overflow-hidden bg-ink"
+                  style={{ aspectRatio: '4 / 5' }}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-60px' }}
+                  transition={{
+                    duration: 0.9,
+                    delay: i * 0.07,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                >
+                  <img
+                    src={mediaUrl(src)}
+                    alt={`${PROFILE.name} — portrait ${i + 1}`}
+                    loading="lazy"
+                    className="h-full w-full object-cover grayscale-[35%] transition-all duration-1000 hover:scale-105 hover:grayscale-0"
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
 
         {/* ---------------- 5. testimonials ---------------- */}
