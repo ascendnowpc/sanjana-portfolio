@@ -94,17 +94,6 @@ const FRAMING: Framing = {
 /** The pose a reader who has asked for no motion gets, held still. */
 const STILL = 0.42
 
-/**
- * Scattered points behind the subject.
- *
- * A tile rather than a real particle field: it costs one decoded image and no
- * frames at all, and at this size and opacity nothing about it reads as
- * repeating. The positions are irregular on purpose — an even grid at this
- * scale looks like a texture artefact rather than depth.
- */
-const DOT_FIELD =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='28' cy='54' r='1.5' opacity='.55'/%3E%3Ccircle cx='96' cy='18' r='1' opacity='.3'/%3E%3Ccircle cx='150' cy='92' r='1.4' opacity='.5'/%3E%3Ccircle cx='212' cy='40' r='1' opacity='.28'/%3E%3Ccircle cx='300' cy='70' r='1.6' opacity='.45'/%3E%3Ccircle cx='64' cy='140' r='1' opacity='.3'/%3E%3Ccircle cx='186' cy='168' r='1.5' opacity='.5'/%3E%3Ccircle cx='268' cy='148' r='1' opacity='.32'/%3E%3Ccircle cx='334' cy='196' r='1.4' opacity='.4'/%3E%3Ccircle cx='20' cy='232' r='1.5' opacity='.45'/%3E%3Ccircle cx='118' cy='262' r='1' opacity='.3'/%3E%3Ccircle cx='232' cy='286' r='1.6' opacity='.5'/%3E%3Ccircle cx='312' cy='330' r='1' opacity='.33'/%3E%3Ccircle cx='76' cy='340' r='1.4' opacity='.4'/%3E%3Ccircle cx='170' cy='318' r='1' opacity='.26'/%3E%3C/g%3E%3C/svg%3E\")"
-
 type Stage = 'idle' | 'loading' | 'ready' | 'failed'
 
 /** Whether this browser can give us a context at all. */
@@ -221,7 +210,7 @@ export function PortraitStage() {
   const fallback = mediaUrl(PROFILE.portraits[0])
 
   return (
-    <section ref={sectionRef} className="relative bg-void">
+    <section ref={sectionRef} className="relative">
       <div className="mx-auto grid max-w-[1600px] px-6 md:grid-cols-[46fr_54fr] md:gap-16 md:px-12">
         {/* ---------------- the stage ---------------- */}
         <div className="md:col-start-2 md:row-start-1">
@@ -229,18 +218,11 @@ export function PortraitStage() {
             ref={stageRef}
             className="relative h-[62vh] min-h-[380px] md:sticky md:top-0 md:h-screen"
           >
-            {/* The points, then the pool of light, then the subject. The pool
-                is what the figure sits *against*: on a flat black ground with
-                no horizon a lit object has nothing behind it and reads as
-                cut out and pasted on. */}
-            <div
-              className="pointer-events-none absolute inset-0 opacity-45"
-              style={{
-                backgroundImage: DOT_FIELD,
-                maskImage:
-                  'radial-gradient(70% 60% at 50% 50%, #000 20%, transparent 78%)',
-              }}
-            />
+            {/* The pool of light the figure sits *against*. On a flat black
+                ground with no horizon a lit object has nothing behind it and
+                reads as cut out and pasted on. The page's own starfield shows
+                through from behind — this section paints no ground of its own
+                precisely so that it can. */}
             <div
               className="pointer-events-none absolute inset-0"
               style={{

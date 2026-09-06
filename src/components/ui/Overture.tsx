@@ -10,15 +10,21 @@ import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
 /**
- * The black behind the opening, a shade under the site's own.
+ * The black inside the film's frame, a shade under the site's own.
  *
- * A shade off true black rather than #000. At #000 the section reads as a hole
- * cut in the page; the few points of lift are what keep it a surface, and they
- * also give the film's own black somewhere to sit against.
+ * A shade off true black rather than #000, so the frame is a surface with the
+ * film sitting on it rather than a hole cut in the page, and so the film's own
+ * black has something a step darker to sit against.
  *
- * Scoped to this section rather than promoted to a token: the page returns to
- * --color-void the moment the film has finished opening, and the step between
- * them is small enough to read as depth rather than as a seam.
+ * It used to be painted on the whole section too, for the same reason — at
+ * #000 the opening read as a hole rather than a ground. The page it opens
+ * carries a field of points now, and points are a better answer to that
+ * problem than two points of grey were: the section shows the page's own
+ * ground and its stars, and only the frame keeps the lift.
+ *
+ * Scoped here rather than promoted to a token: the page returns to
+ * --color-void at the edge of the frame, and the step between them is small
+ * enough to read as depth rather than as a seam.
  */
 const OPENING_BLACK = '#070707'
 
@@ -126,31 +132,20 @@ export function Overture({
     videoRef.current?.play().catch(() => {})
   }, [])
 
-  /**
-   * Depth in the black, not a second edge.
+  /*
+   * There was a piece of edge treatment here — a gradient deepening the black
+   * toward the section's bottom, and a lit hairline along it — and it is gone
+   * with the ground it belonged to.
    *
-   * A shadow spilled onto the section below only drew a second boundary a
-   * shadow's width from the first — two lines where the page wanted one. The
-   * depth belongs on the near side instead: the black deepens as it approaches
-   * its own bottom edge, so the surface reads as having thickness and falling
-   * away, and the hairline along the very bottom is the lit lip of it.
-   *
-   * The step down to the site's own grey stays exactly as crisp as it was. It
-   * is the contrast that makes the edge an edge; this only gives the slab
-   * above it a body.
+   * Its whole job was to give the #070707 slab a body where it stepped down
+   * to the page's #000: the contrast made the edge, and this gave the surface
+   * above it thickness. The section paints no ground of its own now, so both
+   * sides of that line are the same black and there is no step for it to
+   * dress. Left in, it drew a hairline across a continuous page and killed
+   * the page's own points in the 96px above it — a boundary where the design
+   * no longer has one. The film's bottom edge is the edge, and it is a
+   * stronger one than the hairline ever was.
    */
-  const edgeDepth = (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-      <div
-        className="h-24 w-full"
-        style={{
-          background:
-            'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0.92) 100%)',
-        }}
-      />
-      <div className="h-px w-full bg-white/[0.055]" />
-    </div>
-  )
 
   const film = (
     <video
@@ -169,10 +164,7 @@ export function Overture({
 
   if (reduced) {
     return (
-      <section
-        style={{ backgroundColor: OPENING_BLACK }}
-        className="relative px-6 pt-32 pb-16 md:px-12"
-      >
+      <section className="relative px-6 pt-32 pb-16 md:px-12">
         <div className="w-full text-center">{children}</div>
         <div
           style={{ backgroundColor: OPENING_BLACK }}
@@ -180,7 +172,6 @@ export function Overture({
         >
           {film}
         </div>
-        {edgeDepth}
       </section>
     )
   }
@@ -188,7 +179,7 @@ export function Overture({
   return (
     <section
       ref={ref}
-      style={{ height: `${length * 100}vh`, backgroundColor: OPENING_BLACK }}
+      style={{ height: `${length * 100}vh` }}
       className="relative"
     >
       <div className="sticky top-0 h-screen overflow-hidden">
@@ -214,7 +205,6 @@ export function Overture({
         </motion.div>
       </div>
 
-      {edgeDepth}
     </section>
   )
 }
