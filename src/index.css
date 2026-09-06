@@ -1,14 +1,21 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------
-   Design tokens — greyscale.
+   Design tokens — greyscale, with one accent.
 
-   There is no accent colour on this site and there is not meant to be
-   one. An earlier palette ran a cold cyan (#4fd8e8) as "the only light
-   source", with blue-tinted whites and greys to sit against it; on a page
-   whose entire content is stage photography, that read as a filter laid
-   over somebody else's work. The reference is black, white and grey, and
-   the only colour on it is whatever is inside the frames.
+   The chrome carries no colour. An earlier palette ran a cold cyan
+   (#4fd8e8) as "the only light source", with blue-tinted whites and greys
+   to sit against it; on a page whose entire content is stage photography,
+   that read as a filter laid over somebody else's work. The reference is
+   black, white and grey, and the colour on it is whatever is inside the
+   frames.
+
+   `gilt` is the exception, and the only one: the listening shelf's brass.
+   That shelf is the one place on the site where a state has to be found
+   rather than read — which of six cards is making sound — and a neutral
+   cannot say it, because every value near enough to `chalk` to read as lit
+   is also near enough to read as not lit. It was flattened to a light grey
+   in the greyscale pass and the cards lost their playing state with it.
 
    The old names are kept — `bloom`, `chalk`, `mist`, `dust` are spread
    across three dozen files — and pointed at neutrals instead. Renaming
@@ -35,9 +42,15 @@
   --color-slate-deep: #1a1a1a;
   --color-edge: #2e2e2e;
 
-  /* The listening shelf's own value. It was brass (#c8a45c) when the site
-     still had accents; it is a light grey now, for the reason above. */
-  --color-gilt: #d6d6d6;
+  /* The listening shelf's one accent — brass, off the reference player, and
+     the single exception to the greyscale above. Everything lit in a card is
+     this and nothing else: the frame of the sounding card, the played part of
+     the scrubber, the row playing right now. That is the whole point of one
+     accent — the eye finds the card making sound without reading a word, which
+     a light grey a hair off `chalk` cannot do. Six cards each glowing in their
+     own category accent turned a quiet page into a fruit salad; one warm value
+     shared by all six does not. */
+  --color-gilt: #c8a45c;
 
   --color-bloom: #ffffff;
   --color-halo: #f4f4f4;
