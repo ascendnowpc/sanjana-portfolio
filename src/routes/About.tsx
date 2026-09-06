@@ -45,12 +45,12 @@ export default function About() {
     target: stripRef,
     offset: ['start end', 'end start'],
   })
-  // Percentages of the row's *own* width, which is 116% of the window — so
-  // -12% here is 13.9% of the window, and the pair is chosen so the row's
-  // left edge never falls below 0 and its right edge never rises above the
-  // window at either end of the travel. Getting this wrong shows as a band of
-  // void down one side of the stack.
-  const stripX = useTransform(scrollYProgress, [0, 1], ['-1%', '-12%'])
+  // A drift, not a traverse. The band is narrower than the window now (see
+  // the note on its width below), so it is centred rather than bled, and the
+  // move is a couple of percent of its own width either side of that centre —
+  // enough to keep the band alive as it crosses the viewport, small enough
+  // that it never reads as having slipped off its middle.
+  const stripX = useTransform(scrollYProgress, [0, 1], ['2.5%', '-2.5%'])
 
   return (
     <div className="relative bg-void">
@@ -107,9 +107,8 @@ export default function About() {
 
         {/* ---------------- 4. portraits over the name ---------------- */}
         {/* The bottom padding is the name's other half, and nothing else. The
-            strip clips (the row is wider than the window and slides inside
-            it), so whatever hangs below the pictures has to be given room
-            here or it is cut off at the knees. */}
+            strip clips, so whatever hangs below the pictures has to be given
+            room here or it is cut off at the knees. */}
         <div ref={stripRef} className="relative overflow-hidden pt-16 pb-24 md:pb-36">
           <div className="relative">
             {/* The name, held still.
@@ -144,15 +143,19 @@ export default function About() {
             {/* The stack. Flush — no gap and no gutter, so the five read as
                 one band across the page rather than as five cards on it.
 
-                Wider than the window on purpose. The row slides as the band
-                crosses the viewport, and at exactly 100% that slide drags one
-                end off the screen and opens a strip of void at the other. The
-                16% of overhang is sized against the 11% of travel set on
-                `stripX` above, so both edges stay covered at both ends of the
-                move and the band never shows where it stops. */}
+                78% of the window, which is where the frame size comes from
+                rather than the other way round. This band was six frames and
+                five gaps filling the width, which put each frame at about
+                15.5% of the window; five of those, shoulder to shoulder, come
+                to 78%. Sizing the row instead — bleeding five frames edge to
+                edge — is the same picture at half again the size, and the
+                band stops being a strip along the page and starts being a
+                screenful. So the frames keep their size and the band gives up
+                the bleed: a margin of void either side, which is also what
+                gives the centred name below room to be read against. */}
             <motion.div
               style={{ x: stripX }}
-              className="relative flex w-[116%]"
+              className="relative mx-auto flex w-[78%]"
             >
               {PROFILE.portraits.slice(0, 5).map((src, i) => (
                 <motion.div
