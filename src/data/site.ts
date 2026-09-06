@@ -60,42 +60,64 @@ export const PROFILE: SiteProfile = {
 }
 
 /**
- * The beats that run down the left of the About page's portrait section,
- * beside the model.
+ * The bio, as it is read down the left of the About page's portrait section.
  *
- * PLACEHOLDER COPY — swap for Sanjana's real bio. Written to the same brief
- * as `PROFILE.bio` above and against the same invented credits, so the two
- * agree with each other; neither is a source of fact.
+ * PLACEHOLDER COPY — swap for Sanjana's real bio. Written to the same brief as
+ * `PROFILE.bio` above and against the same invented credits, so the two agree
+ * with each other; neither is a source of fact. Every name, count and date
+ * below is made up, which matters more here than anywhere else on the site,
+ * because this is the part a reader will take as biography.
  *
- * Kept as headed beats rather than as prose because the column is read at
+ * Written as a life rather than as a pitch. It runs training, then the break,
+ * then the record, then the range — which is the order the facts happened in
+ * and, not by coincidence, the order that makes each beat explain the next.
+ * The alternative is the shape most performer bios take, where four
+ * paragraphs each claim the same thing in different adjectives.
+ *
+ * Headed beats rather than continuous prose, because the column is read at
  * scroll speed against something moving beside it. A reader who looks up at
  * the model and back down needs a line to land on, and a paragraph does not
- * give them one. The last word of each heading is set in reverse on the page
- * — the copy carries the split so the emphasis is written, not guessed at by
- * a regex over the string.
+ * give them one. The heads carry a fact apiece for the same reason — a
+ * scanner who reads nothing else still comes away with four of them.
  */
 export interface PortraitBeat {
-  /** Small caps heading, all but its final word. */
+  /** Small-caps heading, all but its final word. */
   heading: string
-  /** The final word, which the page reverses out. */
+  /**
+   * The final word, which the page reverses out.
+   *
+   * Split in the copy rather than found by a regex over the string, so the
+   * emphasis is a thing somebody chose. It falls on the word carrying the
+   * fact — `stage`, `opening`, `take` — never on a preposition that happened
+   * to end the line.
+   */
   accent: string
   body: string
 }
 
-export const PORTRAIT_BEATS: PortraitBeat[] = [
-  {
-    heading: 'Trained before',
-    accent: 'taught',
-    body: 'Nine years of Hindustani classical before a single stage, then musical theatre performance at the Royal Conservatory on top of it. The two do not blend so much as argue, and most of what her voice does now comes out of that argument — ornament held against line, weight held against carry.',
-  },
-  {
-    heading: 'The room picks the',
-    accent: 'voice',
-    body: 'A four-thousand-seat arena and a ninety-seat black box are different instruments, and she treats them that way. The arena take is built to survive a delay tower; the black box take is built to be overheard. Neither is the other one scaled up or down.',
-  },
-  {
-    heading: 'Recorded',
-    accent: 'live',
-    body: 'Neon Hymns was cut over eleven nights with the band in the room and every vocal kept as one continuous take. Nothing was comped and nothing was tuned. What is on the record is what happened on the night it was played.',
-  },
-]
+export const PORTRAIT = {
+  lead: 'Sanjana is a vocalist working across solo concert repertoire, musical theatre and her own records. What holds those together is not a genre. It is a way of using a room — she tunes to the space rather than to the monitor, and what you hear is what happened in it.',
+
+  beats: [
+    {
+      heading: 'Nine years before a single',
+      accent: 'stage',
+      body: 'She started in Hindustani classical at seven and stayed with it for nine years, which is long enough for it to stop being lessons and start being the way you hear. Ornament, breath control, the habit of tuning to a room rather than to a monitor — none of it was chosen with a career in mind, and all of it is still the first thing she reaches for.',
+    },
+    {
+      heading: 'Cast three weeks before',
+      accent: 'opening',
+      body: 'The Royal Conservatory taught her the other half: projection, text, how a lyric survives a second act. She was cast as Éponine out of an open call three weeks before opening night, and the four seasons that followed brought Sally Bowles, Roxie Hart and Persephone. Eleven productions, and not one of them sung the way the last one was.',
+    },
+    {
+      heading: 'Every vocal in one',
+      accent: 'take',
+      body: 'Neon Hymns was cut over eleven nights with the band in the room. Nothing was comped and nothing was tuned, and every vocal on it is a single continuous pass — which is a decision you make once and then have to keep making at two in the morning.',
+    },
+    {
+      heading: 'Ninety seats, then nine',
+      accent: 'thousand',
+      body: 'Forty solo concerts, a one-night orchestral commission that rescored six of her own songs for fifty-two players, and the Midnight Bloom arena run. She treats a four-thousand-seat room and a ninety-seat black box as different instruments, because they are: one take has to survive a delay tower, the other has to be worth overhearing.',
+    },
+  ] satisfies PortraitBeat[],
+}
