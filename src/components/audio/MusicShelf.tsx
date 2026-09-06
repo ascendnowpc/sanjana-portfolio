@@ -3,7 +3,6 @@ import type { CategoryId, Performance, Track } from '@/types/content'
 import { CATEGORIES } from '@/data/categories'
 import { MUSIC_COVERS } from '@/data/music'
 import { PROFILE } from '@/data/site'
-import { motion } from 'framer-motion'
 import { Reveal } from '@/components/ui/Reveal'
 import { AlbumCard } from '@/components/audio/AlbumCard'
 
@@ -110,15 +109,9 @@ export function MusicShelf({ items }: { items: Performance[] }) {
       {/* The wide column opens up only at xl. Held at 1.9 all the way down,
           the narrow card runs out of room for its own transport row before
           the layout collapses to one column. */}
-      <div className="mt-16 grid items-stretch gap-5 md:gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-12 xl:grid-cols-[1.9fr_1fr]">
+      <div className="mt-16 grid items-start gap-5 md:gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-12 xl:grid-cols-[1.9fr_1fr]">
         {columns.map((column, col) => (
-          /* Flex, not grid, and stretched to the row rather than sitting at
-             its top. The two columns never end level — that is the point of
-             the stagger — and only a column that is as tall as the row has a
-             tail for the fan below to fill. Flex children keep their natural
-             height, which auto grid rows in a stretched container would not:
-             they would take the slack and pull every card taller. */
-          <div key={col} className="flex min-w-0 flex-col gap-5 md:gap-6 lg:gap-12">
+          <div key={col} className="grid min-w-0 gap-5 md:gap-6 lg:gap-12">
             {column.map((a, i) => (
               <Reveal key={a.id} delay={i * 0.08} y={34} className="min-w-0">
                 <AlbumCard
@@ -134,33 +127,6 @@ export function MusicShelf({ items }: { items: Performance[] }) {
                 />
               </Reveal>
             ))}
-
-            {/* The wide column runs out first — its cards are twice the size
-                but there are half as many — so the last narrow card is left
-                sitting beside a screenful of nothing. This is that hole,
-                filled. It only exists in the two-column layout: stacked on a
-                phone there is no hole to fill, and a decorative panel between
-                two record sleeves would just be something to scroll past.
-
-                The artwork is a transparent PNG dropped straight onto the
-                page's own black — no plate, no frame. `flex-1` hands it
-                whatever height the column has left over and `object-contain`
-                keeps it whole inside that, so the shelf decides how big it is
-                and the picture is never cropped or stretched to make it
-                fit. */}
-            {col === 0 && (
-              <motion.img
-                src="/blued.png"
-                alt=""
-                aria-hidden
-                loading="lazy"
-                className="hidden min-h-[280px] w-full flex-1 object-contain object-left lg:block"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              />
-            )}
           </div>
         ))}
       </div>
