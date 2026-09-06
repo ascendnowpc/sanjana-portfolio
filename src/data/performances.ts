@@ -983,11 +983,15 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'The oldest clip in the archive — sung indoors to a room, long before any stage.',
     description: '',
-    poster: poster('solo-concert-2026-12'),
+    // Re-grabbed off the source at full resolution, and under a new key for
+    // the same reason `preview` carries its cut size: the old still is
+    // already in browser and edge caches under the bare slug, and an
+    // immutable one-year header means they would go on serving it.
+    poster: '/media/posters/solo-concert-2026-12-v2.jpg',
     videoSrc: video('solo-concert-2026-12'),
     previewSrc: preview('solo-concert-2026-12'),
     aspect: 1.648,
-    gallery: [poster('solo-concert-2026-12')],
+    gallery: ['/media/posters/solo-concert-2026-12-v2.jpg'],
     runtime: '1:19',
     credits: [],
     tracks: [
