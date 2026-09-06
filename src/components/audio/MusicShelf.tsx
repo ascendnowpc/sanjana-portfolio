@@ -3,8 +3,8 @@ import type { CategoryId, Performance, Track } from '@/types/content'
 import { CATEGORIES } from '@/data/categories'
 import { MUSIC_COVERS } from '@/data/music'
 import { PROFILE } from '@/data/site'
+import { motion } from 'framer-motion'
 import { Reveal } from '@/components/ui/Reveal'
-import { PrismStack } from '@/components/ui/PrismStack'
 import { AlbumCard } from '@/components/audio/AlbumCard'
 
 interface Album {
@@ -140,19 +140,25 @@ export function MusicShelf({ items }: { items: Performance[] }) {
                 sitting beside a screenful of nothing. This is that hole,
                 filled. It only exists in the two-column layout: stacked on a
                 phone there is no hole to fill, and a decorative panel between
-                two record sleeves would just be something to scroll past. */}
+                two record sleeves would just be something to scroll past.
+
+                The artwork is a transparent PNG dropped straight onto the
+                page's own black — no plate, no frame. `flex-1` hands it
+                whatever height the column has left over and `object-contain`
+                keeps it whole inside that, so the shelf decides how big it is
+                and the picture is never cropped or stretched to make it
+                fit. */}
             {col === 0 && (
-              <PrismStack
-                /* Bled out to the left edge of the window, past the shelf's
-                   own margin. The reference is a page-scale thing that runs
-                   off the side of the screen, and a cascade stopped neatly at
-                   a column edge is a different drawing — the cut is what makes
-                   it scenery rather than an illustration in a box. The margin
-                   is the shelf's max-width gutter plus its padding, so it
-                   lands on the window edge at any width and collapses to just
-                   the padding once the page stops being wider than the
-                   shelf. */
-                className="ml-[calc(-1*max(0px,(100vw-1160px)/2)-3rem)] hidden min-h-[420px] flex-1 lg:block"
+              <motion.img
+                src="/blued.png"
+                alt=""
+                aria-hidden
+                loading="lazy"
+                className="hidden min-h-[280px] w-full flex-1 object-contain object-left lg:block"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
               />
             )}
           </div>
