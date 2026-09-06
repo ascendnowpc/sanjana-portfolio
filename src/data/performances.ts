@@ -29,6 +29,21 @@ const audio = (slug: string) => `/media/audio/${slug}.mp3`
 // browsers and the edge keep serving the old, heavier file.
 const preview = (slug: string) => `/media/preview/${slug}-480.mp4`
 const poster = (slug: string) => `/media/posters/${slug}.jpg`
+/**
+ * A poster that has been re-grabbed since the entry was first written.
+ *
+ * Same rule as `preview` above, for the same reason: the bucket sends an
+ * immutable one-year cache header, so a replacement still that arrives under
+ * the key the old one occupied stays invisible — in browsers and at the edge
+ * alike — until that year is up. Every re-grab therefore lands on a new key.
+ *
+ * These are cut to 16:9, the shape of the grid frame, so the tile shows the
+ * frame that was chosen rather than a crop of it. That is deliberately not
+ * the shape of the film: half of these are phone footage at 9:16, and
+ * `aspect` below still records the film's own ratio, which is what the
+ * player and the gallery need.
+ */
+const posterV2 = (slug: string) => `/media/posters/${slug}-v2.jpg`
 
 export const PERFORMANCES: Performance[] = [
 
@@ -694,11 +709,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'A recital in a panelled room rather than a hall — mirror above the fireplace, monitors on the floor, navy and gold go...',
     description: '',
-    poster: poster('solo-concert-2018-01'),
+    poster: posterV2('solo-concert-2018-01'),
     videoSrc: video('solo-concert-2018-01'),
     previewSrc: preview('solo-concert-2018-01'),
     aspect: 1.7778,
-    gallery: [poster('solo-concert-2018-01')],
+    gallery: [posterV2('solo-concert-2018-01')],
     runtime: '0:50',
     credits: [],
     tracks: [
@@ -720,11 +735,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'An early full-length turn on the big red-curtain stage, sung in denim overalls to a house that goes quiet for it.',
     description: '',
-    poster: poster('solo-concert-2018-02'),
+    poster: posterV2('solo-concert-2018-02'),
     videoSrc: video('solo-concert-2018-02'),
     previewSrc: preview('solo-concert-2018-02'),
     aspect: 1.7778,
-    gallery: [poster('solo-concert-2018-02')],
+    gallery: [posterV2('solo-concert-2018-02')],
     runtime: '3:13',
     featured: true,
     credits: [],
@@ -747,11 +762,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'Filmed from the middle of the audience, heads in the foreground and the stage a long way off.',
     description: '',
-    poster: poster('solo-concert-2018-03'),
+    poster: posterV2('solo-concert-2018-03'),
     videoSrc: video('solo-concert-2018-03'),
     previewSrc: preview('solo-concert-2018-03'),
     aspect: 1.7778,
-    gallery: [poster('solo-concert-2018-03')],
+    gallery: [posterV2('solo-concert-2018-03')],
     runtime: '3:04',
     credits: [],
     tracks: [
@@ -773,11 +788,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'Voice and live piano on the red-curtain stage, accompanist at the grand.',
     description: '',
-    poster: poster('solo-concert-2019-04'),
+    poster: posterV2('solo-concert-2019-04'),
     videoSrc: video('solo-concert-2019-04'),
     previewSrc: preview('solo-concert-2019-04'),
     aspect: 1.7778,
-    gallery: [poster('solo-concert-2019-04')],
+    gallery: [posterV2('solo-concert-2019-04')],
     runtime: '1:34',
     credits: [],
     tracks: [
@@ -799,11 +814,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'Sung standing in a tiled room, caught mid-phrase with both hands up.',
     description: '',
-    poster: poster('solo-concert-2020-05'),
+    poster: posterV2('solo-concert-2020-05'),
     videoSrc: video('solo-concert-2020-05'),
     previewSrc: preview('solo-concert-2020-05'),
     aspect: 0.566,
-    gallery: [poster('solo-concert-2020-05')],
+    gallery: [posterV2('solo-concert-2020-05')],
     runtime: '3:44',
     credits: [],
     tracks: [
@@ -825,11 +840,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'Sung from a music stand on the red-curtain stage, in a floral dress and ankle boots.',
     description: '',
-    poster: poster('solo-concert-2022-06'),
+    poster: posterV2('solo-concert-2022-06'),
     videoSrc: video('solo-concert-2022-06'),
     previewSrc: preview('solo-concert-2022-06'),
     aspect: 0.5625,
-    gallery: [poster('solo-concert-2022-06')],
+    gallery: [posterV2('solo-concert-2022-06')],
     runtime: '3:52',
     credits: [],
     tracks: [
@@ -851,11 +866,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'An outdoor set under a white marquee, PA stacks either side and the building behind.',
     description: '',
-    poster: poster('solo-concert-2023-07'),
+    poster: posterV2('solo-concert-2023-07'),
     videoSrc: video('solo-concert-2023-07'),
     previewSrc: preview('solo-concert-2023-07'),
     aspect: 1.7778,
-    gallery: [poster('solo-concert-2023-07')],
+    gallery: [posterV2('solo-concert-2023-07')],
     runtime: '4:27',
     featured: true,
     credits: [],
@@ -878,11 +893,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'Standing forward of the grand piano on the red-curtain stage.',
     description: '',
-    poster: poster('solo-concert-2023-08'),
+    poster: posterV2('solo-concert-2023-08'),
     videoSrc: video('solo-concert-2023-08'),
     previewSrc: preview('solo-concert-2023-08'),
     aspect: 0.566,
-    gallery: [poster('solo-concert-2023-08')],
+    gallery: [posterV2('solo-concert-2023-08')],
     runtime: '3:08',
     credits: [],
     tracks: [
@@ -904,11 +919,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'A short set on the blue-curtain stage, the grand piano open behind and flowers at the apron.',
     description: '',
-    poster: poster('solo-concert-2024-09'),
+    poster: posterV2('solo-concert-2024-09'),
     videoSrc: video('solo-concert-2024-09'),
     previewSrc: preview('solo-concert-2024-09'),
     aspect: 0.5624,
-    gallery: [poster('solo-concert-2024-09')],
+    gallery: [posterV2('solo-concert-2024-09')],
     runtime: '1:32',
     credits: [],
     tracks: [
@@ -930,11 +945,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'A solo number taken centre-stage on the red-curtain house set, mic in hand.',
     description: '',
-    poster: poster('solo-concert-2025-10'),
+    poster: posterV2('solo-concert-2025-10'),
     videoSrc: video('solo-concert-2025-10'),
     previewSrc: preview('solo-concert-2025-10'),
     aspect: 0.5624,
-    gallery: [poster('solo-concert-2025-10')],
+    gallery: [posterV2('solo-concert-2025-10')],
     runtime: '2:23',
     credits: [],
     tracks: [
@@ -956,11 +971,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'Sung from a standing mic on a bare red-curtain stage, in a floor-length dark gown.',
     description: '',
-    poster: poster('solo-concert-2025-11'),
+    poster: posterV2('solo-concert-2025-11'),
     videoSrc: video('solo-concert-2025-11'),
     previewSrc: preview('solo-concert-2025-11'),
     aspect: 0.5624,
-    gallery: [poster('solo-concert-2025-11')],
+    gallery: [posterV2('solo-concert-2025-11')],
     runtime: '3:07',
     credits: [],
     tracks: [
@@ -983,15 +998,11 @@ export const PERFORMANCES: Performance[] = [
     city: '',
     blurb: 'The oldest clip in the archive — sung indoors to a room, long before any stage.',
     description: '',
-    // Re-grabbed off the source at full resolution, and under a new key for
-    // the same reason `preview` carries its cut size: the old still is
-    // already in browser and edge caches under the bare slug, and an
-    // immutable one-year header means they would go on serving it.
-    poster: '/media/posters/solo-concert-2026-12-v2.jpg',
+    poster: posterV2('solo-concert-2026-12'),
     videoSrc: video('solo-concert-2026-12'),
     previewSrc: preview('solo-concert-2026-12'),
     aspect: 1.648,
-    gallery: ['/media/posters/solo-concert-2026-12-v2.jpg'],
+    gallery: [posterV2('solo-concert-2026-12')],
     runtime: '1:19',
     credits: [],
     tracks: [
