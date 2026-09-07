@@ -1,5 +1,4 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { preload } from 'react-dom'
 import {
   motion,
   useMotionTemplate,
@@ -40,12 +39,6 @@ interface Props {
   length?: number
   /** The film's own aspect ratio, so the frame never crops it. */
   aspect?: number
-  /**
-   * The film has started. Not "has downloaded" — the first frame is on screen
-   * and running, which is the moment the page is allowed to start spending
-   * bandwidth on anything else. Fires once.
-   */
-  onPlaying?: () => void
 }
 
 /**
@@ -72,21 +65,10 @@ export function Overture({
   children,
   length = 2,
   aspect = 16 / 9,
-  onPlaying,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const reduced = usePrefersReducedMotion()
-
-  /* The poster is what the reader actually looks at for the first second, so
-     it is asked for during render rather than when the <video> gets around to
-     it — a browser discovers a poster only after it has built the element,
-     parsed the attribute and put the request at the back of a queue the film
-     itself is already in. Declared here, it goes out with the first burst of
-     requests at the priority its job deserves. It is one image and it is on
-     the page either way; this only changes when it is asked for. */
-  const posterUrl = mediaUrl(poster)
-  if (posterUrl) preload(posterUrl, { as: 'image', fetchPriority: 'high' })
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -150,42 +132,6 @@ export function Overture({
     videoRef.current?.play().catch(() => {})
   }, [])
 
-  /* Told once, and told either way.
-   *
-   * `onPlaying` is a release, not a success notice — something downstream is
-   * waiting on the pipe — so a film that never plays has to release it too, or
-   * a decoder that gave up takes the rest of the page down with it. Hence the
-   * error and stall paths below, and the ceiling: eight seconds is longer than
-   * this ever takes on a connection worth waiting for, and past it the reader
-   * is better served by the rest of the page loading than by a frame that is
-   * evidently not coming. */
-  const released = useRef(false)
-  useEffect(() => {
-    if (!onPlaying) return
-    const video = videoRef.current
-    const release = () => {
-      if (released.current) return
-      released.current = true
-      onPlaying()
-    }
-    // Already running by the time this attaches — a cached film can be up
-    // before the effect is, and waiting on an event that has already gone by
-    // would hold the rest of the page back for the whole ceiling.
-    if (video && video.readyState >= 3 && !video.paused) {
-      release()
-      return
-    }
-
-    const ceiling = window.setTimeout(release, 8000)
-    video?.addEventListener('playing', release)
-    video?.addEventListener('error', release)
-    return () => {
-      clearTimeout(ceiling)
-      video?.removeEventListener('playing', release)
-      video?.removeEventListener('error', release)
-    }
-  }, [onPlaying])
-
   /*
    * There was a piece of edge treatment here — a gradient deepening the black
    * toward the section's bottom, and a lit hairline along it — and it is gone
@@ -205,7 +151,7 @@ export function Overture({
     <video
       ref={videoRef}
       src={mediaUrl(src)}
-      poster={posterUrl}
+      poster={mediaUrl(poster)}
       autoPlay
       muted
       loop
@@ -258,6 +204,7 @@ export function Overture({
           </div>
         </motion.div>
       </div>
+
     </section>
   )
 }
