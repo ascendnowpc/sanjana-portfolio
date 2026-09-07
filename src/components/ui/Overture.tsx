@@ -1,13 +1,13 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   motion,
   useMotionTemplate,
   useScroll,
   useSpring,
   useTransform,
-} from 'framer-motion'
-import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
-import { mediaUrl } from '@/lib/media'
+} from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/useMediaQuery";
+import { mediaUrl } from "@/lib/media";
 
 /**
  * The black inside the film's frame, a shade under the site's own.
@@ -26,19 +26,26 @@ import { mediaUrl } from '@/lib/media'
  * --color-void at the edge of the frame, and the step between them is small
  * enough to read as depth rather than as a seam.
  */
-const OPENING_BLACK = '#070707'
+const OPENING_BLACK = "#070707";
 
 interface Props {
   /** Looping film, stored as a media key ("/media/video/x.mp4"). */
-  src: string
+  src: string;
+  /**
+   * A narrower cut of the same film for phones and tablets, stored the same
+   * way. Handed to the browser as a `media`-qualified <source> ahead of `src`,
+   * so a small screen never pays for a frame it cannot resolve. Optional —
+   * without it every viewport gets `src`.
+   */
+  srcSmall?: string;
   /** First frame, so the panel is never an empty black box. */
-  poster?: string
+  poster?: string;
   /** The poster-weight headline that lifts away as the film takes over. */
-  children: ReactNode
+  children: ReactNode;
   /** Viewport heights of scroll the whole gesture is spread across. */
-  length?: number
+  length?: number;
   /** The film's own aspect ratio, so the frame never crops it. */
-  aspect?: number
+  aspect?: number;
 }
 
 /**
@@ -61,19 +68,20 @@ interface Props {
  */
 export function Overture({
   src,
+  srcSmall,
   poster,
   children,
   length = 2,
   aspect = 16 / 9,
 }: Props) {
-  const ref = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const reduced = usePrefersReducedMotion()
+  const ref = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const reduced = usePrefersReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ['start start', 'end end'],
-  })
+    offset: ["start start", "end end"],
+  });
 
   // Scroll position drives the gesture, but not directly: a wheel or a
   // trackpad delivers position in coarse jumps, and mapping those straight
@@ -85,7 +93,7 @@ export function Overture({
     damping: 40,
     mass: 0.35,
     restDelta: 0.0005,
-  })
+  });
 
   // Mapped across the whole section, not part of it. Finishing early leaves
   // the rest of the sticky section as scroll that changes nothing: the film
@@ -98,7 +106,7 @@ export function Overture({
   // the final few percent, which reads as the same stall in miniature — the
   // spring above is what makes the motion smooth, so the curve does not have
   // to be. Clamped only because a spring can overshoot its target.
-  const open = useTransform(smooth, [0, 1], [0, 1], { clamp: true })
+  const open = useTransform(smooth, [0, 1], [0, 1], { clamp: true });
 
   // The card starts a little over a centimetre wider and taller than a
   // straight 30vw/26vh: measured against a 1440x800 screen, where 1cm is
@@ -113,24 +121,24 @@ export function Overture({
   // tall one the width does, and object-cover has nothing left to cut either
   // way. Sizing to a fixed vw/vh pair instead threw away about an eighth of
   // the frame's height on an ordinary laptop.
-  const w = useTransform(open, [0, 1], [32.6, 94])
-  const h = useTransform(open, [0, 1], [30.7, 84])
-  const width = useMotionTemplate`min(${w}vw, calc(${h}vh * ${aspect}))`
-  const height = useMotionTemplate`min(${h}vh, calc(${w}vw / ${aspect}))`
+  const w = useTransform(open, [0, 1], [32.6, 94]);
+  const h = useTransform(open, [0, 1], [30.7, 84]);
+  const width = useMotionTemplate`min(${w}vw, calc(${h}vh * ${aspect}))`;
+  const height = useMotionTemplate`min(${h}vh, calc(${w}vw / ${aspect}))`;
   // The card sits low, under the headline; it rises into the middle of the
   // screen as it grows, which is what makes the two movements read as one.
-  const filmY = useTransform(open, [0, 1], ['30vh', '0vh'])
+  const filmY = useTransform(open, [0, 1], ["30vh", "0vh"]);
 
   // The words are gone by the time the frame is two thirds open, so they never
   // sit on top of the picture competing with it.
-  const copyY = useTransform(open, [0, 1], ['-14vh', '-88vh'])
-  const copyOpacity = useTransform(open, [0, 0.42, 0.62], [1, 1, 0])
+  const copyY = useTransform(open, [0, 1], ["-14vh", "-88vh"]);
+  const copyOpacity = useTransform(open, [0, 0.42, 0.62], [1, 1, 0]);
 
   // Autoplay is declarative, but Safari will refuse the promise if the tab was
   // opened in the background; a play() on first paint recovers that case.
   useEffect(() => {
-    videoRef.current?.play().catch(() => {})
-  }, [])
+    videoRef.current?.play().catch(() => {});
+  }, []);
 
   /*
    * There was a piece of edge treatment here — a gradient deepening the black
@@ -147,10 +155,31 @@ export function Overture({
    * stronger one than the hairline ever was.
    */
 
+  /*
+   * The film is the first thing on the page, so its bytes are the first thing
+   * asked for, and both halves of that request are cut to the smallest shape
+   * that still reads.
+   *
+   * The <source> list is the size half. `srcSmall` carries a `media` query, so
+   * a phone fetches the narrow cut and a desktop skips straight past it to
+   * `src` — the browser picks exactly one and never touches the other. The
+   * choice is made once, during resource selection on mount, which is the
+   * right time for it: the frame grows with the scroll but the screen it is
+   * growing on does not change size mid-gesture.
+   *
+   * `preload="auto"` is the latency half, and it is deliberate rather than
+   * left at the default. Both cuts are written with the moov atom in front of
+   * the media data, so the decoder has the index after the first few kilobytes
+   * and can start drawing from the front of the file instead of waiting for
+   * the end of it. Asking for `auto` lets the browser run that download flat
+   * out from first paint; `metadata` would have it stop after the header and
+   * pick the rest up again only once autoplay asked, which is a second round
+   * trip on the critical path for no saving — the clip is silent, short and
+   * always played.
+   */
   const film = (
     <video
       ref={videoRef}
-      src={mediaUrl(src)}
       poster={mediaUrl(poster)}
       autoPlay
       muted
@@ -159,8 +188,17 @@ export function Overture({
       preload="auto"
       aria-hidden="true"
       className="h-full w-full object-cover"
-    />
-  )
+    >
+      {srcSmall && (
+        <source
+          src={mediaUrl(srcSmall)}
+          type="video/mp4"
+          media="(max-width: 820px)"
+        />
+      )}
+      <source src={mediaUrl(src)} type="video/mp4" />
+    </video>
+  );
 
   if (reduced) {
     return (
@@ -173,7 +211,7 @@ export function Overture({
           {film}
         </div>
       </section>
-    )
+    );
   }
 
   return (
@@ -204,7 +242,6 @@ export function Overture({
           </div>
         </motion.div>
       </div>
-
     </section>
-  )
+  );
 }
