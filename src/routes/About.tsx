@@ -1,25 +1,61 @@
-import { useRef } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
-import { Link } from 'react-router-dom'
-import { PROFILE } from '@/data/site'
-import { usePerformances } from '@/hooks/useContent'
-import { Reveal } from '@/components/ui/Reveal'
-import { Overture } from '@/components/ui/Overture'
-import { MusicShelf } from '@/components/audio/MusicShelf'
-import { PortraitStage } from '@/components/about/PortraitStage'
-import { Testimonials } from '@/components/about/Testimonials'
-import { Starfield } from '@/components/layout/Starfield'
-import { mediaUrl } from '@/lib/media'
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { Link } from "react-router-dom";
+import { PROFILE } from "@/data/site";
+import { usePerformances } from "@/hooks/useContent";
+import { Reveal } from "@/components/ui/Reveal";
+import { Overture } from "@/components/ui/Overture";
+import { MusicShelf } from "@/components/audio/MusicShelf";
+import { PortraitStage } from "@/components/about/PortraitStage";
+import { Testimonials } from "@/components/about/Testimonials";
+import { Starfield } from "@/components/layout/Starfield";
+import { mediaUrl } from "@/lib/media";
 
 /**
- * The looping film the About page opens on.
+ * The looping film the About page opens on, in two cuts.
  *
  * The size is in the key on purpose. R2 objects carry an immutable one-year
  * cache header, so a re-cut has to land under a new name or browsers and the
  * edge keep serving the old file — the same rule the preview clips follow.
+ * That is why these are new keys rather than the old ones re-encoded in
+ * place.
+ *
+ * The first cut of this was a 1080p master at 7.7 Mbit — eleven megabytes for
+ * eleven silent seconds, and the first bytes the page asks for. On anything
+ * short of a fast connection the opening frame arrived seconds after the
+ * headline it sits under, which is the one thing the whole gesture cannot
+ * survive: the sentence lifts away and there is nothing behind it.
+ *
+ * So the film is graded for delivery rather than for archive. It is a locked
+ * camera on a black-and-white shot, and almost all of that bitrate was going
+ * on sensor grain in the foliage and the gravel — detail no one is reading at
+ * a couple of centimetres of card, and none of it visible once the frame is
+ * open either. A light denoise before the encoder takes the grain out, 1440
+ * across is still over the frame's own pixel width at full bleed, and the
+ * result is about a megabyte and a half: roughly a seventh of the master,
+ * with the two frames indistinguishable side by side.
+ *
+ * Both cuts are written with their index ahead of the media data, so the
+ * browser can start drawing from the front of the file instead of waiting for
+ * the whole download — the first second of picture is a couple of hundred
+ * kilobytes, not the whole clip.
+ *
+ * The 960 cut is for phones, where the frame is never more than a few hundred
+ * points across and the connection is the one most likely to be slow.
  */
-const ABOUT_FILM = '/media/video/about-intro-1080.mp4'
-const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
+const ABOUT_FILM = "/media/video/about-intro-1440.mp4";
+const ABOUT_FILM_SMALL = "/media/video/about-intro-960.mp4";
+
+/**
+ * The frame the panel holds until the film has enough of itself to play.
+ *
+ * Also cut down — it was a 1920-wide JPEG at 260KB, spent entirely on a
+ * picture that is replaced within a frame or two of arriving, and it was
+ * queued ahead of the video it was covering for. At 1280 and a working
+ * quality it is a third of that and lands in well under a tenth of a second,
+ * which is what a poster is for.
+ */
+const ABOUT_FILM_POSTER = "/media/posters/about-intro-v2.jpg";
 
 /**
  * The page about Sanjana.
@@ -38,19 +74,19 @@ const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
  * recordings until something real goes back in.
  */
 export default function About() {
-  const { items } = usePerformances()
+  const { items } = usePerformances();
 
-  const stripRef = useRef<HTMLDivElement>(null)
+  const stripRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: stripRef,
-    offset: ['start end', 'end start'],
-  })
+    offset: ["start end", "end start"],
+  });
   // A drift, not a traverse. The band is narrower than the window now (see
   // the note on its width below), so it is centred rather than bled, and the
   // move is a couple of percent of its own width either side of that centre —
   // enough to keep the band alive as it crosses the viewport, small enough
   // that it never reads as having slipped off its middle.
-  const stripX = useTransform(scrollYProgress, [0, 1], ['2.5%', '-2.5%'])
+  const stripX = useTransform(scrollYProgress, [0, 1], ["2.5%", "-2.5%"]);
 
   return (
     <div className="relative bg-void">
@@ -67,7 +103,11 @@ export default function About() {
 
       <div className="relative z-10">
         {/* ---------------- 1. the room opens ---------------- */}
-        <Overture src={ABOUT_FILM} poster={ABOUT_FILM_POSTER}>
+        <Overture
+          src={ABOUT_FILM}
+          srcSmall={ABOUT_FILM_SMALL}
+          poster={ABOUT_FILM_POSTER}
+        >
           {/* Two deliberate lines, not a wrap: at this weight the break is part
               of the composition, and letting the viewport choose it strands a
               single word on line two on half the screens it renders at.
@@ -91,7 +131,7 @@ export default function About() {
               rather than being tuned by eye per screen. */}
           <h1
             className="font-[family-name:var(--font-poster)] leading-[1.06] tracking-[0.012em] text-white uppercase"
-            style={{ fontSize: 'clamp(2.3rem, 10.6vw, 16rem)' }}
+            style={{ fontSize: "clamp(2.3rem, 10.6vw, 16rem)" }}
           >
             A voice for every
             <br />
@@ -109,7 +149,10 @@ export default function About() {
         {/* The bottom padding is the name's other half, and nothing else. The
             strip clips, so whatever hangs below the pictures has to be given
             room here or it is cut off at the knees. */}
-        <div ref={stripRef} className="relative overflow-hidden pt-16 pb-24 md:pb-36">
+        <div
+          ref={stripRef}
+          className="relative overflow-hidden pt-16 pb-24 md:pb-36"
+        >
           <div className="relative">
             {/* The name, held still.
                 It used to drift — a marquee looping the name across the band
@@ -135,7 +178,7 @@ export default function About() {
             <p
               aria-hidden
               className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1/2 text-center font-[family-name:var(--font-poster)] leading-[0.8] tracking-[0.01em] text-edge/60 uppercase select-none"
-              style={{ fontSize: 'clamp(4rem, 15vw, 14rem)' }}
+              style={{ fontSize: "clamp(4rem, 15vw, 14rem)" }}
             >
               {PROFILE.name}
             </p>
@@ -161,10 +204,10 @@ export default function About() {
                 <motion.div
                   key={src}
                   className="relative min-w-0 flex-1 overflow-hidden bg-ink"
-                  style={{ aspectRatio: '4 / 5' }}
+                  style={{ aspectRatio: "4 / 5" }}
                   initial={{ opacity: 0, y: 40 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: '-60px' }}
+                  viewport={{ once: true, margin: "-60px" }}
                   transition={{
                     duration: 0.9,
                     delay: i * 0.07,
@@ -193,7 +236,7 @@ export default function About() {
             <Link
               to="/contact"
               className="tracked mt-8 inline-block text-chalk transition-colors duration-500 hover:text-bloom"
-              style={{ fontSize: 'clamp(1.8rem, 5vw, 4rem)' }}
+              style={{ fontSize: "clamp(1.8rem, 5vw, 4rem)" }}
             >
               Book a date
             </Link>
@@ -201,5 +244,5 @@ export default function About() {
         </section>
       </div>
     </div>
-  )
+  );
 }
