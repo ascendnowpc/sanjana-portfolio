@@ -12,29 +12,14 @@ import { Starfield } from '@/components/layout/Starfield'
 import { mediaUrl } from '@/lib/media'
 
 /**
- * The looping film the About page opens on, and the frame it holds first.
+ * The looping film the About page opens on.
  *
- * Both sit in public/film/ rather than public/media/, which is what puts them
- * on the site's own origin instead of the bucket — see the note on
- * BUCKET_TREE in lib/media.ts. The file is unchanged: same encode, same
- * bytes, just served from somewhere else.
- *
- * What that buys is the round trip, and only the round trip. Measured on an
- * ordinary line, the bucket's public hostname answers in about 0.65s and then
- * delivers at roughly the speed the connection can take — so moving origins
- * takes the wait from about 6.5s to about 5.9s and does nothing to the six
- * seconds underneath, because those six seconds are eleven megabytes divided
- * by the bandwidth and no host changes that arithmetic. r2.dev is also not
- * edge-cached and is documented as unfit for production traffic (MEDIA.md),
- * so the handshake is paid on every visit; here it is paid on the connection
- * that already delivered the page.
- *
- * The honest fix for the remaining six is fewer bytes on the way in, and it
- * is deliberately not taken here — the film is the page's one photograph of
- * her working and it is not being re-encoded to save a wait.
+ * The size is in the key on purpose. R2 objects carry an immutable one-year
+ * cache header, so a re-cut has to land under a new name or browsers and the
+ * edge keep serving the old file — the same rule the preview clips follow.
  */
-const ABOUT_FILM = '/film/about-intro-1080.mp4'
-const ABOUT_FILM_POSTER = '/film/about-intro.jpg'
+const ABOUT_FILM = '/media/video/about-intro-1080.mp4'
+const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
 
 /**
  * The page about Sanjana.
