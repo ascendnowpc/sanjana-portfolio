@@ -126,78 +126,10 @@ export function Overture({
   const copyY = useTransform(open, [0, 1], ['-14vh', '-88vh'])
   const copyOpacity = useTransform(open, [0, 0.42, 0.62], [1, 1, 0])
 
-  /* ---------------- when the film is allowed to start ----------------
-   *
-   * Not on `autoplay`, which is the whole point of this.
-   *
-   * The browser's own rule for starting is HAVE_FUTURE_DATA — roughly "enough
-   * for the next frame" — and on a connection that moves around, that is a
-   * decision made far too early. This clip is encoded at a flat CRF with no
-   * ceiling on the rate, so its bitrate is not its average: it sits near 7
-   * Mbit for most of its length and spikes past 11 across seconds seven and
-   * eight. A line delivering nine is fine for nine seconds of it and starves
-   * for two, which is why the picture stopped in the same place on every
-   * pass rather than at random.
-   *
-   * So the film waits until the whole of it is in the buffer. The whole of it
-   * is the right unit for this one: it is eleven seconds long and it loops
-   * forever, so a single complete download buys every pass after the first,
-   * and the stall cannot come back later because there is nothing left to
-   * fetch. Nothing about the file changes — this is the same encode, played
-   * once it is all here rather than as soon as it is possible to begin.
-   *
-   * The reader is not looking at a hole in the meantime: the poster is the
-   * film's own first frame, so the panel holds the picture from the start and
-   * what arrives is the motion.
-   *
-   * The ceiling is the concession. On a line slow enough that this never
-   * completes, a still frame forever is worse than a film that stutters, so
-   * past it the wait is abandoned and it plays on whatever it has. */
+  // Autoplay is declarative, but Safari will refuse the promise if the tab was
+  // opened in the background; a play() on first paint recovers that case.
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    let started = false
-    const start = () => {
-      if (started) return
-      started = true
-      // Safari refuses the promise for a tab opened in the background; there
-      // is nothing to recover there, and an unhandled rejection helps nobody.
-      video.play().catch(() => {})
-    }
-
-    /* Whole-file, not "enough" — canplaythrough is the browser's estimate of
-       whether it will keep up, and its estimate is exactly what mis-fired
-       here. A buffered range that reaches the duration is a fact. */
-    const complete = () => {
-      const { buffered, duration } = video
-      if (!Number.isFinite(duration) || duration === 0) return false
-      for (let i = 0; i < buffered.length; i += 1) {
-        if (buffered.start(i) <= 0.1 && buffered.end(i) >= duration - 0.25) {
-          return true
-        }
-      }
-      return false
-    }
-
-    const check = () => {
-      if (video.readyState >= 4 && complete()) start()
-    }
-
-    // A film already in the cache fires no progress events at all, so the
-    // first check is now rather than on the next one.
-    check()
-
-    const ceiling = window.setTimeout(start, 15000)
-    for (const event of ['progress', 'loadeddata', 'canplaythrough']) {
-      video.addEventListener(event, check)
-    }
-    return () => {
-      clearTimeout(ceiling)
-      for (const event of ['progress', 'loadeddata', 'canplaythrough']) {
-        video.removeEventListener(event, check)
-      }
-    }
+    videoRef.current?.play().catch(() => {})
   }, [])
 
   /*
@@ -220,6 +152,7 @@ export function Overture({
       ref={videoRef}
       src={mediaUrl(src)}
       poster={mediaUrl(poster)}
+      autoPlay
       muted
       loop
       playsInline
@@ -271,6 +204,7 @@ export function Overture({
           </div>
         </motion.div>
       </div>
+
     </section>
   )
 }
