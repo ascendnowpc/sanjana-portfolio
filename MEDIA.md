@@ -41,6 +41,29 @@ Drop the real files here, using these exact names:
 All three files for one entry share the slug, so renaming an entry means
 renaming the video, the preview and the poster together.
 
+### The one directory that is not the bucket
+
+`public/film/` holds the About page's opening clip and its poster, and it is
+the exception to everything above: it is committed to git, it is served by
+whoever serves the site, and `mediaUrl` leaves its paths alone. The rule is
+mechanical — `scripts/upload-media.mjs` mirrors `public/media/` and nothing
+else, so a key under `/media/` is in the bucket and a key outside it is not,
+and `mediaUrl` only rewrites the former. Moving a file between the two
+directories is how you choose its origin. `singer2.glb` and `guitar.glb` sit
+at the root of `public/` for the same reason.
+
+It is there because it is the first thing the About page asks for. Reaching
+r2.dev costs a DNS lookup, a TCP handshake and a TLS negotiation before the
+first byte — about 0.65s measured, on every visit, because r2.dev is not
+edge-cached — while the site's own origin already has a connection open.
+
+Keep the exception small. It only pays for an asset on the critical path of a
+first paint, and it costs eleven megabytes of repository to do it. Everything
+else belongs in the bucket. Note also that `vercel.json` gives `/film/*` the
+same immutable one-year cache header the bucket uses, which means the same
+rule applies: **replace a file here by committing a new name**, not by
+overwriting one.
+
 ### Why there are three media files per entry
 
 `videoSrc` is the full recording, fetched only on a detail page.

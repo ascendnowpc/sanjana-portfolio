@@ -32,6 +32,25 @@ function isAbsolute(path: string) {
 }
 
 /**
+ * The tree this module speaks for.
+ *
+ * Everything the bucket holds is stored under "/media/", and everything
+ * stored under "/media/" is in the bucket — `scripts/upload-media.mjs` mirrors
+ * exactly that directory, so the two are the same set by construction. A key
+ * outside it therefore has no object to resolve to, and handing one to the
+ * bucket only builds a URL that 404s.
+ *
+ * Which makes this the switch between the site's two origins rather than a
+ * guard against a mistake. An asset under "/media/" is served from R2; an
+ * asset anywhere else in public/ is served by whoever is serving the site, and
+ * choosing between them is a matter of moving the file. The scans have always
+ * worked this way — see the note on PortraitStage's PIECES — and the About
+ * film joins them for the same reason: it is the first thing the page asks
+ * for, and it should come off the connection that is already open.
+ */
+const BUCKET_TREE = '/media/'
+
+/**
  * Resolve a stored media key to a URL.
  *
  * Absolute URLs pass through untouched, so a single one-off asset can be
@@ -41,6 +60,7 @@ export function mediaUrl(path: string | undefined): string | undefined {
   if (!path) return undefined
   if (isAbsolute(path)) return path
   if (!isRemoteMedia) return path
+  if (!path.startsWith(BUCKET_TREE)) return path
   return `${MEDIA_BASE}/${path.replace(/^\/+/, '')}`
 }
 
