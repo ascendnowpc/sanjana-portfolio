@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { PROFILE } from '@/data/site'
 import { TROUGH, chip } from '@/components/works/Segmented'
 import { cn } from '@/lib/utils'
-import { mediaUrl } from '@/lib/media'
 
 /**
  * The top bar.
@@ -21,58 +20,6 @@ import { mediaUrl } from '@/lib/media'
  * only other light was the stage lighting inside the frames. A white key in a
  * grey trough says the same thing in the same language as everything below it.
  */
-
-/**
- * What a hover is worth.
- *
- * Every destination in this bar is a split chunk, so a click currently starts
- * a chain the reader waits through end to end: fetch the chunk, parse it,
- * render it, and only then does the page discover the first image it needs and
- * go and ask for that too. Each link in that chain is a round trip to a
- * different origin, and none of them can start until the one before it
- * finishes.
- *
- * A pointer resting on a link is the strongest signal of intent a page ever
- * gets, and it arrives a few hundred milliseconds before the click. That is
- * enough to have the chunk in memory and, for About, its opening frame in the
- * cache — so the click lands on a page that has already been fetched rather
- * than one that starts fetching.
- *
- * Deliberately only the chunk and the one poster. The About film is eleven
- * megabytes and hovering is not clicking; speculatively pulling that down
- * would spend a reader's connection on a page they may never open, and worse,
- * spend it competing with the page they are actually on.
- */
-const WARM: Record<string, () => void> = {
-  '/work': () => void import('@/routes/Work'),
-  '/contact': () => void import('@/routes/Contact'),
-  '/about': () =>
-    void import('@/routes/About').then((m) => {
-      const url = mediaUrl(m.ABOUT_FILM_POSTER)
-      if (url) new Image().src = url
-    }),
-}
-
-/** Asked for once per destination, and never for a reader who has told their
- *  browser to save data — speculation is exactly what that setting is about. */
-const warmed = new Set<string>()
-function warm(to: string) {
-  const connection = (
-    navigator as Navigator & { connection?: { saveData?: boolean } }
-  ).connection
-  if (connection?.saveData === true) return
-  if (warmed.has(to)) return
-  warmed.add(to)
-  WARM[to]?.()
-}
-
-/** The handlers that mean "this one, probably", on a pointer and on a
- *  keyboard. Touch is left out on purpose: on a phone the first tap is
- *  already the click, so there is no gap to fill and nothing to gain. */
-const intent = (to: string) => ({
-  onPointerEnter: () => warm(to),
-  onFocus: () => warm(to),
-})
 
 const SECTIONS = [
   { to: '/work', label: 'Work' },
@@ -116,7 +63,6 @@ export function Nav() {
               <NavLink
                 key={l.to}
                 to={l.to}
-                {...intent(l.to)}
                 className={cn(chip(at(l.to)), 'hidden md:block')}
               >
                 {l.label}
@@ -125,7 +71,7 @@ export function Nav() {
           </div>
 
           <div className={cn(TROUGH, 'hidden md:flex')}>
-            <NavLink to={CTA.to} {...intent(CTA.to)} className={chip(true)}>
+            <NavLink to={CTA.to} className={chip(true)}>
               {CTA.label}
             </NavLink>
           </div>
