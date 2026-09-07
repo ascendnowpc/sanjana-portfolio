@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { PROFILE } from '@/data/site'
@@ -19,7 +19,7 @@ import { mediaUrl } from '@/lib/media'
  * edge keep serving the old file — the same rule the preview clips follow.
  */
 const ABOUT_FILM = '/media/video/about-intro-1080.mp4'
-const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
+export const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
 
 /**
  * The page about Sanjana.
@@ -39,6 +39,26 @@ const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
  */
 export default function About() {
   const { items } = usePerformances()
+
+  /* ---------------- who gets the pipe ----------------
+     The opening film and the portrait scans are the two heavy things on this
+     page, and until now they were asked for at almost the same moment: the
+     film on first paint, the scans as soon as their section came within a
+     screen — which, with a two-viewport overture above it, is roughly the
+     first flick of the wheel.
+
+     Thirty-three megabytes down one connection is not thirty-three megabytes
+     each in turn; it is all of them arriving slowly together, and the film is
+     the one that cannot survive that. It plays at a bitrate close to what an
+     ordinary line delivers, so the moment it is sharing, it is not buffering
+     slower — it is stalling. The scans have no such deadline. The reader is
+     two hundred viewport-heights of scroll away from them.
+
+     So the film goes first and the scans wait for it to be playing. Nothing
+     ends up later than it was: the model still starts long before anyone can
+     scroll to it. See the note on PortraitStage's `hold`. */
+  const [filmPlaying, setFilmPlaying] = useState(false)
+  const releasePipe = useCallback(() => setFilmPlaying(true), [])
 
   const stripRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
@@ -67,7 +87,11 @@ export default function About() {
 
       <div className="relative z-10">
         {/* ---------------- 1. the room opens ---------------- */}
-        <Overture src={ABOUT_FILM} poster={ABOUT_FILM_POSTER}>
+        <Overture
+          src={ABOUT_FILM}
+          poster={ABOUT_FILM_POSTER}
+          onPlaying={releasePipe}
+        >
           {/* Two deliberate lines, not a wrap: at this weight the break is part
               of the composition, and letting the viewport choose it strands a
               single word on line two on half the screens it renders at.
@@ -100,7 +124,7 @@ export default function About() {
         </Overture>
 
         {/* ---------------- 2. the portrait ---------------- */}
-        <PortraitStage />
+        <PortraitStage hold={!filmPlaying} />
 
         {/* ---------------- 3. the recordings ---------------- */}
         <MusicShelf items={items} />
@@ -109,7 +133,10 @@ export default function About() {
         {/* The bottom padding is the name's other half, and nothing else. The
             strip clips, so whatever hangs below the pictures has to be given
             room here or it is cut off at the knees. */}
-        <div ref={stripRef} className="relative overflow-hidden pt-16 pb-24 md:pb-36">
+        <div
+          ref={stripRef}
+          className="relative overflow-hidden pt-16 pb-24 md:pb-36"
+        >
           <div className="relative">
             {/* The name, held still.
                 It used to drift — a marquee looping the name across the band

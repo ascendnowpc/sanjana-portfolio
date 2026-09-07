@@ -94,6 +94,26 @@ const FRAMING: Framing = {
 /** The pose a reader who has asked for no motion gets, held still. */
 const STILL = 0.42
 
+interface Props {
+  /**
+   * Hold the download, even once the section is in range.
+   *
+   * The two scans are twenty-two megabytes between them and the film at the
+   * top of the page is eleven, and on an ordinary connection those are not
+   * two downloads — they are one pipe with three things fighting over it.
+   * The film loses that fight in the worst possible way: it is the first
+   * thing on the page, it has to arrive in seconds rather than whenever, and
+   * a video whose bitrate is close to the bandwidth left over stalls rather
+   * than degrades.
+   *
+   * So the page holds this until the film is actually playing. Nothing is
+   * loaded later than it used to be in wall-clock terms — the reader is still
+   * two hundred viewport-heights of scroll away from the model when it starts
+   * — and the film gets the pipe to itself for the one second it needs.
+   */
+  hold?: boolean
+}
+
 type Stage = 'idle' | 'loading' | 'ready' | 'failed'
 
 /** Whether this browser can give us a context at all. */
@@ -134,7 +154,7 @@ function saveData() {
  * The double-neck stands beside her rather than in her hands; the note on
  * PIECES above says why beside is the only place it can go.
  */
-export function PortraitStage() {
+export function PortraitStage({ hold = false }: Props) {
   const sectionRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
 
@@ -143,6 +163,10 @@ export function PortraitStage() {
 
   const [stage, setStage] = useState<Stage>('idle')
   const [loaded, setLoaded] = useState(0)
+  /* The section came into range while `hold` was up. Kept apart from `stage`
+     because it is a different fact: the reader is on their way, which is
+     permanent, versus the pipe is busy, which is not. */
+  const [wanted, setWanted] = useState(false)
 
   /* ---------------- when the renderer is allowed to exist ----------------
      An observer a full viewport ahead of the section, so the download starts
@@ -161,13 +185,20 @@ export function PortraitStage() {
       ([entry]) => {
         if (!entry.isIntersecting) return
         observer.disconnect()
-        setStage('loading')
+        setWanted(true)
       },
       { rootMargin: '100% 0px' },
     )
     observer.observe(section)
     return () => observer.disconnect()
   }, [])
+
+  /* The decision to spend the bytes, taken once both things are true: the
+     reader is within a screen of the section, and whatever was in front of
+     the pipe has finished with it. */
+  useEffect(() => {
+    if (wanted && !hold) setStage((s) => (s === 'idle' ? 'loading' : s))
+  }, [wanted, hold])
 
   /* ---------------- what the scroll means ----------------
      Two readings of the same scroll, because the column behaves differently
