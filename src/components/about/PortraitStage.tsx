@@ -16,54 +16,42 @@ const ModelStage = lazy(() => import('@/components/three/ModelStage'))
 /**
  * What stands on the stage.
  *
- * Two scans that were made separately and have never met. `singer2.glb` is a
- * standing figure with a handheld mic and, importantly, nothing in her other
- * hand; `guitar.glb` is the double-neck, on its own. Neither has a skeleton —
- * both are single fused static meshes — so nothing here poses anybody. What is
- * being built is a *stage*: two objects standing in the same place, at sizes
- * and distances that make them read as the same place.
+ * One scan: `guitar.glb`, the double-neck, alone. It has no skeleton — it is a
+ * single fused static mesh — so nothing here is posed; the piece simply stands
+ * and the room turns around it.
  *
- * The guitar still cannot go in her hands, and no arrangement of transforms
- * will put it there. Her fingers are closed around a microphone in the mesh
- * itself and her free arm hangs at her side, so an instrument brought up to
- * her would pass through a forearm rather than be held by one. Re-posing an
- * arm needs bones the file does not have. Standing it beside her is a
- * different problem and an ordinary one, which is what this does.
+ * It is the piece the stage is sized by, so its height is the stage unit and
+ * is left at 1. Everything about how large it reads is therefore in FRAMING
+ * below rather than here: shrinking the box the camera has to hold is what
+ * fills the column, and it keeps the one object centred on the turn axis
+ * instead of orbiting an axis it does not sit on.
  *
- * The numbers are the composition, so they are worth reading as such. 0.62 is
- * the guitar against her height — a double-neck is about two thirds of a
- * standing adult, and getting this one wrong is the single thing that would
- * make the pair read as a collage. It stands 0.40 to her side, far enough out
- * to clear her jacket at every angle of the turn, and 0.05 behind her, so
- * that when the move brings it round toward the camera it passes behind her
- * shoulder rather than through it. The twenty-four degrees of turn and the
- * eight of lean are what stop it reading as a cut-out standing to attention:
- * an instrument left on a stage is never square to the room.
+ * The rotation is the only composition left, and it is small on purpose. Eight
+ * degrees of lean and a few of turn stop it reading as a museum exhibit stood
+ * square to the room; anything more and the scroll's own sweep — which crosses
+ * the front of the instrument around its second beat — never gets to show the
+ * face of it.
  *
- * Neither is run through `mediaUrl`. Both sit at the root of public/, outside
- * the public/media/ tree that scripts/upload-media.mjs mirrors into R2, so the
+ * Not run through `mediaUrl`: it sits at the root of public/, outside the
+ * public/media/ tree that scripts/upload-media.mjs mirrors into R2, so the
  * bucket has no such key.
  */
 const PIECES: Piece[] = [
-  { src: '/singer2.glb' },
   {
     src: '/guitar.glb',
-    height: 0.62,
-    position: [0.4, -0.5, -0.05],
-    anchor: 'base',
-    rotation: [0, 0.42, -0.14],
+    rotation: [0, 0.1, -0.13],
   },
 ]
 
 /**
  * The move, read down the page.
  *
- * It stays inside about sixty degrees of front on purpose. The subject is a
- * person: turn her far enough and the shot is the back of a head and a
- * shoulder, which is a worse picture than any of the three below and is where
- * a full turntable spends a third of its time. So the run opens on her left,
- * crosses the front around the second beat, and finishes on her right with
- * the eye dropped almost to her own level.
+ * It stays inside about sixty degrees of front on purpose. Turn an instrument
+ * far enough and the shot is the back of a body and a strap button, which is a
+ * worse picture than any of the three below and is where a full turntable
+ * spends a third of its time. So the run opens on one side, crosses the face of
+ * the necks around the second beat, and finishes on the other with the eye
+ * dropped almost to the level of the body.
  *
  * The dolly is not monotonic either. Pulling back a little at both ends and
  * sitting closest at the middle beat gives the section a centre — the reader
@@ -77,18 +65,28 @@ const POSES: Pose[] = [
 ]
 
 /**
- * Wide enough to hold the pair at every angle of the turn, which is wider
- * than either of them needs alone. See `Framing` — the box is fixed on
- * purpose, so the guitar swinging out beside her does not make the camera
- * flinch to keep up with it.
+ * Tight enough that the instrument fills the column.
+ *
+ * The box is what the camera must hold, in stage units, and the guitar is one
+ * unit tall — so a half-height of 0.56 leaves it a few percent of air top and
+ * bottom and nothing else. That is the whole of the size change: with only one
+ * piece left there is no pair to keep apart, and the space the second scan used
+ * to take is given back to this one.
+ *
+ * The half-width is smaller than the half-height because the piece is far
+ * taller than it is wide, and because the fit takes the *worse* of the two
+ * axes — height governs at every aspect ratio the column is ever laid out at,
+ * and the width is here to stop a hypothetically very short, very wide stage
+ * from cropping the body. It is still stated as a fixed box rather than derived
+ * from the bounding box: the silhouette breathes as the scroll turns it, and a
+ * camera refitted every frame would breathe with it.
  */
 const FRAMING: Framing = {
-  halfWidth: 0.58,
-  halfHeight: 0.6,
-  // Across toward the guitar, so the pair sits in the middle of the column
-  // instead of the singer sitting in the middle with the guitar hanging off
-  // one edge and a screenful of black on the other.
-  aim: { x: 0.14, y: 0 },
+  halfWidth: 0.3,
+  halfHeight: 0.56,
+  // Centred now. The aim only ever trucked across to sit over the pair; with
+  // one object on the turn axis, the turn axis is the middle of the picture.
+  aim: { x: 0, y: 0 },
 }
 
 /** The pose a reader who has asked for no motion gets, held still. */
@@ -125,14 +123,11 @@ function saveData() {
  * speed and this plays at the reader's.
  *
  * The model is not decoration that happens to be 3D, and it is not loaded like
- * decoration either. Eleven megabytes is a real cost, so it is spent only when
+ * decoration either. Twelve megabytes is a real cost, so it is spent only when
  * three things hold: the reader is within a screen of the section, the browser
  * can actually draw it, and they have not asked their browser to save data.
  * When any of those fails the column shows a portrait instead and the section
  * reads exactly the same — the words were never waiting on the renderer.
- *
- * The double-neck stands beside her rather than in her hands; the note on
- * PIECES above says why beside is the only place it can go.
  */
 export function PortraitStage() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -267,7 +262,7 @@ export function PortraitStage() {
               </div>
             )}
 
-            {/* The wait, which is measured rather than spun. Eleven megabytes
+            {/* The wait, which is measured rather than spun. Twelve megabytes
                 is long enough that a spinner reads as a hang; a bar that is
                 visibly moving reads as a download, which is what it is. */}
             <div
