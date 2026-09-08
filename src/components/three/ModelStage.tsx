@@ -31,10 +31,11 @@ export interface Pose {
  * Everything is expressed in *stage units*, where 1 is the height of the first
  * piece. A .glb arrives at whatever scale it was exported at — these scans are
  * each normalised into a unit box by their generator, so nothing about their
- * raw numbers relates them to each other — and a composition of two of them
- * has to be stated in terms of one of them or it means nothing. Saying the
- * guitar is 0.62 is saying it comes up to just past the singer's waist, which
- * is a fact about the picture and survives either file being re-exported.
+ * raw numbers relates them to each other — and a composition of several of
+ * them has to be stated in terms of one of them or it means nothing. Saying a
+ * piece is 0.62 is saying it comes up to just past two thirds of the first
+ * one, which is a fact about the picture and survives any file being
+ * re-exported. A stage with a single piece leaves that piece at 1.
  */
 export interface Piece {
   /**
@@ -62,8 +63,8 @@ export interface Piece {
    * Which point of the piece `position` places.
    *
    * 'base' is what puts two pieces on the same floor without having to know
-   * either one's height: the guitar stands where the singer stands because
-   * both their bases are at the same y, not because their centres are.
+   * either one's height — they stand together because their bases share a y,
+   * not because their centres do. A lone piece wants the default centre.
    */
   anchor?: 'centre' | 'base'
 }
@@ -73,11 +74,11 @@ export interface Framing {
    * Half the width the frame must hold, in stage units.
    *
    * Stated as a box to fill rather than as a margin around what is on stage,
-   * because what is on stage changes size as it turns — the guitar swings out
-   * beside the singer at one end of the move and tucks in behind her at the
-   * other — and a fit computed from the bounding box would breathe in and out
-   * with it. A fixed box means the camera holds still and the scene moves
-   * inside it, which is the whole illusion.
+   * because what is on stage changes size as it turns — a silhouette is wide
+   * across one face of the subject and narrow across another — and a fit
+   * computed from the bounding box would breathe in and out with it. A fixed
+   * box means the camera holds still and the scene moves inside it, which is
+   * the whole illusion.
    */
   halfWidth: number
   /** Half the height the frame must hold, same units. Under 0.5 crops. */
@@ -86,13 +87,13 @@ export interface Framing {
    * Where the camera points, in stage units from the turn axis.
    *
    * Separate from the axis itself, and it has to be. The axis belongs on the
-   * singer — she is what the scene turns about — but she is not what the
-   * frame is about once there is a guitar standing beside her, and centring
-   * the shot on her leaves the composition heavy on one side and empty on the
-   * other. So the camera trucks across to sit over the pair. It trucks rather
-   * than swivels: pointing a camera off its own axis skews everything in the
+   * piece the scene turns about, which is not necessarily what the frame is
+   * about: put a second piece beside the first and centring the shot on the
+   * axis leaves the composition heavy on one side and empty on the other, so
+   * the camera trucks across to sit over the group. It trucks rather than
+   * swivels: pointing a camera off its own axis skews everything in the
    * frame, and a subject leaning out of the picture is a worse fault than an
-   * off-centre one.
+   * off-centre one. With one piece on the axis this is simply zero.
    */
   aim: { x: number; y: number }
 }
@@ -156,7 +157,7 @@ function poseAt(poses: Pose[], t: number): Omit<Pose, 'at'> {
  * reads, so a scroll never touches React at all.
  *
  * It is also expensive enough that it must not exist until it is wanted —
- * the singer scan alone is eleven megabytes. Mounting is the caller's
+ * a scan of this kind is eleven-odd megabytes. Mounting is the caller's
  * decision, and `ModelSection` makes it off an IntersectionObserver.
  */
 export default function ModelStage({
@@ -224,15 +225,15 @@ export default function ModelStage({
        reflect and renders black. Every light here is therefore direct.
 
        The two rims are doing most of the work, and they are why the ambient
-       and the key stay low. The subject is a woman dressed head to foot in
-       black leather standing on a black ground: raise the front light until
-       the jacket reads and her face and arms blow out long before it does,
-       because skin is already three stops up on the clothes. Light from
-       behind solves the actual problem — it draws the edge of the coat, the
-       chain, the hair and the guitar necks as lines rather than trying to
-       fill them, and it leaves the front exposed for the skin. Two of them,
-       from opposite quarters, so the edge survives the turn: one rim alone
-       goes dark down one side halfway through the move.
+       and the key stay low. The subject is a near-black lacquered body with
+       chrome on it, standing on a black ground: raise the front light until
+       the body reads and the hardware blows out long before it does, because
+       polished metal is several stops up on the finish. Light from behind
+       solves the actual problem — it draws the edge of the body, the necks
+       and the strings as lines rather than trying to fill them, and it leaves
+       the front exposed for the fretboards. Two of them, from opposite
+       quarters, so the edge survives the turn: one rim alone goes dark down
+       one side halfway through the move.
     */
     scene.add(new THREE.AmbientLight(0xffffff, 1.3))
 
@@ -254,10 +255,11 @@ export default function ModelStage({
 
     /* ---------------- the scene ----------------
        Everything hangs off one pivot, so `yaw` turns the whole composition
-       about a single axis. That is what makes two separate scans read as one
-       place rather than as two objects being animated near each other: the
-       guitar keeps its station beside the singer through the entire move,
-       because it is not being moved at all — the room is. */
+       about a single axis rather than each piece about its own. With one
+       piece on stage the two are the same picture; with several it is what
+       makes separately made scans read as one place, since each keeps its
+       station relative to the others through the entire move — nothing is
+       being moved at all, the room is. */
     const pivot = new THREE.Group()
     scene.add(pivot)
 
@@ -316,10 +318,10 @@ export default function ModelStage({
     }
 
     /* ---------------- loading ----------------
-       Two scans of eleven-odd megabytes each, in flight together. The bar has
-       to mean something across both of them, so bytes are tracked per file
-       rather than counting files done — a bar that sits at 0% and then jumps
-       to 50% is worse than no bar. */
+       Scans of eleven-odd megabytes each, in flight together. The bar has to
+       mean something across all of them, so bytes are tracked per file rather
+       than counting files done — a bar that sits at 0% and then jumps to 50%
+       is worse than no bar. */
     const bytes = new Map<string, { loaded: number; total: number }>()
     let outstanding = pieces.length
     let placed = 0
@@ -443,8 +445,8 @@ export default function ModelStage({
     })
 
     /* ---------------- teardown ----------------
-       Two eleven-megabyte scans do not get to stay resident because the
-       reader moved to another page. Textures and geometry are released by
+       Eleven-megabyte scans do not get to stay resident because the reader
+       moved to another page. Textures and geometry are released by
        hand — the GPU copies are not reachable by the collector — and the
        context is force-lost so the browser reclaims the drawing buffer
        instead of holding it against its limit of live contexts. */
