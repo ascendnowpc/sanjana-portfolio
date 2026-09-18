@@ -46,12 +46,18 @@ const rememberMuted = (muted: boolean) => {
 /**
  * The first thing the index plays: one recording, under the room.
  *
- * Every browser refuses audible playback until the visitor has done
- * something, and the refusal is a rejected promise rather than an error, so
- * there is nothing to catch centrally. This handles both outcomes: it asks
- * once on mount, and if it is turned down it arms a one-shot listener and
- * starts on the first pointer, key, wheel or touch — which on this page is
- * the move of the cursor that turns the room, i.e. immediately.
+ * Every browser refuses audible playback until the visitor has *activated*
+ * the page, and the refusal is a rejected promise rather than an error, so
+ * there is nothing to catch centrally. It asks once on mount, and if it is
+ * turned down it waits for the activation and asks again.
+ *
+ * What counts as activation is narrower than it looks, and is the whole
+ * reason this is not simply an `autoplay` attribute: a press, a tap or a key
+ * counts, and moving the cursor, scrolling and wheeling do not. So this page
+ * — whose one instruction is *move your cursor to look around* — can be read
+ * end to end in silence. Nothing here can change that; it is the browser's
+ * rule, not a setting. The control is therefore written as an offer rather
+ * than as a mute button: it says *Play* until it is playing.
  *
  * The level is faded rather than switched. Audio that arrives at full level
  * reads as a mistake to be silenced; audio that comes up over a second and a
@@ -63,6 +69,8 @@ const rememberMuted = (muted: boolean) => {
 export function HouseMusic({ src, title, from = 0, to }: Props) {
   const reduced = usePrefersReducedMotion()
   const ref = useRef<HTMLAudioElement | null>(null)
+  /** The control itself, so a press on it can be told from a press elsewhere. */
+  const rootRef = useRef<HTMLDivElement | null>(null)
   const fadeRef = useRef<number | null>(null)
 
   const [muted, setMuted] = useState(wasMuted)
@@ -119,28 +127,47 @@ export function HouseMusic({ src, title, from = 0, to }: Props) {
   /* Open, or wait for the gesture that lets us. */
   useEffect(() => {
     if (muted || ended || broken) return
-    let armed = false
-    const onGesture = () => {
-      start().catch(() => {})
+
+    /**
+     * Only events that grant user activation are here.
+     *
+     * `pointermove` and `wheel` were, and were worse than useless: they fire
+     * within a second of arriving, `play()` is refused exactly as before, and
+     * a one-shot listener has then spent itself on an attempt that could
+     * never have succeeded.
+     */
+    const GESTURES = [
+      'pointerdown',
+      'pointerup',
+      'click',
+      'keydown',
+      'touchend',
+    ] as const
+
+    // Capture phase, on the document: the gallery listens for its own drag on
+    // the way up, and anything that stops propagation there would otherwise
+    // take the visitor's one gesture with it.
+    const opts = { capture: true, passive: true } as const
+    const onGesture = (e: Event) => {
+      // The control's own press is the button's business, not this listener's.
+      // Left in, both fire on the same click: this one starts the recording
+      // and `toggle` — reading a control that was not playing a moment ago —
+      // stops it again, so the one press a visitor is most likely to make is
+      // the one press that does nothing.
+      if (rootRef.current?.contains(e.target as Node)) return
+      start().then(release).catch(() => {})
     }
+    const release = () => {
+      GESTURES.forEach((g) => document.removeEventListener(g, onGesture, opts))
+    }
+    // Not `once`: a gesture can be refused for reasons of its own — a keydown
+    // on a modifier, say — and the next one should still be allowed to try.
     const arm = () => {
-      if (armed) return
-      armed = true
-      const opts = { once: true, passive: true } as const
-      window.addEventListener('pointerdown', onGesture, opts)
-      window.addEventListener('pointermove', onGesture, opts)
-      window.addEventListener('keydown', onGesture, opts)
-      window.addEventListener('wheel', onGesture, opts)
-      window.addEventListener('touchstart', onGesture, opts)
+      GESTURES.forEach((g) => document.addEventListener(g, onGesture, opts))
     }
+
     start().catch(arm)
-    return () => {
-      window.removeEventListener('pointerdown', onGesture)
-      window.removeEventListener('pointermove', onGesture)
-      window.removeEventListener('keydown', onGesture)
-      window.removeEventListener('wheel', onGesture)
-      window.removeEventListener('touchstart', onGesture)
-    }
+    return release
   }, [muted, ended, broken, start])
 
   /* Leaving the index takes the sound with it. */
@@ -152,24 +179,42 @@ export function HouseMusic({ src, title, from = 0, to }: Props) {
     }
   }, [])
 
+  /**
+   * The control, read off what is actually sounding.
+   *
+   * Not `!muted`: silence here has three causes — the visitor asked for it, the
+   * take has finished, or the browser has not been activated yet — and only the
+   * first is a mute. Toggling on `muted` made the button a stop button in all
+   * three, so the press that was meant to start the recording stopped one that
+   * had never begun.
+   */
   const toggle = () => {
-    const next = !muted
-    mutedRef.current = next
-    setMuted(next)
-    rememberMuted(next)
-    if (next) {
+    if (playing) {
+      mutedRef.current = true
+      setMuted(true)
+      rememberMuted(true)
       setPlaying(false)
       fadeTo(0, 0.5)
-    } else {
-      setEnded(false)
-      start().catch(() => {})
+      return
     }
+    mutedRef.current = false
+    setMuted(false)
+    rememberMuted(false)
+    // A finished take has to be wound back before it can be asked to play
+    // again; `ended` stays true on the element until it is.
+    const el = ref.current
+    if (el?.ended) el.currentTime = from
+    setEnded(false)
+    start().catch(() => {})
   }
 
   if (broken) return null
 
   return (
-    <div className="pointer-events-none absolute bottom-10 left-6 z-10 md:bottom-14 md:left-12">
+    <div
+      ref={rootRef}
+      className="pointer-events-none absolute bottom-10 left-6 z-10 md:bottom-14 md:left-12"
+    >
       <audio
         ref={ref}
         src={mediaUrl(src)}
@@ -196,36 +241,47 @@ export function HouseMusic({ src, title, from = 0, to }: Props) {
         type="button"
         onClick={toggle}
         className="group pointer-events-auto flex items-center gap-3 text-left"
-        aria-label={
-          muted || !playing ? `Play ${title}` : `Stop playing ${title}`
-        }
+        aria-label={playing ? `Stop playing ${title}` : `Play ${title}`}
       >
-        {/* Three bars, lit and moving only while something is sounding —
-            so the control reads as a state before it reads as a label. */}
-        <span className="flex h-4 items-end gap-[3px]">
-          {[0, 1, 2].map((i) => (
-            <motion.span
-              key={i}
-              className={playing ? 'w-[2px] bg-gilt' : 'w-[2px] bg-dust'}
-              initial={false}
-              animate={
-                playing && !reduced
-                  ? { height: ['30%', '100%', '55%', '85%', '30%'] }
-                  : { height: playing ? '60%' : '30%' }
-              }
-              transition={
-                playing && !reduced
-                  ? {
-                      duration: 1.5 + i * 0.35,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }
-                  : { duration: 0.3 }
-              }
-              style={{ height: '30%' }}
-            />
-          ))}
-        </span>
+        {/* Silent, it is a play triangle — the one mark every visitor already
+            knows to press, which matters on a page where the sound cannot
+            start until something is pressed. Sounding, it is three bars that
+            move: a state rather than an instruction. */}
+        {!playing && (
+          <svg
+            className="h-3 w-3 shrink-0 fill-dust transition-colors duration-300 group-hover:fill-bloom"
+            viewBox="0 0 12 12"
+            aria-hidden="true"
+          >
+            <path d="M2 1.2 10.4 6 2 10.8Z" />
+          </svg>
+        )}
+        {playing && (
+          <span className="flex h-4 items-end gap-[3px]">
+            {[0, 1, 2].map((i) => (
+              <motion.span
+                key={i}
+                className="w-[2px] bg-gilt"
+                initial={false}
+                animate={
+                  reduced
+                    ? { height: '60%' }
+                    : { height: ['30%', '100%', '55%', '85%', '30%'] }
+                }
+                transition={
+                  reduced
+                    ? { duration: 0.3 }
+                    : {
+                        duration: 1.5 + i * 0.35,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }
+                }
+                style={{ height: '30%' }}
+              />
+            ))}
+          </span>
+        )}
 
         <span className="label on-scrim text-dust transition-colors duration-300 group-hover:text-mist">
           {playing ? (
@@ -233,7 +289,7 @@ export function HouseMusic({ src, title, from = 0, to }: Props) {
           ) : ended && !muted ? (
             `Play again — ${title}`
           ) : (
-            `Sound — ${title}`
+            `Play — ${title}`
           )}
         </span>
       </button>
