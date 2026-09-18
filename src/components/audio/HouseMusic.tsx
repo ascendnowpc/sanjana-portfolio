@@ -1,11 +1,41 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 import { motion } from 'framer-motion'
 import { mediaUrl } from '@/lib/media'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 
+export interface HouseMusicHandle {
+  /**
+   * Start the recording now, from inside the caller's own event handler.
+   *
+   * The gate calls this rather than setting a prop and letting an effect pick
+   * it up a render later: Safari wants `play()` in the call stack of the
+   * gesture that allowed it, and a state round-trip is not that stack. It also
+   * clears a silence remembered from earlier in the visit — answering the gate
+   * *with sound* is a newer answer than that one.
+   */
+  start: () => void
+  /** Take the visit's answer as silence, without anything having played. */
+  silence: () => void
+}
+
 interface Props {
   /** The recording to play, as a media key ("/media/audio/x.mp3"). */
   src: string
+  /**
+   * Somebody else owns the first play — the sound gate, which asks before the
+   * index is uncovered. While this is true nothing is attempted and no gesture
+   * is listened for, because every gesture on the page belongs to the gate,
+   * including the one that means *no*.
+   */
+  gated?: boolean
+  /** Imperative start, for the gate. */
+  handle?: React.Ref<HouseMusicHandle>
   /** What the control names, so the visitor knows what they are hearing. */
   title: string
   /** Seconds into the recording the excerpt starts. */
@@ -66,7 +96,14 @@ const rememberMuted = (muted: boolean) => {
  * Nothing here loops. One take plays, ends, and the control says so — the
  * index does not become a thing that hums at you indefinitely.
  */
-export function HouseMusic({ src, title, from = 0, to }: Props) {
+export function HouseMusic({
+  src,
+  title,
+  from = 0,
+  to,
+  gated = false,
+  handle,
+}: Props) {
   const reduced = usePrefersReducedMotion()
   const ref = useRef<HTMLAudioElement | null>(null)
   /** The control itself, so a press on it can be told from a press elsewhere. */
@@ -124,9 +161,41 @@ export function HouseMusic({ src, title, from = 0, to }: Props) {
     })
   }, [fadeTo])
 
+  const answer = useCallback(
+    (silent: boolean) => {
+      mutedRef.current = silent
+      setMuted(silent)
+      rememberMuted(silent)
+    },
+    [],
+  )
+
+  useImperativeHandle(
+    handle,
+    () => ({
+      start: () => {
+        answer(false)
+        start().catch(() => {})
+      },
+      silence: () => {
+        answer(true)
+        setPlaying(false)
+        // Nothing has sounded yet — this is an answer, not an interruption —
+        // so there is nothing to fade out of. Fading here would leave a timer
+        // ramping the volume of a paused element for no one.
+        const el = ref.current
+        if (el) {
+          el.pause()
+          el.volume = 0
+        }
+      },
+    }),
+    [answer, start],
+  )
+
   /* Open, or wait for the gesture that lets us. */
   useEffect(() => {
-    if (muted || ended || broken) return
+    if (gated || muted || ended || broken) return
 
     /**
      * Only events that grant user activation are here.
@@ -168,7 +237,7 @@ export function HouseMusic({ src, title, from = 0, to }: Props) {
 
     start().catch(arm)
     return release
-  }, [muted, ended, broken, start])
+  }, [gated, muted, ended, broken, start])
 
   /* Leaving the index takes the sound with it. */
   useEffect(() => {
@@ -190,16 +259,12 @@ export function HouseMusic({ src, title, from = 0, to }: Props) {
    */
   const toggle = () => {
     if (playing) {
-      mutedRef.current = true
-      setMuted(true)
-      rememberMuted(true)
+      answer(true)
       setPlaying(false)
       fadeTo(0, 0.5)
       return
     }
-    mutedRef.current = false
-    setMuted(false)
-    rememberMuted(false)
+    answer(false)
     // A finished take has to be wound back before it can be asked to play
     // again; `ended` stays true on the element until it is.
     const el = ref.current

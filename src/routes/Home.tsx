@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Performance } from '@/types/content'
@@ -8,11 +8,21 @@ import {
 } from '@/components/gallery/ImmersiveGallery'
 import { MagneticLink } from '@/components/ui/MagneticLink'
 import { SplitText } from '@/components/ui/SplitText'
-import { HouseMusic } from '@/components/audio/HouseMusic'
+import { HouseMusic, type HouseMusicHandle } from '@/components/audio/HouseMusic'
+import { SoundGate } from '@/components/audio/SoundGate'
 import { usePerformances } from '@/hooks/useContent'
 import { CATEGORY_MAP } from '@/data/categories'
 import { HOUSE_CLIP } from '@/data/music'
 import { PROFILE } from '@/data/site'
+
+/**
+ * That the sound question has been put to this visitor.
+ *
+ * The answer itself is not kept here — it goes to the player, which already
+ * owns and remembers one, so declining the gate and silencing the control are
+ * the same fact rather than two that can disagree.
+ */
+const GATE_KEY = 'house-gate-asked'
 
 /** Large tracked word — the nouns that carry the sentence. */
 const Big = ({ children }: { children: React.ReactNode }) => (
@@ -70,6 +80,38 @@ export default function Home() {
   /** The take the page sounds on arrival. See HOUSE_CLIP. */
   const house = items.find((p) => p.slug === HOUSE_CLIP.slug)
   const houseTrack = house?.tracks[0]
+  const houseHandle = useRef<HouseMusicHandle>(null)
+
+  /**
+   * Whether the sound question still has to be asked.
+   *
+   * Asked once a visit, not once a page view: the index is where the site
+   * begins, and a visitor who has been to the work and come back has already
+   * answered. Read straight out of storage on the first render rather than in
+   * an effect, so the gate is either painted with the page or never painted at
+   * all — a panel that appears a frame after the index has is a flicker.
+   */
+  const [asking, setAsking] = useState(() => {
+    try {
+      return sessionStorage.getItem(GATE_KEY) !== '1'
+    } catch {
+      return true
+    }
+  })
+
+  const answer = useCallback((withSound: boolean) => {
+    try {
+      sessionStorage.setItem(GATE_KEY, '1')
+    } catch {
+      /* blocked storage: the question simply gets asked again next time */
+    }
+    // Before the state change, not after: this is still inside the click, and
+    // the click is the permission.
+    const player = houseHandle.current
+    if (withSound) player?.start()
+    else player?.silence()
+    setAsking(false)
+  }, [])
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-void">
@@ -188,12 +230,19 @@ export default function Home() {
       {/* ---------------- the room's own sound ---------------- */}
       {house && houseTrack?.audioSrc && (
         <HouseMusic
+          handle={houseHandle}
+          gated={asking}
           src={houseTrack.audioSrc}
           title={house.title}
           from={HOUSE_CLIP.from}
           to={HOUSE_CLIP.to}
         />
       )}
+
+      {/* The question, over everything, until it has been answered once. */}
+      <AnimatePresence>
+        {asking && <SoundGate key="gate" onChoose={answer} />}
+      </AnimatePresence>
 
       {/* ---------------- drift hint ---------------- */}
       <motion.div
