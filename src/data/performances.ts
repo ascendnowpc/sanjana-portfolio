@@ -293,7 +293,7 @@ export const PERFORMANCES: Performance[] = [
   /* ---------------- Honor Choir ---------------- */
   {
     slug: 'honor-choir-2025-01',
-    title: 'ACMIS Festival — Massed Choir',
+    title: 'AMIS Festival — International Choir',
     subtitle: 'Honor Choir — 2025',
     category: 'honor-choir',
     year: 2025,
@@ -311,7 +311,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'honor-choir-2025-01-1',
-        title: 'ACMIS Festival — Massed Choir',
+        title: 'AMIS Festival — International Choir',
         duration: 41,
         audioSrc: audio('honor-choir-2025-01'),
       },
@@ -319,7 +319,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'honor-choir-2025-02',
-    title: 'ACMIS Festival — Full Ensemble',
+    title: 'AMIS Festival — Full Ensemble',
     subtitle: 'Honor Choir — 2025',
     category: 'honor-choir',
     year: 2025,
@@ -338,7 +338,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'honor-choir-2025-02-1',
-        title: 'ACMIS Festival — Full Ensemble',
+        title: 'AMIS Festival — Full Ensemble',
         duration: 246,
         audioSrc: audio('honor-choir-2025-02'),
       },
@@ -373,7 +373,7 @@ export const PERFORMANCES: Performance[] = [
   // NOTE: source date is an export stamp, not the recording date.
   {
     slug: 'honor-choir-2026-04',
-    title: 'ACMIS Honor Choir — Risers',
+    title: 'AMIS Honor Choir — Risers',
     subtitle: 'Honor Choir — 2026',
     category: 'honor-choir',
     year: 2026,
@@ -391,7 +391,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'honor-choir-2026-04-1',
-        title: 'ACMIS Honor Choir — Risers',
+        title: 'AMIS Honor Choir — Risers',
         duration: 107,
         audioSrc: audio('honor-choir-2026-04'),
       },

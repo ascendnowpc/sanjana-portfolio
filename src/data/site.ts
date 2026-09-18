@@ -96,28 +96,28 @@ export interface PortraitBeat {
 }
 
 export const PORTRAIT = {
-  lead: 'Sanjana is a vocalist working across solo concert repertoire, musical theatre and her own records. What holds those together is not a genre. It is a way of using a room — she tunes to the space rather than to the monitor, and what you hear is what happened in it.',
+  lead: 'Singing has been the one constant in my life, woven into practically everything I do. My work spans solo concert repertoire, musical theatre, Western classical, Hindi classical, and honor choir. Being on stage lets me be completely consumed by it, nothing else on my mind.',
 
   beats: [
     {
-      heading: 'Nine years before a single',
-      accent: 'stage',
-      body: 'She started in Hindustani classical at seven and stayed with it for nine years, which is long enough for it to stop being lessons and start being the way you hear. Ornament, breath control, the habit of tuning to a room rather than to a monitor — none of it was chosen with a career in mind, and all of it is still the first thing she reaches for.',
+      heading: 'A discipline I met in eighth',
+      accent: 'grade',
+      body: "In eighth grade, I began studying Hindustani classical, an entirely different vocal discipline from the one I'd trained in, and it connected me to my culture in a way nothing else had. It was also among the most demanding periods of my singing life, and I fell in love with it regardless. Raagas are where I feel most at home as a vocalist. I'd grown up surrounded by that music, so learning to sing it myself felt natural, almost inevitable.",
     },
     {
-      heading: 'Cast three weeks before',
-      accent: 'opening',
-      body: 'The Royal Conservatory taught her the other half: projection, text, how a lyric survives a second act. She was cast as Éponine out of an open call three weeks before opening night, and the four seasons that followed brought Sally Bowles, Roxie Hart and Persephone. Eleven productions, and not one of them sung the way the last one was.',
+      heading: 'The first time I was cast as',
+      accent: 'Belle',
+      body: 'In seventh grade, I fell headlong into musical theater: I was cast as Belle in Beauty and the Beast, my first substantial production, and it changed everything for me. It was the first time I understood performing as something beyond vocal technique alone, something I could pour my whole self into. Acting and dancing in tandem with singing is what made me fall irreversibly in love with the stage.',
     },
     {
-      heading: 'Every vocal in one',
-      accent: 'take',
-      body: 'Neon Hymns was cut over eleven nights with the band in the room. Nothing was comped and nothing was tuned, and every vocal on it is a single continuous pass — which is a decision you make once and then have to keep making at two in the morning.',
+      heading: 'A voice that serves something',
+      accent: 'larger',
+      body: "In tenth and eleventh grade, I sang in honor choir, which taught me something solo performance never had: how to blend, how to let my voice serve something larger than itself rather than stand at its center. There's a distinct kind of connection that emerges when a group of people are working toward a single, unified sound. It deepened my appreciation for music considerably, and it fostered friendships that, I suspect, could only have formed that way.",
     },
     {
-      heading: 'Ninety seats, then nine',
-      accent: 'thousand',
-      body: 'Forty solo concerts, a one-night orchestral commission that rescored six of her own songs for fifty-two players, and the Midnight Bloom arena run. She treats a four-thousand-seat room and a ninety-seat black box as different instruments, because they are: one take has to survive a delay tower, the other has to be worth overhearing.',
+      heading: 'Ninety minutes, eleven',
+      accent: 'songs',
+      body: "In tenth grade, I was cast as Missy in The Marvelous Wonderettes, my first time carrying a role of this weight: ninety uninterrupted minutes on stage, eleven songs, three of them solos. It proved to be one of the most liberating experiences of my life, despite embodying someone else's character entirely. I loved every second of it, being on stage, singing, doing what I love.",
     },
   ] satisfies PortraitBeat[],
 }
