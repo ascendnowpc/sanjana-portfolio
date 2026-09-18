@@ -52,11 +52,12 @@ export function MusicShelf({ items }: { items: Performance[] }) {
     }
 
     return CATEGORIES.flatMap((c) => {
-      const pieces = (byCategory.get(c.id) ?? [])
-        // Slugs are `<category>-<year>-<nn>`, numbered by date, so this is
-        // the running order the discipline was actually performed in.
-        .slice()
-        .sort((a, b) => a.year - b.year || a.slug.localeCompare(b.slug))
+      // Archive order, untouched. `year` is an export stamp on a good
+      // half of this footage — the file's date, not the performance's —
+      // so sorting on it put several disciplines in backwards. The array
+      // in `performances.ts` is the running order, corrected by hand; see
+      // the note at the top of that file.
+      const pieces = byCategory.get(c.id) ?? []
 
       const tracks = pieces.flatMap((p) => p.tracks)
       if (!tracks.length) return []

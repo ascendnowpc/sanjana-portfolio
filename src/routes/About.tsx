@@ -1,9 +1,7 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { Link } from 'react-router-dom'
 import { PROFILE } from '@/data/site'
 import { usePerformances } from '@/hooks/useContent'
-import { Reveal } from '@/components/ui/Reveal'
 import { Overture } from '@/components/ui/Overture'
 import { MusicShelf } from '@/components/audio/MusicShelf'
 import { PortraitStage } from '@/components/about/PortraitStage'
@@ -185,20 +183,6 @@ export default function About() {
 
         {/* ---------------- 5. testimonials ---------------- */}
         <Testimonials />
-
-        {/* ---------------- 6. the ask ---------------- */}
-        <section className="px-6 py-40 text-center md:px-12">
-          <Reveal>
-            <p className="label text-dust">Next</p>
-            <Link
-              to="/contact"
-              className="tracked mt-8 inline-block text-chalk transition-colors duration-500 hover:text-bloom"
-              style={{ fontSize: 'clamp(1.8rem, 5vw, 4rem)' }}
-            >
-              Book a date
-            </Link>
-          </Reveal>
-        </section>
       </div>
     </div>
   )

@@ -16,9 +16,9 @@ const ModelStage = lazy(() => import('@/components/three/ModelStage'))
 /**
  * What stands on the stage.
  *
- * One scan: `guitar.glb`, the double-neck, alone. It has no skeleton — it is a
- * single fused static mesh — so nothing here is posed; the piece simply stands
- * and the room turns around it.
+ * One scan: `singer.glb`, the figure at the mic, alone. It has no skeleton —
+ * it is a single fused static mesh — so nothing here is posed; the figure
+ * simply stands and the room turns around it.
  *
  * It is the piece the stage is sized by, so its height is the stage unit and
  * is left at 1. Everything about how large it reads is therefore in FRAMING
@@ -26,11 +26,12 @@ const ModelStage = lazy(() => import('@/components/three/ModelStage'))
  * fills the column, and it keeps the one object centred on the turn axis
  * instead of orbiting an axis it does not sit on.
  *
- * The rotation is the only composition left, and it is small on purpose. Eight
- * degrees of lean and a few of turn stop it reading as a museum exhibit stood
- * square to the room; anything more and the scroll's own sweep — which crosses
- * the front of the instrument around its second beat — never gets to show the
- * face of it.
+ * The rotation is the only composition left, and it is a few degrees of turn
+ * and nothing else. The stage held an instrument before this, and an
+ * instrument can be leaned — it reads as a piece propped against a wall. A
+ * standing figure cannot: any lean at all reads as somebody falling over. So
+ * the piece is turned a little off square, to take the museum-exhibit
+ * stiffness out of it, and left upright.
  *
  * Not run through `mediaUrl`: it sits at the root of public/, outside the
  * public/media/ tree that scripts/upload-media.mjs mirrors into R2, so the
@@ -38,20 +39,19 @@ const ModelStage = lazy(() => import('@/components/three/ModelStage'))
  */
 const PIECES: Piece[] = [
   {
-    src: '/guitar.glb',
-    rotation: [0, 0.1, -0.13],
+    src: '/singer.glb',
+    rotation: [0, 0.1, 0],
   },
 ]
 
 /**
  * The move, read down the page.
  *
- * It stays inside about sixty degrees of front on purpose. Turn an instrument
- * far enough and the shot is the back of a body and a strap button, which is a
- * worse picture than any of the three below and is where a full turntable
- * spends a third of its time. So the run opens on one side, crosses the face of
- * the necks around the second beat, and finishes on the other with the eye
- * dropped almost to the level of the body.
+ * It stays inside about sixty degrees of front on purpose. Turn a figure far
+ * enough and the shot is the back of a head, which is a worse picture than any
+ * of the three below and is where a full turntable spends a third of its time.
+ * So the run opens on one side, crosses the face around the second beat, and
+ * finishes on the other with the eye dropped almost to shoulder height.
  *
  * The dolly is not monotonic either. Pulling back a little at both ends and
  * sitting closest at the middle beat gives the section a centre — the reader
@@ -65,25 +65,30 @@ const POSES: Pose[] = [
 ]
 
 /**
- * Tight enough that the instrument fills the column.
+ * Wide enough that the whole scan stays in the column.
  *
- * The box is what the camera must hold, in stage units, and the guitar is one
- * unit tall — so a half-height of 0.56 leaves it a few percent of air top and
- * bottom and nothing else. That is the whole of the size change: with only one
- * piece left there is no pair to keep apart, and the space the second scan used
- * to take is given back to this one.
+ * The box is what the camera must hold, in stage units, and the piece on it is
+ * one unit tall by definition — but this scan is not a tall thin object. It is
+ * a seated figure with two mic stands in front of it: 1.36 wide and 0.86 deep
+ * for its one of height. The stage held a guitar before it, half a unit across
+ * and a tenth of one deep, and the box below was cut to that. Left alone it
+ * cropped the new piece down the middle.
  *
- * The half-width is smaller than the half-height because the piece is far
- * taller than it is wide, and because the fit takes the *worse* of the two
- * axes — height governs at every aspect ratio the column is ever laid out at,
- * and the width is here to stop a hypothetically very short, very wide stage
- * from cropping the body. It is still stated as a fixed box rather than derived
- * from the bounding box: the silhouette breathes as the scroll turns it, and a
- * camera refitted every frame would breathe with it.
+ * So the width is now what the fit is governed by, not the height: a portrait
+ * column has an aspect under 1, and `fit` takes the worse of the two axes, so
+ * the horizontal term wins at every size this column is laid out at. The
+ * figure therefore reads smaller here than the instrument did, with air above
+ * and below it. That is the shape of the thing, not a mistake — a wide scan in
+ * a tall column either has air or loses its edges.
+ *
+ * 0.7 rather than the 0.81 a full turn of the bounding box would need: the
+ * outermost few centimetres are the feet of the mic stands, and letting them
+ * pass the edge at the two extremes of the sweep buys back a third of the
+ * subject’s size in the middle of it, where the face is.
  */
 const FRAMING: Framing = {
-  halfWidth: 0.3,
-  halfHeight: 0.56,
+  halfWidth: 0.7,
+  halfHeight: 0.5,
   // Centred now. The aim only ever trucked across to sit over the pair; with
   // one object on the turn axis, the turn axis is the middle of the picture.
   aim: { x: 0, y: 0 },
@@ -289,19 +294,10 @@ export function PortraitStage() {
           <div className="py-20 md:py-[38vh]">
             <Reveal>
               <p className="label text-dust">Portrait</p>
-              {/* "In the round" is the staging term before it is a description
-                  of the model, and it is the honest one for this page: the
-                  section is about a performer who is read from every side of
-                  the room, and the column beside it is doing exactly that. */}
-              <h2
-                className="mt-8 font-[family-name:var(--font-display)] leading-[0.94] font-light text-chalk italic"
-                style={{ fontSize: 'clamp(2.6rem, 6vw, 5.5rem)' }}
-              >
-                In the
-                <br />
-                round
-              </h2>
-              <p className="mt-10 max-w-[46ch] text-lg leading-[1.7] font-light text-mist">
+              {/* No display headline here any more. The section used to open
+                  on one, and the lead now carries the section by itself —
+                  first person, and the first thing read on the page. */}
+              <p className="mt-8 max-w-[46ch] text-lg leading-[1.7] font-light text-mist">
                 {PORTRAIT.lead}
               </p>
             </Reveal>

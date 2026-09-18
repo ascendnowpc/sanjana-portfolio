@@ -8,8 +8,10 @@ import {
 } from '@/components/gallery/ImmersiveGallery'
 import { MagneticLink } from '@/components/ui/MagneticLink'
 import { SplitText } from '@/components/ui/SplitText'
+import { HouseMusic } from '@/components/audio/HouseMusic'
 import { usePerformances } from '@/hooks/useContent'
 import { CATEGORY_MAP } from '@/data/categories'
+import { HOUSE_CLIP } from '@/data/music'
 import { PROFILE } from '@/data/site'
 
 /** Large tracked word — the nouns that carry the sentence. */
@@ -65,6 +67,9 @@ export default function Home() {
     }
   }, [])
 
+  /** The take the page sounds on arrival. See HOUSE_CLIP. */
+  const house = items.find((p) => p.slug === HOUSE_CLIP.slug)
+  const houseTrack = house?.tracks[0]
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-void">
@@ -179,6 +184,16 @@ export default function Home() {
           </MagneticLink>
         </p>
       </div>
+
+      {/* ---------------- the room's own sound ---------------- */}
+      {house && houseTrack?.audioSrc && (
+        <HouseMusic
+          src={houseTrack.audioSrc}
+          title={house.title}
+          from={HOUSE_CLIP.from}
+          to={HOUSE_CLIP.to}
+        />
+      )}
 
       {/* ---------------- drift hint ---------------- */}
       <motion.div
