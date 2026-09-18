@@ -119,6 +119,7 @@ export default function Home() {
         performances={items}
         onFocusChange={onFocusChange}
         onIntroDone={onIntroDone}
+        held={asking}
       />
 
       {/* ---------------- centre overlay ----------------

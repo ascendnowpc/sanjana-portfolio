@@ -11,8 +11,24 @@ interface Props {
   onChoose: (withSound: boolean) => void
 }
 
-/** The words, in the order they descend. */
-const LINE = ['Click', 'anywhere', 'to', 'turn on', 'your sound']
+/**
+ * The invitation, word by word.
+ *
+ * Not a stack of left-aligned lines: each word starts where the last one
+ * ended and sits a little lower, so the sentence falls across the middle of
+ * the screen on a diagonal. `drop` is that fall, in ems of the word's own
+ * line, and `size` is the small variation between words that keeps the run
+ * from reading as one mechanically rotated line.
+ */
+const LINE = [
+  { word: 'Click', size: 1, drop: 0 },
+  { word: 'anywhere', size: 0.92, drop: 1.3 },
+  { word: 'to', size: 0.8, drop: 2.65 },
+  { word: 'turn', size: 0.86, drop: 3.15 },
+  { word: 'on', size: 0.76, drop: 3.85 },
+  { word: 'your', size: 0.9, drop: 5.15 },
+  { word: 'sound', size: 0.95, drop: 6.4 },
+]
 
 /**
  * The question the index opens on: sound, or no sound.
@@ -49,7 +65,11 @@ export function SoundGate({ onChoose }: Props) {
       className="fixed inset-0 z-[80] bg-void"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      // Leaves faster than it arrives, and faster than the room's opening
+      // hold: the establishing shot behind this is held until the answer, so
+      // the panel wants to be gone before the pull starts rather than fading
+      // across the first half of it.
+      exit={{ opacity: 0, transition: { duration: reduced ? 0 : 0.5 } }}
       transition={{ duration: reduced ? 0 : 0.8, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* The yes. It is the surface, not a target on it. */}
@@ -59,23 +79,42 @@ export function SoundGate({ onChoose }: Props) {
         className="group absolute inset-0 flex cursor-pointer flex-col items-center justify-center px-6"
         aria-label="Enter with sound"
       >
-        <span className="flex flex-col items-start">
-          {LINE.map((word, i) => (
+        {/* One line, held on one line: the diagonal is the whole figure, and
+            a wrap would break it into two unrelated ones. The size is in vw
+            below the cap for that reason — it is what keeps the run inside a
+            narrow screen. */}
+        <span
+          className="tracked-tight block whitespace-nowrap text-mist transition-colors duration-700 group-hover:text-chalk"
+          // The fall is drawn with transforms, which take up no room, so the
+          // box would be one line tall and the figure would hang below the
+          // middle of the screen. The padding gives the fall its height back
+          // and lets the flex centre the whole diagonal.
+          style={{
+            fontSize: 'clamp(0.58rem, 1.45vw, 1.05rem)',
+            paddingBottom: '6.4em',
+          }}
+        >
+          {LINE.map(({ word, size, drop }, i) => (
             <motion.span
               key={word}
-              className="tracked text-[clamp(0.85rem,2vw,1.6rem)] leading-[2] text-mist transition-colors duration-700 group-hover:text-chalk"
-              // Each word starts where the last one ended, give or take — the
-              // indent is what makes the line fall rather than stack.
-              style={{ marginLeft: `${i * 2.4}ch` }}
-              initial={reduced ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="inline-block"
+              style={{ fontSize: `${size}em` }}
+              initial={
+                reduced
+                  ? false
+                  : { opacity: 0, y: `${drop + 0.6}em`, filter: 'blur(4px)' }
+              }
+              animate={{ opacity: 1, y: `${drop}em`, filter: 'blur(0px)' }}
               transition={{
-                duration: 0.9,
-                delay: reduced ? 0 : 0.3 + i * 0.12,
+                duration: 1,
+                delay: reduced ? 0 : 0.35 + i * 0.13,
                 ease: [0.16, 1, 0.3, 1],
               }}
             >
               {word}
+              {/* The space belongs to the word before it, so it carries that
+                  word's size and drop rather than the next one's. */}
+              {i < LINE.length - 1 ? '\u00a0' : ''}
             </motion.span>
           ))}
         </span>
