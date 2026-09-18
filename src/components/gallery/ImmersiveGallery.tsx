@@ -363,6 +363,16 @@ interface Props {
   /** Fires once, part-way through the opening pull — see INTRO_HANDOVER. The
    *  index uses it to retire its welcome sentence as the room arrives. */
   onIntroDone?: () => void
+  /**
+   * Hold the opening pull at its widest, without starting it.
+   *
+   * The arrival is the first thing a visitor sees, and it is over in three
+   * seconds — so anything covering the page at load (the sound gate) would
+   * otherwise let it play out behind a black panel and uncover a room that
+   * had already arrived. Held, the clock does not advance at all: the shot
+   * waits, wide, and the pull begins the moment the cover goes.
+   */
+  held?: boolean
 }
 
 /**
@@ -391,6 +401,7 @@ export function ImmersiveGallery({
   performances,
   onFocusChange,
   onIntroDone,
+  held = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const worldRef = useRef<HTMLDivElement>(null)
@@ -416,6 +427,9 @@ export function ImmersiveGallery({
   const arrivedRef = useRef(arrived)
   const onIntroDoneRef = useRef(onIntroDone)
   onIntroDoneRef.current = onIntroDone
+  // Read inside the loop, which is started once and never re-created.
+  const heldRef = useRef(held)
+  heldRef.current = held
 
   /** False until the posters have settled — see WARMUP_MS. */
   const [warm, setWarm] = useState(false)
@@ -813,7 +827,7 @@ export function ImmersiveGallery({
       const focus = hoveredRef.current
 
       /* ---- the opening pull ---- */
-      introClock.current += dt
+      if (!heldRef.current) introClock.current += dt
       const introT = reduced
         ? 1
         : clamp((introClock.current - INTRO_HOLD_MS) / INTRO_MS, 0, 1)
