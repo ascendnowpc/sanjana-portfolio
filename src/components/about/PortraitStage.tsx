@@ -65,31 +65,38 @@ const POSES: Pose[] = [
 ]
 
 /**
- * Tall and narrow, because the piece is.
+ * Tall and narrow, because the piece is — and held at arm's length.
  *
  * The box is what the camera must hold, in stage units, and the piece on it is
  * one unit tall by definition. This one is genuinely a tall thin object: the
  * mic and its stand are 0.47 wide and 0.47 deep for their one of height, and
  * near enough rotationally symmetric that the silhouette barely changes width
  * through the sweep. The stage held a wide seated scan before this, 1.36
- * across, and the box was opened up to 0.7 to hold it — left alone that would
- * now frame a column of empty stage with a mic somewhere in the middle of it.
+ * across, and the box was opened to 0.7 to hold it — a box cut to *that* shape
+ * frames a column of empty stage with a mic somewhere in the middle of it.
  *
  * So the height is what the fit is governed by again. A portrait column has an
  * aspect under 1 and `fit` takes the worse of the two axes, so the horizontal
  * term only wins once the column is narrower than about half its height; at
- * 0.3 against 0.64 the vertical term carries every width this column is laid
- * out at, and the piece reads full height with a little air top and bottom.
+ * 0.4 against 0.85 the vertical term carries every width this column is laid
+ * out at.
  *
- * 0.64 rather than a flat 0.5 because the box is the *nominal* one and the
- * move does not sit at nominal: the middle beat dollies in to 0.94, which is
- * the shot the framing has to survive, and the ends lift the aim by a few
- * hundredths on top of that. A box cut to the model exactly loses the top of
- * the grille and the front of the base at that beat.
+ * 0.85 is the size of the thing, and it is deliberately not the tightest fit
+ * that works. A box of 1.7 units for a 1-unit piece puts the mic at about
+ * three fifths of the column, which is the difference between an object
+ * standing on a stage and an object pressed against the glass. A figure can
+ * fill a frame — it has a face, and the face is the subject. A mic filling a
+ * frame is just a large mic; it reads as a product shot rather than as the
+ * thing the room is arranged around, and the prose beside it stops being the
+ * other half of the spread.
+ *
+ * The move still has its own say inside that: the middle beat dollies in to
+ * 0.94 and the ends lift the aim, so the piece breathes between roughly three
+ * fifths and two thirds of the column across the run.
  */
 const FRAMING: Framing = {
-  halfWidth: 0.3,
-  halfHeight: 0.64,
+  halfWidth: 0.4,
+  halfHeight: 0.85,
   // Centred. The aim only ever trucked across to sit over a pair; with one
   // object on the turn axis, the turn axis is the middle of the picture.
   aim: { x: 0, y: 0 },
