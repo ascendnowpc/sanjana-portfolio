@@ -1,141 +1,142 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion, useScroll, useSpring, useTransform } from 'framer-motion'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useScroll, useSpring } from 'framer-motion'
 import { PORTRAIT, PROFILE } from '@/data/site'
 import { Reveal } from '@/components/ui/Reveal'
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
 /**
- * The loop that stands on the stage, and the frame it is held on until it runs.
+ * The piece on the stage, as a frame sequence rather than a film.
+ *
+ * Sixty-one stills of one slow push-in, drawn one at a time against the
+ * scroll. That is the whole reason it is not a `<video>`: a film plays at its
+ * own speed, and this column is supposed to play at the reader's — the same
+ * thing the 3D scan that stood here before it did. A video element can be
+ * seeked, but seeking one per scroll event asks the decoder for a keyframe it
+ * usually has to walk to, and the result stutters exactly when the reader is
+ * paying most attention to it.
+ *
+ * They carry a real alpha channel, which is the other half of it. The frames
+ * were matted out of the painted canvas the clip was generated on, and WebP
+ * keeps that as transparency rather than as a colour to be cancelled out
+ * later. The earlier cut composited onto black and leaned on
+ * `mix-blend-mode: screen` to hide the surround, which works until it does
+ * not: Safari routinely gives a `<video>` its own compositing layer and skips
+ * the blend, and what the reader gets then is a black rectangle sitting on the
+ * page. Transparency has no such failure mode — there is nothing to blend,
+ * because there is nothing there.
  *
  * At the root of public/ and deliberately NOT run through `mediaUrl`, which is
- * the same place and for the same reason as the 3D scan this replaced.
- * Everything under public/media/ is two things at once: gitignored for video,
- * and rewritten to the R2 bucket whenever VITE_R2_PUBLIC_URL is set. An asset
- * that lives there therefore has to be uploaded separately before it exists in
- * production, and a deploy that forgets shows the fallback photograph instead.
+ * where the 3D scan sat and for the same reason: everything under
+ * public/media/ is rewritten to the R2 bucket whenever VITE_R2_PUBLIC_URL is
+ * set, so an asset filed there has to be uploaded separately before it exists
+ * in production. This is a megabyte of interface — the section has no picture
+ * at all without it — so it ships with the build, where it cannot fall out of
+ * step with the code that references it.
  *
- * This loop is not that kind of asset. It is a megabyte of interface — the
- * section has no picture at all without it — rather than one of the
- * performance recordings the bucket exists to hold, so it ships with the
- * build, where it cannot be out of step with the code that references it.
- *
- * The size is still in the name: a re-cut lands under a new one, so nothing
- * downstream can serve a stale file it already has.
- *
- * Two encodings of the same cut rather than one. The `.webm` is the smaller
- * file and the `.mp4` is the one that plays everywhere, and a `<source>` list
- * costs nothing — the browser picks one and downloads only that.
+ * All sixty-one together come to 1.4 MB, against the 1.5 MB the scan and its
+ * renderer cost between them. The sequence is the cheaper of the two.
  */
-const LOOP_WEBM = '/mic-loop-720.webm'
-const LOOP_MP4 = '/mic-loop-720.mp4'
-const LOOP_POSTER = '/mic-loop-poster.jpg'
+const FRAME_COUNT = 61
+const frameSrc = (i: number) =>
+  `/mic-frames/mic-${String(i).padStart(2, '0')}.webp`
 
 /**
- * How the surround is got rid of.
+ * The frames' own pixel size, which is also the canvas's.
  *
- * The cut-out is composited onto true black in the file itself rather than
- * carried as an alpha channel, and `screen` is what turns that back into
- * transparency in the page: black is the identity for the blend, so every
- * pixel of the surround leaves whatever is behind it exactly as it was, and
- * the page's own starfield shows through the frame instead of being punched
- * out by a black rectangle.
- *
- * It is done this way because transparent video has no format that plays
- * everywhere. WebM's alpha channel is ignored by Safari, and the HEVC
- * alternative can only be *encoded* on macOS. Both of those are real
- * constraints on a site that has to run on a phone; a blend mode is not.
- *
- * The one thing it costs is that the film can only ever be lighter than what
- * it sits on. On this page the ground is #000 and the subject is chrome, so
- * that is the whole of the picture anyway.
+ * Fixed rather than measured, so the canvas never needs resizing and a window
+ * drag never costs a redraw. Every frame was cropped to one box — the union of
+ * the subject across the whole run, not each frame's own bounds, or the mic
+ * would walk around inside its own frame as it grew — so they are all exactly
+ * this, and CSS scales the result down into the column.
  */
-const BLEND = 'screen' as const
+const FRAME_W = 302
+const FRAME_H = 760
 
 /**
- * The bottom edge of the film, softened.
+ * How much of the column the piece is drawn at, as a fraction of its height.
  *
- * At the near end of the push-in the stand runs out of the bottom of the
- * source frame, so there is a hard horizontal line where it stops. On a page
- * with no visible frame around the film that line is the only thing that gives
- * away there is a rectangle there at all, and it reads as a clipped video
- * rather than as a crop.
+ * Kept apart from the scroll below for the same reason the 3D stage kept its
+ * framing box apart from its dolly: this is the size of the subject in the
+ * column, and the scroll is what moves it. Fold the two together and there is
+ * no longer a number that answers "how big should the mic be".
  *
- * Fading the last fifth costs nothing to do and nothing to look at: under
- * `screen` black is already invisible, so a mask to transparent and a fade to
- * black are the same picture, and the stand simply runs out of light instead
- * of running into an edge. At the far end of the loop the stand stops well
- * short of here and the mask does nothing at all.
- */
-const EDGE_FADE = 'linear-gradient(to bottom, #000 80%, transparent 99%)' 
-
-/**
- * How much of the column the film is drawn at, as a fraction of its height.
- *
- * Kept apart from the scroll move below for the same reason the 3D stage kept
- * its framing box apart from its dolly: this is the size of the subject in the
- * column, and the move is a modulation of it. Fold the two together and there
- * is no longer a number that answers "how big should the mic be".
- *
- * The film is a push-in, so the mic is not one size in it — even over the
- * widest stretch of the source it grows by half again. 0.62 is set off the
- * *closest* end of that, which is the one that can crowd the column, and it
- * leaves the far end sitting small with air around it.
- *
- * Lower than the 3D piece this replaced sat at, and deliberately. That piece
- * was a whole object: it ended in a weighted base and the frame could be cut
- * to it. The mic in this film has no bottom — the stand runs out of the source
- * frame in every one of its frames, at every zoom, so there is no size at
- * which all of it is on screen. Drawn large, that reads as a clipped video.
- * Drawn small, with the fade above taking the last of the stand, it reads as a
- * mic standing in a dark room, which is the picture the section wants anyway.
+ * The mic in these frames has no bottom — the stand runs out of the source
+ * frame at every zoom, so there is no size at which all of it is on screen.
+ * Drawn large that reads as a clipped video; drawn small, with the fade below
+ * taking the last of the stand, it reads as a mic standing in a dark room,
+ * which is the picture the section wants anyway.
  */
 const FILM_HEIGHT = 0.62
 
-/** The pose a reader who has asked for no motion gets, held still. */
-const STILL_SCALE = 1.02
+/**
+ * The bottom edge, softened.
+ *
+ * The stand leaves the bottom of the frame rather than ending inside it, so
+ * without this there is a hard horizontal line where it stops — the one thing
+ * that gives away there is a rectangle there at all. Fading the last fifth
+ * lets it run out of light instead of into an edge. At the near end of the
+ * push-in the mask is doing real work; at the far end the stand stops well
+ * short of it and it does nothing.
+ */
+const EDGE_FADE = 'linear-gradient(to bottom, #000 80%, transparent 99%)'
+
+/** The frame a reader who has asked for no motion is shown, held still. */
+const STILL = 0.42
+
+type Stage = 'idle' | 'loading' | 'ready' | 'failed'
 
 /**
- * The portrait section: the loop on one side, the bio down the other.
+ * The portrait section: the piece on one side, the bio down the other.
  *
- * The whole point of the layout is that the two are read *together*. The film
+ * The whole point of the layout is that the two are read *together*. The
  * column is pinned for the length of the prose, so the reader is never
  * choosing between the words and the picture — the picture is simply still
- * there, turning, for as long as there is text to the left of it.
+ * there, turning, for as long as there is text to the left of it. That is the
+ * one thing a video of a turntable cannot do, because a video plays at its own
+ * speed and this plays at the reader's.
  *
- * This column held a scroll-driven 3D scan before the film, and the swap gives
- * up one real thing: a model played at the reader's speed, and a film plays at
- * its own. What is kept is the response — the frame still answers the scroll,
- * by easing through a few percent of scale across the section, so the column
- * reads as something the reader is moving through rather than a clip pasted
- * into a pinned box. It is deliberately small. A film that is also being
- * pushed and pulled hard has two motions in it fighting for the same eye.
- *
- * The film is not decoration that happens to move, and it is not loaded like
- * decoration either. Just over a megabyte is a real cost, so it is spent only
- * when two things hold: the reader is within a screen of the section, and they
- * have not asked their browser to save data. When either fails the column
+ * The sequence is not decoration that happens to move, and it is not loaded
+ * like decoration either. A megabyte and a half is a real cost, so it is spent
+ * only when two things hold: the reader is within a screen of the section, and
+ * they have not asked their browser to save data. When either fails the column
  * shows a portrait instead and the section reads exactly the same — the words
- * were never waiting on the film.
+ * were never waiting on the picture.
  */
 export function PortraitStage() {
   const sectionRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const isDesktop = useMediaQuery('(min-width: 768px)')
   const reduced = usePrefersReducedMotion()
 
-  // Whether the bytes have been committed to, and whether they arrived.
-  const [wanted, setWanted] = useState(false)
-  const [playing, setPlaying] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [stage, setStage] = useState<Stage>('idle')
+  const [loaded, setLoaded] = useState(0)
 
-  /* ---------------- when the film is allowed to exist ----------------
+  /** The decoded frames, and which one is currently on the canvas. */
+  const frames = useRef<(HTMLImageElement | undefined)[]>([])
+  const drawn = useRef(-1)
+
+  /** Put frame `i` on the canvas, if it has arrived and is not already there. */
+  const draw = useCallback((i: number) => {
+    const clamped = Math.max(0, Math.min(FRAME_COUNT - 1, i))
+    if (clamped === drawn.current) return
+    const image = frames.current[clamped]
+    const canvas = canvasRef.current
+    if (!image || !canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, FRAME_W, FRAME_H)
+    ctx.drawImage(image, 0, 0, FRAME_W, FRAME_H)
+    drawn.current = clamped
+  }, [])
+
+  /* ---------------- when the sequence is allowed to exist ----------------
      An observer a full viewport ahead of the section, so the download starts
-     while the reader is still in the film above it and the loop is already
-     running when they arrive. It fires once and then stops watching: this is
-     a decision to spend the bytes, and it is not revisited. */
+     while the reader is still in the film above it and the piece is already
+     standing there when they arrive. It fires once and then stops watching:
+     this is a decision to spend the bytes, and it is not revisited. */
   useEffect(() => {
     const section = sectionRef.current
     if (!section) return
@@ -144,7 +145,7 @@ export function PortraitStage() {
       navigator as Navigator & { connection?: { saveData?: boolean } }
     ).connection
     if (connection?.saveData === true) {
-      setFailed(true)
+      setStage('failed')
       return
     }
 
@@ -152,13 +153,61 @@ export function PortraitStage() {
       ([entry]) => {
         if (!entry.isIntersecting) return
         observer.disconnect()
-        setWanted(true)
+        setStage('loading')
       },
       { rootMargin: '100% 0px' },
     )
     observer.observe(section)
     return () => observer.disconnect()
   }, [])
+
+  /* ---------------- loading ----------------
+     Sixty-one small files in flight together. They are counted rather than
+     weighed — they are within a few kilobytes of each other, so a count is the
+     same bar as a byte total, and it does not need every response to be
+     length-computable to draw it.
+
+     The first frame to arrive is painted immediately rather than waited on, so
+     the column stops being empty at the first response instead of the last,
+     and the rest of the load is the picture gaining the ability to move. */
+  useEffect(() => {
+    if (stage !== 'loading') return
+    let cancelled = false
+    let done = 0
+    let failures = 0
+
+    frames.current = new Array(FRAME_COUNT)
+
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      const image = new Image()
+      image.decoding = 'async'
+      image.onload = () => {
+        if (cancelled) return
+        frames.current[i] = image
+        done++
+        setLoaded(done / FRAME_COUNT)
+        // Whatever turned up first, so the wait is a picture rather than a
+        // hole. The usual guard is bypassed only because the canvas is still
+        // empty; every later draw goes through it.
+        if (drawn.current === -1) draw(i)
+        if (done + failures === FRAME_COUNT) setStage('ready')
+      }
+      image.onerror = () => {
+        if (cancelled) return
+        failures++
+        // One missing frame is a hole the scroll passes over without anyone
+        // noticing; a sequence that did not arrive at all is a section with no
+        // picture in it, and that is what the photograph is for.
+        if (failures === FRAME_COUNT) setStage('failed')
+        else if (done + failures === FRAME_COUNT) setStage('ready')
+      }
+      image.src = frameSrc(i)
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [stage, draw])
 
   /* ---------------- what the scroll means ----------------
      Two readings of the same scroll, because the column behaves differently
@@ -178,32 +227,25 @@ export function PortraitStage() {
     { stiffness: 80, damping: 26, mass: 0.6 },
   )
 
-  // Closest at the middle beat, a little back at both ends, which is the shape
-  // the 3D move had: the reader arrives, the shot closes in, the shot opens
-  // out again. A section with a centre, rather than one long push that has to
-  // stop somewhere arbitrary.
-  const scale = useTransform(scrolled, [0, 0.45, 1], [0.99, 1.05, 0.98])
+  /* ---------------- the move ----------------
+     The scroll position, rounded to a frame, drawn. Nothing here touches
+     React: the subscription writes straight to the canvas, so a scroll never
+     causes a render and the sequence costs the page nothing but a drawImage on
+     the frames where the index actually changes.
 
-  /* ---------------- playback ----------------
-     Muted autoplay is granted rather than guaranteed, and the grant is
-     withdrawn in a few real cases — a phone in low-power mode is the common
-     one. So the play attempt is made explicitly and its failure is handled:
-     the poster stays up and the section is a photograph, which is a picture
-     the page is perfectly happy to be. */
+     A reader who has asked for no motion gets one frame and no subscription.
+     A still frame is a photograph, and there is nothing about a photograph to
+     object to — they get the best single frame of the run rather than being
+     stranded at the top of a move they will never see the rest of. */
   useEffect(() => {
-    const video = videoRef.current
-    if (!video || !wanted || reduced) return
-    // The element mounts with no sources — they are added once the observer
-    // decides the bytes are worth spending — and a `<source>` appended after
-    // mount does not on its own re-run the browser's resource selection.
-    // `load()` is what picks them up. Chrome happens to get there anyway via
-    // `play()` on an empty element; Safari is not documented to.
-    if (!video.currentSrc) video.load()
-    video.play().then(
-      () => setPlaying(true),
-      () => setPlaying(false),
-    )
-  }, [wanted, reduced])
+    if (stage === 'idle' || stage === 'failed') return
+    if (reduced) {
+      draw(Math.round(STILL * (FRAME_COUNT - 1)))
+      return
+    }
+    draw(Math.round(scrolled.get() * (FRAME_COUNT - 1)))
+    return scrolled.on('change', (v) => draw(Math.round(v * (FRAME_COUNT - 1))))
+  }, [stage, reduced, scrolled, draw])
 
   const fallback = mediaUrl(PROFILE.portraits[0])
 
@@ -221,7 +263,7 @@ export function PortraitStage() {
                 reads as cut out and pasted on — which, here, it literally is.
                 The page's own starfield shows through from behind; this
                 section paints no ground of its own precisely so that it can,
-                and so that the blend above has something to show through to. */}
+                and the frames' transparency is what lets it. */}
             <div
               className="pointer-events-none absolute inset-0"
               style={{
@@ -230,7 +272,7 @@ export function PortraitStage() {
               }}
             />
 
-            {failed ? (
+            {stage === 'failed' ? (
               <img
                 src={fallback}
                 alt={`${PROFILE.name} — portrait`}
@@ -238,57 +280,43 @@ export function PortraitStage() {
                 className="absolute inset-0 h-full w-full object-cover grayscale-[35%] md:inset-y-[12%] md:h-[76%]"
               />
             ) : (
-              <motion.div
-                className="absolute inset-x-0 top-1/2"
+              <canvas
+                ref={canvasRef}
+                width={FRAME_W}
+                height={FRAME_H}
+                aria-hidden="true"
+                // Height drives the size and the width follows the frames' own
+                // ratio, so the piece keeps its proportions at every column
+                // width without the canvas ever being re-measured.
+                className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                 style={{
                   height: `${FILM_HEIGHT * 100}%`,
-                  y: '-50%',
-                  scale: reduced ? STILL_SCALE : scale,
+                  width: 'auto',
+                  maskImage: EDGE_FADE,
+                  WebkitMaskImage: EDGE_FADE,
                 }}
-              >
-                <video
-                  ref={videoRef}
-                  poster={LOOP_POSTER}
-                  // Not `autoPlay`: the element is mounted before the reader is
-                  // anywhere near it, and autoplay would start the download at
-                  // the top of the page. Playback is asked for above, once the
-                  // observer has decided the bytes are worth spending.
-                  loop
-                  muted
-                  playsInline
-                  preload={wanted ? 'auto' : 'none'}
-                  // A still frame of a mic is a photograph, and there is
-                  // nothing about a photograph for a reader who has asked for
-                  // no motion to object to. They get the poster, held.
-                  onError={() => setFailed(true)}
-                  className="h-full w-full object-contain"
-                  style={{
-                    mixBlendMode: BLEND,
-                    maskImage: EDGE_FADE,
-                    WebkitMaskImage: EDGE_FADE,
-                  }}
-                  aria-hidden="true"
-                >
-                  {wanted && !reduced && (
-                    <>
-                      <source src={LOOP_WEBM} type="video/webm" />
-                      <source src={LOOP_MP4} type="video/mp4" />
-                    </>
-                  )}
-                </video>
-              </motion.div>
+              />
             )}
 
-            {/* The wait, which is a fade rather than a bar. The poster is the
-                film's own first frame, so there is no moment where the column
-                is empty and nothing to measure the wait against: the picture
-                is already the right picture, and the only thing that changes
-                when the file lands is that it starts moving. */}
+            {/* The wait, which is measured rather than spun. A bar that is
+                visibly moving reads as a download, which is what it is, and it
+                degrades honestly: on a fast line the frames are here before it
+                has anything to say and it never appears. */}
             <div
               className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center transition-opacity duration-700 md:bottom-16"
-              style={{ opacity: wanted && !playing && !reduced && !failed ? 1 : 0 }}
+              style={{ opacity: stage === 'loading' ? 1 : 0 }}
             >
-              <p className="mono-label text-[0.5625rem] text-dust">Loading portrait</p>
+              <div className="w-40">
+                <div className="h-px w-full bg-edge">
+                  <div
+                    className="h-px bg-bloom transition-[width] duration-300 ease-out"
+                    style={{ width: `${Math.round(loaded * 100)}%` }}
+                  />
+                </div>
+                <p className="mono-label mt-3 text-center text-[0.5625rem] text-dust">
+                  Loading portrait — {Math.round(loaded * 100)}%
+                </p>
+              </div>
             </div>
           </div>
         </div>
