@@ -8,38 +8,49 @@ import { mediaUrl } from '@/lib/media'
 /**
  * The piece on the stage, as a frame sequence rather than a film.
  *
- * Sixty-one stills of one slow push-in, drawn one at a time against the
- * scroll. That is the whole reason it is not a `<video>`: a film plays at its
- * own speed, and this column is supposed to play at the reader's — the same
- * thing the 3D scan that stood here before it did. A video element can be
+ * A hundred stills of the whole ten-second clip, drawn one at a time against
+ * the scroll. That is the whole reason it is not a `<video>`: a film plays at
+ * its own speed, and this column is supposed to play at the reader's — the
+ * same thing the 3D scan that stood here before it did. A video element can be
  * seeked, but seeking one per scroll event asks the decoder for a keyframe it
  * usually has to walk to, and the result stutters exactly when the reader is
  * paying most attention to it.
  *
- * They carry a real alpha channel, which is the other half of it. The frames
- * were matted out of the painted canvas the clip was generated on, and WebP
- * keeps that as transparency rather than as a colour to be cancelled out
- * later. The earlier cut composited onto black and leaned on
- * `mix-blend-mode: screen` to hide the surround, which works until it does
- * not: Safari routinely gives a `<video>` its own compositing layer and skips
- * the blend, and what the reader gets then is a black rectangle sitting on the
- * page. Transparency has no such failure mode — there is nothing to blend,
- * because there is nothing there.
+ * A hundred steps over the section's seventeen hundred pixels of scroll is a
+ * frame every seventeen, which is what the sequence is sampled at rather than
+ * at the clip's own rate. Sampling every third frame of the thirty a second is
+ * not a loss here: nothing plays, so the only rate that matters is how much
+ * scroll sits between one frame and the next, and by that measure this is
+ * smoother than the shorter run it replaces even though it covers four times
+ * as much of the clip.
+ *
+ * The frames carry a real alpha channel. The source arrives with its
+ * background already lifted to a flat white, and white is not transparent on a
+ * black page — but a flat ground keys far more accurately than a segmentation
+ * model guesses, so the matte is cut from it rather than inferred. What makes
+ * it safe is that the ground is found by what it is *connected to* rather than
+ * by its colour: the mic's chrome has near-white highlights of its own, and
+ * keying on whiteness alone punches holes straight through the grille.
+ *
+ * Transparency rather than `mix-blend-mode: screen` over a black-composited
+ * clip, which is what an earlier cut did. The blend was never reliable —
+ * Safari routinely gives an element its own compositing layer and skips it,
+ * leaving a black rectangle on the page. There is nothing to skip now: the
+ * surround is absent, not cancelled.
  *
  * At the root of public/ and deliberately NOT run through `mediaUrl`, which is
  * where the 3D scan sat and for the same reason: everything under
  * public/media/ is rewritten to the R2 bucket whenever VITE_R2_PUBLIC_URL is
  * set, so an asset filed there has to be uploaded separately before it exists
- * in production. This is a megabyte of interface — the section has no picture
- * at all without it — so it ships with the build, where it cannot fall out of
- * step with the code that references it.
+ * in production. The section has no picture at all without these, so they ship
+ * with the build, where they cannot fall out of step with the code.
  *
- * All sixty-one together come to 1.4 MB, against the 1.5 MB the scan and its
- * renderer cost between them. The sequence is the cheaper of the two.
+ * All hundred together come to 1.7 MB, against the 1.5 MB the scan and its
+ * renderer cost between them.
  */
-const FRAME_COUNT = 61
+const FRAME_COUNT = 100
 const frameSrc = (i: number) =>
-  `/mic-frames/mic-${String(i).padStart(2, '0')}.webp`
+  `/mic-frames/mic-${String(i).padStart(3, '0')}.webp`
 
 /**
  * The frames' own pixel size, which is also the canvas's.
@@ -47,10 +58,15 @@ const frameSrc = (i: number) =>
  * Fixed rather than measured, so the canvas never needs resizing and a window
  * drag never costs a redraw. Every frame was cropped to one box — the union of
  * the subject across the whole run, not each frame's own bounds, or the mic
- * would walk around inside its own frame as it grew — so they are all exactly
+ * would walk around inside its own frame as it moved — so they are all exactly
  * this, and CSS scales the result down into the column.
+ *
+ * The box is wider than the mic needs for most of the run because the clip
+ * turns the mic on its side in the middle of it, and a box that holds the
+ * turn holds everything. The rest of the run simply carries transparent air
+ * either side, which costs almost nothing to encode and nothing to draw.
  */
-const FRAME_W = 302
+const FRAME_W = 381
 const FRAME_H = 760
 
 /**
@@ -62,7 +78,7 @@ const FRAME_H = 760
  * no longer a number that answers "how big should the mic be".
  *
  * The mic in these frames has no bottom — the stand runs out of the source
- * frame at every zoom, so there is no size at which all of it is on screen.
+ * frame throughout, so there is no size at which all of it is on screen.
  * Drawn large that reads as a clipped video; drawn small, with the fade below
  * taking the last of the stand, it reads as a mic standing in a dark room,
  * which is the picture the section wants anyway.
@@ -183,6 +199,13 @@ export function PortraitStage() {
       image.decoding = 'async'
       image.onload = () => {
         if (cancelled) return
+        // Decoded here rather than left for the first `drawImage` that wants
+        // it. An <img> that has loaded has not necessarily been decoded, and
+        // a decode on the drawing path happens inside the scroll handler,
+        // which is the one place in this component that must never block.
+        // `decode()` is advisory and can reject on a detached image, so a
+        // failure just means the old behaviour rather than a broken frame.
+        void image.decode().catch(() => {})
         frames.current[i] = image
         done++
         setLoaded(done / FRAME_COUNT)
