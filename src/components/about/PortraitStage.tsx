@@ -8,17 +8,28 @@ import { mediaUrl } from '@/lib/media'
 /**
  * The loop that stands on the stage, and the frame it is held on until it runs.
  *
- * The size is in the key, like every other media file here: R2 objects carry
- * an immutable one-year cache header, so a re-cut has to land under a new name
- * or the edge keeps serving the old one.
+ * At the root of public/ and deliberately NOT run through `mediaUrl`, which is
+ * the same place and for the same reason as the 3D scan this replaced.
+ * Everything under public/media/ is two things at once: gitignored for video,
+ * and rewritten to the R2 bucket whenever VITE_R2_PUBLIC_URL is set. An asset
+ * that lives there therefore has to be uploaded separately before it exists in
+ * production, and a deploy that forgets shows the fallback photograph instead.
+ *
+ * This loop is not that kind of asset. It is a megabyte of interface — the
+ * section has no picture at all without it — rather than one of the
+ * performance recordings the bucket exists to hold, so it ships with the
+ * build, where it cannot be out of step with the code that references it.
+ *
+ * The size is still in the name: a re-cut lands under a new one, so nothing
+ * downstream can serve a stale file it already has.
  *
  * Two encodings of the same cut rather than one. The `.webm` is the smaller
  * file and the `.mp4` is the one that plays everywhere, and a `<source>` list
  * costs nothing — the browser picks one and downloads only that.
  */
-const LOOP_WEBM = '/media/video/mic-loop-720.webm'
-const LOOP_MP4 = '/media/video/mic-loop-720.mp4'
-const LOOP_POSTER = '/media/posters/mic-loop.jpg'
+const LOOP_WEBM = '/mic-loop-720.webm'
+const LOOP_MP4 = '/mic-loop-720.mp4'
+const LOOP_POSTER = '/mic-loop-poster.jpg'
 
 /**
  * How the surround is got rid of.
@@ -182,6 +193,12 @@ export function PortraitStage() {
   useEffect(() => {
     const video = videoRef.current
     if (!video || !wanted || reduced) return
+    // The element mounts with no sources — they are added once the observer
+    // decides the bytes are worth spending — and a `<source>` appended after
+    // mount does not on its own re-run the browser's resource selection.
+    // `load()` is what picks them up. Chrome happens to get there anyway via
+    // `play()` on an empty element; Safari is not documented to.
+    if (!video.currentSrc) video.load()
     video.play().then(
       () => setPlaying(true),
       () => setPlaying(false),
@@ -231,7 +248,7 @@ export function PortraitStage() {
               >
                 <video
                   ref={videoRef}
-                  poster={mediaUrl(LOOP_POSTER)}
+                  poster={LOOP_POSTER}
                   // Not `autoPlay`: the element is mounted before the reader is
                   // anywhere near it, and autoplay would start the download at
                   // the top of the page. Playback is asked for above, once the
@@ -254,8 +271,8 @@ export function PortraitStage() {
                 >
                   {wanted && !reduced && (
                     <>
-                      <source src={mediaUrl(LOOP_WEBM)} type="video/webm" />
-                      <source src={mediaUrl(LOOP_MP4)} type="video/mp4" />
+                      <source src={LOOP_WEBM} type="video/webm" />
+                      <source src={LOOP_MP4} type="video/mp4" />
                     </>
                   )}
                 </video>
