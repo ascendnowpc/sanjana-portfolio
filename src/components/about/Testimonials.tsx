@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { motion, useScroll, useSpring, useTransform } from 'framer-motion'
 import type { Testimonial } from '@/types/content'
-import { TESTIMONIALS } from '@/data/site'
+import { useTestimonials, useUi } from '@/content/ContentProvider'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 
@@ -13,7 +13,7 @@ import { mediaUrl } from '@/lib/media'
  * cards are crossing, and a reader who scrolls back up has to find it exactly
  * where they left it.
  */
-const HEADING = 'Testimonials'
+/* The word itself is `ui.testimonials.heading`. */
 
 /**
  * How far off square each card is laid.
@@ -232,6 +232,8 @@ function Card({
  * the horizontal run was only ever the way they are paced.
  */
 export function Testimonials() {
+  const items = useTestimonials()
+  const ui = useUi()
   const sectionRef = useRef<HTMLElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const reduced = usePrefersReducedMotion()
@@ -274,7 +276,7 @@ export function Testimonials() {
       className="font-[family-name:var(--font-poster)] leading-[0.86] tracking-[0.012em] text-dust/75 uppercase"
       style={{ fontSize: 'clamp(2.6rem, 14.5vw, 20rem)' }}
     >
-      {HEADING}
+      {ui.testimonials.heading}
     </h2>
   )
 
@@ -284,8 +286,8 @@ export function Testimonials() {
         <div className="mx-auto max-w-[1600px]">
           {heading}
           <div className="mt-20 grid gap-x-10 gap-y-24 sm:grid-cols-2 xl:grid-cols-3">
-            {TESTIMONIALS.map((item, i) => (
-              <Card key={item.source} item={item} index={i} />
+            {items.map((item, i) => (
+              <Card key={`${item.source}-${i}`} item={item} index={i} />
             ))}
           </div>
         </div>
@@ -316,9 +318,9 @@ export function Testimonials() {
           style={{ x, y: '-50%' }}
           className="absolute top-1/2 left-full flex w-max items-start gap-[9vw] pr-[9vw] will-change-transform md:gap-[5.5vw] md:pr-[7vw]"
         >
-          {TESTIMONIALS.map((item, i) => (
+          {items.map((item, i) => (
             <Card
-              key={item.source}
+              key={`${item.source}-${i}`}
               item={item}
               index={i}
               className="w-[80vw] max-w-[25rem] shrink-0 sm:w-[52vw] md:w-[36vw] lg:w-[27vw]"

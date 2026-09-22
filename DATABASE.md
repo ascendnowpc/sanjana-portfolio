@@ -132,6 +132,40 @@ So a database outage degrades to a stale-but-working site rather than a blank
 page. Keep `src/data/performances.ts` populated for that reason, even after
 Supabase is live.
 
+### Where the admin panel sits in that order
+
+`src/lib/contentStore.ts` stacks three layers, lowest authority first:
+
+1. the bundled defaults in `src/data/`;
+2. Supabase, when it is configured, replacing the archive and the profile;
+3. the edits saved by `/admin`, in that browser's `localStorage`.
+
+Layer 3 wins, and it is per-browser: a change made in the panel is visible to
+whoever made it and to nobody else. The panel's **Export JSON** is what closes
+that gap — the exported values go back into `src/data/`, or into the tables
+below.
+
+## Making the panel write to the database
+
+The panel reads through the same repository as everything else, so pointing its
+*writes* at Supabase is the natural next step. It is deliberately not wired up
+yet, because doing it safely needs something this site does not have:
+
+- The anon key in the browser is read-only by construction — the schema grants
+  public `select` and defines no write policy. That is what makes it safe to
+  ship.
+- A key that *could* write would also be in the bundle, so anyone could write.
+  Adding an `insert`/`update` policy for `anon` hands the archive to the
+  internet.
+
+The supported shape is **Supabase Auth**: add a policy that allows writes to
+`authenticated` only, replace the panel's password prompt with
+`signInWithPassword`, and have Save issue `upsert`s instead of writing to
+`localStorage`. The password then lives in Supabase rather than in the bundle,
+and the door is a real one. Until that exists, treat `/admin` as a drafting
+surface with an export button, which is what it says it is on its own Access
+tab.
+
 ## If you outgrow the free tier
 
 The first limit you'll hit is bandwidth, and it will be media, not rows — which

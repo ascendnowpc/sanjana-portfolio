@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { PROFILE } from '@/data/site'
+import { useProfile } from '@/content/ContentProvider'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 
 /**
@@ -14,6 +14,7 @@ import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
  * this lifts as soon as the posters are in.
  */
 export function Preloader() {
+  const profile = useProfile()
   const reduced = usePrefersReducedMotion()
   const [done, setDone] = useState(reduced)
 
@@ -47,7 +48,7 @@ export function Preloader() {
               animate={{ opacity: 1, letterSpacing: '0.42em' }}
               transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
             >
-              {PROFILE.name}
+              {profile.name}
             </motion.p>
             <motion.span
               className="mt-6 block h-px bg-bloom"

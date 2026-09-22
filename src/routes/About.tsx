@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { PROFILE } from '@/data/site'
-import { usePerformances } from '@/hooks/useContent'
+import { usePerformances, useProfile, useUi } from '@/content/ContentProvider'
+import { fill } from '@/lib/copy'
 import { Overture } from '@/components/ui/Overture'
 import { MusicShelf } from '@/components/audio/MusicShelf'
 import { PortraitStage } from '@/components/about/PortraitStage'
@@ -9,15 +9,16 @@ import { Testimonials } from '@/components/about/Testimonials'
 import { Starfield } from '@/components/layout/Starfield'
 import { mediaUrl } from '@/lib/media'
 
-/**
- * The looping film the About page opens on.
+/*
+ * The looping film this page opens on is `ui.about.film`, with its first frame
+ * in `ui.about.filmPoster`.
  *
  * The size is in the key on purpose. R2 objects carry an immutable one-year
  * cache header, so a re-cut has to land under a new name or browsers and the
  * edge keep serving the old file — the same rule the preview clips follow.
+ * That is worth knowing before either field is edited from the panel: pointing
+ * this at a key that has already been served once will not change what plays.
  */
-const ABOUT_FILM = '/media/video/about-intro-1080.mp4'
-const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
 
 /**
  * The page about Sanjana.
@@ -37,6 +38,8 @@ const ABOUT_FILM_POSTER = '/media/posters/about-intro.jpg'
  */
 export default function About() {
   const { items } = usePerformances()
+  const profile = useProfile()
+  const ui = useUi()
 
   const stripRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
@@ -65,7 +68,7 @@ export default function About() {
 
       <div className="relative z-10">
         {/* ---------------- 1. the room opens ---------------- */}
-        <Overture src={ABOUT_FILM} poster={ABOUT_FILM_POSTER}>
+        <Overture src={ui.about.film} poster={ui.about.filmPoster}>
           {/* Two deliberate lines, not a wrap: at this weight the break is part
               of the composition, and letting the viewport choose it strands a
               single word on line two on half the screens it renders at.
@@ -91,9 +94,15 @@ export default function About() {
             className="font-[family-name:var(--font-poster)] leading-[1.06] tracking-[0.012em] text-white uppercase"
             style={{ fontSize: 'clamp(2.3rem, 10.6vw, 16rem)' }}
           >
-            A voice for every
-            <br />
-            room it enters
+            {/* One line per entry, with the breaks between them. The break is
+                part of the composition at this weight — see the note above —
+                so it is authored rather than left to the viewport. */}
+            {ui.about.headline.map((line, i) => (
+              <span key={i}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
           </h1>
         </Overture>
 
@@ -135,7 +144,7 @@ export default function About() {
               className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1/2 text-center font-[family-name:var(--font-poster)] leading-[0.8] tracking-[0.01em] text-edge/60 uppercase select-none"
               style={{ fontSize: 'clamp(4rem, 15vw, 14rem)' }}
             >
-              {PROFILE.name}
+              {profile.name}
             </p>
 
             {/* The stack. Flush — no gap and no gutter, so the five read as
@@ -155,7 +164,7 @@ export default function About() {
               style={{ x: stripX }}
               className="relative mx-auto flex w-[78%]"
             >
-              {PROFILE.portraits.slice(0, 5).map((src, i) => (
+              {profile.portraits.slice(0, 5).map((src, i) => (
                 <motion.div
                   key={src}
                   className="relative min-w-0 flex-1 overflow-hidden bg-ink"
@@ -171,7 +180,10 @@ export default function About() {
                 >
                   <img
                     src={mediaUrl(src)}
-                    alt={`${PROFILE.name} — portrait ${i + 1}`}
+                    alt={fill(ui.about.portraitAlt, {
+                      name: profile.name,
+                      n: i + 1,
+                    })}
                     loading="lazy"
                     className="h-full w-full object-cover grayscale-[35%] transition-all duration-1000 hover:scale-105 hover:grayscale-0"
                   />

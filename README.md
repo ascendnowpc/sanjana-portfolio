@@ -30,6 +30,7 @@ npm run preview
 | `/work/:slug` | A performance: video, recording, credits, stills |
 | `/about` | Editorial bio, portrait strip, stats, press |
 | `/contact` | Booking enquiry form |
+| `/admin` | The content panel — password, then every editable value on the site |
 
 `/work` reads `?category=` (`solo-concert`, `musical-theatre`,
 `classical-repertoire`, `hindi-singing`, `honor-choir`, `collaboration`) and
@@ -139,6 +140,60 @@ the bars near the playhead reacting to a live `AnalyserNode`.
 
 Drop real files in and the same component switches to `file` mode untouched.
 
+## The admin panel
+
+Everything the site says is editable from `/admin`, reached from the **Admin
+login** link at the foot of every page. The password is in
+`DEFAULT_CONTENT.admin.password` in `src/lib/contentStore.ts`, and can be
+changed from the panel's own Access tab.
+
+Six tabs, between them covering the whole content model:
+
+| Tab | What it edits |
+|---|---|
+| Profile | Name, role, tagline, bio, training, portraits, press, stats, contacts, social links |
+| About page | The opening statement and film, the portrait column, the testimonial cards |
+| Performances | All 36 archive entries — every field, plus their tracks, credits and stills |
+| Disciplines | The six categories, their accents and cover art, and the recording the index opens on |
+| Site text | Every other word on the site: headings, buttons, filter keys, form labels, the welcome sentence, the sound question, the 404 page, and the labels a screen reader hears instead of an icon |
+| Access & data | The password, and export / import / reset |
+
+**Where edits live.** In the editor's own browser, in `localStorage`. They
+survive a reload and outlive the tab; they do not reach another device or
+another visitor. That is the honest ceiling for a site with no server of its
+own — there is nowhere else to put them that does not require a secret this
+bundle would have to ship.
+
+So the panel is a drafting surface, and **Export JSON** is how a draft becomes
+a deploy: hand the file to whoever builds the site and its values replace the
+defaults in `src/data/`, or load the archive rows into Supabase
+([DATABASE.md](./DATABASE.md)).
+
+**What the password is worth.** It keeps a passer-by out of the panel. It is
+checked in the browser, so it is also shipped to the browser: anyone who reads
+the built JavaScript can read it, and anyone who opens devtools can set the
+flag it guards without it. Nothing behind it is private — every field is
+content the site already displays — but do not reuse a password from anywhere
+else, and do not treat `/admin` as a secure area. Real protection needs a
+server holding both the password and the content.
+
+### How it is wired
+
+```
+src/data/*.ts            the defaults — what a fresh browser sees
+  └─ src/lib/contentStore.ts   merges: defaults → Supabase → saved edits
+       └─ src/content/ContentProvider.tsx   serves it to the tree
+            └─ every component, via useProfile() / useUi() / usePerformances()
+```
+
+Saved edits win over both layers below them; a field added to the model later
+still picks up its default, because the saved blob is re-merged over the
+defaults on every read rather than replacing them.
+
+The invariant worth keeping: **a string a component holds itself is a string
+nobody can edit.** New copy goes in `src/data/ui.ts` and is read through
+`useUi()`, never typed into the JSX.
+
 ## Putting the real content in
 
 **Media.** Everything lives in `public/media/`. Drop files in and point the
@@ -162,8 +217,11 @@ degrade to a slow Ken Burns move on the poster when it is missing, so the site
 is complete and shippable before any footage is cut. Add the field and the
 video appears — in the tile on hover, and as the hero player on the page.
 
-**Copy.** `src/data/performances.ts` (the catalogue), `src/data/site.ts` (bio,
-links, press), `src/data/categories.ts` (the four sections and their accents).
+**Copy.** Either edit `/admin` and export, or edit the defaults directly:
+`src/data/performances.ts` (the catalogue), `src/data/site.ts` (bio, links,
+press, testimonials), `src/data/categories.ts` (the six sections and their
+accents), `src/data/music.ts` (cover art, the index's own recording) and
+`src/data/ui.ts` (every other word on the site).
 
 **Placeholder artwork.** The stage stills are generated, not photographed:
 
@@ -189,16 +247,20 @@ src/
 │   ├── media/       VideoStage, LoopingPreview
 │   ├── works/       the /work index: IndexRow, WorkFrame, Segmented
 │   ├── layout/      Nav, Footer, Cursor, Preloader, route transition
+│   ├── admin/       the panel's form vocabulary and its six tab editors
 │   └── ui/          Reveal, SplitText, Marquee, MagneticLink
-├── routes/          Home, Work, WorkDetail, About, Contact, NotFound
-├── data/            all content — the single place to edit copy
-├── lib/             content repository, Supabase client, helpers
-├── hooks/           useAudioEngine, usePointer, useMediaQuery, useContent
+├── content/         ContentProvider — live content for the whole tree
+├── routes/          Home, Work, WorkDetail, About, Contact, Admin, NotFound
+├── data/            all content — the defaults the panel edits
+├── lib/             content store, content repository, Supabase client, helpers
+├── hooks/           useAudioEngine, usePointer, useMediaQuery
 └── types/           the content model everything speaks
 ```
 
-`src/lib/content.ts` is the only file that knows where content comes from, so
-switching to a database never touches a component.
+`src/lib/content.ts` is the only file that knows where content comes *from*, and
+`src/lib/contentStore.ts` the only one that decides which layer wins — so
+switching to a database, or editing through the panel, never touches a
+component.
 
 ## Design
 

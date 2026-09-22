@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
 import type { CategoryId, Performance, Track } from '@/types/content'
-import { CATEGORIES } from '@/data/categories'
-import { MUSIC_COVERS } from '@/data/music'
-import { PROFILE } from '@/data/site'
+import {
+  useCategories,
+  useMusicCopy,
+  useProfile,
+  useUi,
+} from '@/content/ContentProvider'
 import { Reveal } from '@/components/ui/Reveal'
 import { AlbumCard } from '@/components/audio/AlbumCard'
 
@@ -31,7 +34,8 @@ const NARROW_PER_WIDE = 2
  * Nothing here is a second copy of the work. A card *is* its category — every
  * recording filed under it, in the order it was performed — so a new piece in
  * `performances.ts` turns up in the right card with nothing else to edit. The
- * only hand-picked value is the cover, in `data/music.ts`.
+ * only hand-picked value is the cover, in `music.covers` — editable from the
+ * admin panel like everything else.
  *
  * Two columns of unequal width — the wide one nearly twice the narrow — which
  * is what gives the shelf its stagger: the left card runs deeper than the
@@ -43,6 +47,11 @@ const NARROW_PER_WIDE = 2
  * NARROW_PER_WIDE.
  */
 export function MusicShelf({ items }: { items: Performance[] }) {
+  const profile = useProfile()
+  const ui = useUi()
+  const categories = useCategories()
+  const { covers } = useMusicCopy()
+
   const albums = useMemo<Album[]>(() => {
     const byCategory = new Map<CategoryId, Performance[]>()
     for (const p of items) {
@@ -51,7 +60,7 @@ export function MusicShelf({ items }: { items: Performance[] }) {
       else byCategory.set(p.category, [p])
     }
 
-    return CATEGORIES.flatMap((c) => {
+    return categories.flatMap((c) => {
       // Archive order, untouched. `year` is an export stamp on a good
       // half of this footage — the file's date, not the performance's —
       // so sorting on it put several disciplines in backwards. The array
@@ -66,13 +75,13 @@ export function MusicShelf({ items }: { items: Performance[] }) {
         {
           id: c.id,
           album: c.label,
-          cover: MUSIC_COVERS[c.id] ?? pieces[pieces.length - 1]?.poster,
+          cover: covers[c.id] ?? pieces[pieces.length - 1]?.poster,
           tracks,
           href: `/work?category=${c.id}`,
         },
       ]
     }).sort((a, b) => b.tracks.length - a.tracks.length)
-  }, [items])
+  }, [items, categories, covers])
 
   const columns = useMemo(() => {
     const packed: Album[][] = [[], []]
@@ -103,7 +112,7 @@ export function MusicShelf({ items }: { items: Performance[] }) {
           className="font-[family-name:var(--font-poster)] leading-none tracking-[0.012em] text-chalk uppercase"
           style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}
         >
-          Music
+          {ui.music.heading}
         </h2>
       </Reveal>
 
@@ -118,7 +127,7 @@ export function MusicShelf({ items }: { items: Performance[] }) {
                 <AlbumCard
                   id={a.id}
                   album={a.album}
-                  artist={PROFILE.name}
+                  artist={profile.name}
                   cover={a.cover}
                   tracks={a.tracks}
                   href={a.href}
