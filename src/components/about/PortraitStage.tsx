@@ -130,23 +130,79 @@ export function PortraitStage() {
   const [stage, setStage] = useState<Stage>('idle')
   const [loaded, setLoaded] = useState(0)
 
-  /** The decoded frames, and which one is currently on the canvas. */
+  /** The decoded frames, and the blended position currently on the canvas. */
   const frames = useRef<(HTMLImageElement | undefined)[]>([])
   const drawn = useRef(-1)
 
-  /** Put frame `i` on the canvas, if it has arrived and is not already there. */
-  const draw = useCallback((i: number) => {
-    const clamped = Math.max(0, Math.min(FRAME_COUNT - 1, i))
-    if (clamped === drawn.current) return
-    const image = frames.current[clamped]
-    const canvas = canvasRef.current
-    if (!image || !canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0, 0, FRAME_W, FRAME_H)
-    ctx.drawImage(image, 0, 0, FRAME_W, FRAME_H)
-    drawn.current = clamped
+  /**
+   * The nearest frame to `i` that has actually arrived.
+   *
+   * The sequence paints from the first response rather than the last, so for
+   * the first second or so of loading most of the array is still empty.
+   * Searching outward means an early scroll shows the closest picture there is
+   * instead of nothing at all, and the run fills in underneath it.
+   */
+  const nearest = useCallback((i: number) => {
+    for (let d = 0; d < FRAME_COUNT; d++) {
+      if (frames.current[i - d]) return frames.current[i - d]
+      if (frames.current[i + d]) return frames.current[i + d]
+    }
+    return undefined
   }, [])
+
+  /**
+   * Put the sequence at `exact` — a position between frames, not a frame.
+   *
+   * The two frames either side of it are drawn, the second at the alpha of
+   * whatever fraction sits between them, so the picture changes on every
+   * painted frame rather than only on the ones where the rounded index
+   * happens to tick over. That is the whole of the smoothness: with a hundred
+   * and fifty stills over seventeen hundred pixels of scroll, rounding to the
+   * nearest leaves the mic changing about twice for every three times the
+   * browser paints, which is a ten-to-thirty-frames-a-second picture inside a
+   * sixty-frames-a-second page. Blending fills in the between.
+   *
+   * It is a dissolve rather than a true interpolation — nothing here invents a
+   * position the clip never held — so on the fastest part of the turn the two
+   * are briefly visible at once. At this spacing that reads as motion blur,
+   * which is what a real camera would have put there anyway.
+   */
+  const drawAt = useCallback(
+    (exact: number) => {
+      const clamped = Math.max(0, Math.min(FRAME_COUNT - 1, exact))
+      const first = Math.floor(clamped)
+      const blend = clamped - first
+      // Quantised before the equality check, or a spring that is still
+      // settling by thousandths redraws forever after the picture has stopped
+      // visibly changing.
+      const key = first * 64 + Math.round(blend * 63)
+      if (key === drawn.current) return
+
+      const canvas = canvasRef.current
+      const ctx = canvas?.getContext('2d')
+      if (!ctx) return
+      const a = nearest(first)
+      if (!a) return
+
+      ctx.clearRect(0, 0, FRAME_W, FRAME_H)
+      ctx.globalAlpha = 1
+      ctx.drawImage(a, 0, 0, FRAME_W, FRAME_H)
+      if (blend > 0) {
+        // The exact neighbour, not the nearest one. Mid-load the frame after
+        // this may not have arrived, and dissolving towards whatever *has*
+        // would blend across a gap of ten frames and read as a flicker. No
+        // neighbour simply means no blend until it lands.
+        const b = frames.current[first + 1]
+        if (b && b !== a) {
+          ctx.globalAlpha = blend
+          ctx.drawImage(b, 0, 0, FRAME_W, FRAME_H)
+          ctx.globalAlpha = 1
+        }
+      }
+      drawn.current = key
+    },
+    [nearest],
+  )
 
   /* ---------------- when the sequence is allowed to exist ----------------
      An observer a full viewport ahead of the section, so the download starts
@@ -212,7 +268,7 @@ export function PortraitStage() {
         // Whatever turned up first, so the wait is a picture rather than a
         // hole. The usual guard is bypassed only because the canvas is still
         // empty; every later draw goes through it.
-        if (drawn.current === -1) draw(i)
+        if (drawn.current === -1) drawAt(i)
         if (done + failures === FRAME_COUNT) setStage('ready')
       }
       image.onerror = () => {
@@ -230,7 +286,7 @@ export function PortraitStage() {
     return () => {
       cancelled = true
     }
-  }, [stage, draw])
+  }, [stage, drawAt])
 
   /* ---------------- what the scroll means ----------------
      Two readings of the same scroll, because the column behaves differently
@@ -251,10 +307,16 @@ export function PortraitStage() {
   )
 
   /* ---------------- the move ----------------
-     The scroll position, rounded to a frame, drawn. Nothing here touches
-     React: the subscription writes straight to the canvas, so a scroll never
-     causes a render and the sequence costs the page nothing but a drawImage on
-     the frames where the index actually changes.
+     The scroll position, drawn. Nothing here touches React: the subscription
+     writes to a ref and the canvas is painted from it, so a scroll never
+     causes a render.
+
+     The draw is deferred to an animation frame rather than run inside the
+     spring's callback, and at most one is scheduled at a time. A spring can
+     emit more than once between two paints, and drawing on each of those is
+     work the screen never shows; this way the picture is computed once per
+     frame the browser is actually going to paint, which is also the only
+     cadence at which the blend above means anything.
 
      A reader who has asked for no motion gets one frame and no subscription.
      A still frame is a photograph, and there is nothing about a photograph to
@@ -263,12 +325,31 @@ export function PortraitStage() {
   useEffect(() => {
     if (stage === 'idle' || stage === 'failed') return
     if (reduced) {
-      draw(Math.round(STILL * (FRAME_COUNT - 1)))
+      drawAt(STILL * (FRAME_COUNT - 1))
       return
     }
-    draw(Math.round(scrolled.get() * (FRAME_COUNT - 1)))
-    return scrolled.on('change', (v) => draw(Math.round(v * (FRAME_COUNT - 1))))
-  }, [stage, reduced, scrolled, draw])
+
+    let raf = 0
+    let want = scrolled.get() * (FRAME_COUNT - 1)
+    drawAt(want)
+
+    const schedule = () => {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        drawAt(want)
+      })
+    }
+
+    const unsubscribe = scrolled.on('change', (v) => {
+      want = v * (FRAME_COUNT - 1)
+      schedule()
+    })
+    return () => {
+      if (raf) cancelAnimationFrame(raf)
+      unsubscribe()
+    }
+  }, [stage, reduced, scrolled, drawAt])
 
   const fallback = mediaUrl(PROFILE.portraits[0])
 
