@@ -3,6 +3,7 @@ import type { Track } from '@/types/content'
 import { useAudioEngine } from '@/hooks/useAudioEngine'
 import { clamp, formatTime, hashString, seededRandom } from '@/lib/utils'
 import { mediaUrl } from '@/lib/media'
+import { useUi } from '@/content/ContentProvider'
 
 const BAR_COUNT = 96
 
@@ -34,7 +35,12 @@ interface Props {
  * Bar heights are written straight to the DOM from one rAF loop; React only
  * re-renders on track change and on the ~10Hz clock tick.
  */
-export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
+export function WaveformPlayer({ tracks, accent, label }: Props) {
+  const ui = useUi()
+  // Falls back to the editable default rather than to a literal, so the one
+  // caller that passes no label and the one that builds `Listen — {venue}`
+  // stay the same word.
+  const eyebrow = label ?? ui.player.listen
   const [index, setIndex] = useState(0)
   const track = tracks[index]
   const seed = useMemo(() => hashString(track?.id ?? 'x'), [track?.id])
@@ -127,7 +133,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
     <section className="w-full">
       <header className="mb-6 flex items-end justify-between gap-6 border-b border-edge/60 pb-4">
         <div>
-          <p className="label text-dust">{label}</p>
+          <p className="label text-dust">{eyebrow}</p>
           <h3 className="tracked-tight mt-2 text-lg text-chalk md:text-xl">
             {track.title}
           </h3>
@@ -178,7 +184,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
         <button
           type="button"
           onClick={() => select(index - 1)}
-          aria-label="Previous track"
+          aria-label={ui.player.previous}
           className="text-mist transition-colors hover:text-chalk"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -189,7 +195,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
         <button
           type="button"
           onClick={toggle}
-          aria-label={playing ? 'Pause' : 'Play'}
+          aria-label={playing ? ui.player.pause : ui.player.play}
           className="group relative flex h-14 w-14 items-center justify-center rounded-full border transition-all duration-500"
           style={{
             borderColor: `${accent}66`,
@@ -219,7 +225,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
         <button
           type="button"
           onClick={() => select(index + 1)}
-          aria-label="Next track"
+          aria-label={ui.player.next}
           className="text-mist transition-colors hover:text-chalk"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -228,7 +234,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
         </button>
 
         <label className="ml-auto flex items-center gap-3">
-          <span className="label text-dust">Vol</span>
+          <span className="label text-dust">{ui.player.volumeShort}</span>
           <input
             type="range"
             min={0}
@@ -236,7 +242,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
             step={0.01}
             value={engine.volume}
             onChange={(e) => engine.setVolume(Number(e.target.value))}
-            aria-label="Volume"
+            aria-label={ui.player.volume}
             className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-edge accent-bloom"
             style={{ accentColor: accent }}
           />
@@ -245,9 +251,7 @@ export function WaveformPlayer({ tracks, accent, label = 'Listen' }: Props) {
 
       {engine.mode === 'demo' && (
         <p className="mt-4 text-[0.68rem] font-light tracking-wide text-dust">
-          No audio file attached yet — the transport is running a synthesised
-          reference tone so the player can be tested. Drop an mp3 at{' '}
-          <code className="text-mist">audioSrc</code> to hear the real take.
+          {ui.player.demoNote}
         </p>
       )}
 

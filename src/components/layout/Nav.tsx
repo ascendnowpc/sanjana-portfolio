@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { PROFILE } from '@/data/site'
+import { useProfile, useUi } from '@/content/ContentProvider'
 import { TROUGH, chip } from '@/components/works/Segmented'
 import { cn } from '@/lib/utils'
 
@@ -21,21 +21,19 @@ import { cn } from '@/lib/utils'
  * grey trough says the same thing in the same language as everything below it.
  */
 
-const SECTIONS = [
-  { to: '/work', label: 'Work' },
-  { to: '/about', label: 'About' },
-]
-
-/** The one thing the bar asks for, always lit — the reference's right-hand
- *  button is white whichever page you are on, because it is the errand rather
- *  than a place you might already be. */
-const CTA = { to: '/contact', label: 'Contact' }
-
-const ALL = [...SECTIONS, CTA]
+/* The sections, and the one thing the bar asks for, both come out of the
+   editable copy now — see `ui.nav`. The CTA is always lit, the way the
+   reference's right-hand button is white whichever page you are on, because
+   it is the errand rather than a place you might already be. */
 
 export function Nav() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
+  const profile = useProfile()
+  const ui = useUi()
+  const sections = ui.nav.sections
+  const cta = ui.nav.cta
+  const all = [...sections, cta]
 
   useEffect(() => setOpen(false), [pathname])
 
@@ -57,9 +55,9 @@ export function Nav() {
               // key, and it sits directly on the well, not in a chip.
               className="tracked px-2.5 text-sm text-white transition-opacity duration-300 hover:opacity-70 md:px-3"
             >
-              {PROFILE.name}
+              {profile.name}
             </Link>
-            {SECTIONS.map((l) => (
+            {sections.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
@@ -71,15 +69,15 @@ export function Nav() {
           </div>
 
           <div className={cn(TROUGH, 'hidden md:flex')}>
-            <NavLink to={CTA.to} className={chip(true)}>
-              {CTA.label}
+            <NavLink to={cta.to} className={chip(true)}>
+              {cta.label}
             </NavLink>
           </div>
 
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-label={open ? ui.nav.closeMenu : ui.nav.openMenu}
             aria-expanded={open}
             className="flex h-8 w-8 flex-col items-end justify-center gap-1.5 md:hidden"
           >
@@ -108,7 +106,7 @@ export function Nav() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35 }}
           >
-            {ALL.map((l, i) => (
+            {all.map((l, i) => (
               <motion.div
                 key={l.to}
                 initial={{ opacity: 0, y: 24 }}
@@ -120,7 +118,7 @@ export function Nav() {
                 <NavLink
                   to={l.to}
                   className={cn(
-                    chip(l === CTA || at(l.to)),
+                    chip(l === cta || at(l.to)),
                     'block px-8 py-4 text-sm',
                   )}
                 >

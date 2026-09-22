@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useUi } from '@/content/ContentProvider'
+import { fill } from '@/lib/copy'
 import type { Track } from '@/types/content'
 import { useAudioEngine } from '@/hooks/useAudioEngine'
 import { formatClock, hashString } from '@/lib/utils'
@@ -53,6 +55,7 @@ export function AlbumCard({
   active,
   onPlay,
 }: Props) {
+  const ui = useUi()
   const [index, setIndex] = useState(0)
   const [listOpen, setListOpen] = useState(true)
   const [missing, setMissing] = useState(false)
@@ -154,13 +157,14 @@ export function AlbumCard({
       {/* ---------------- header row ---------------- */}
       <div className="mb-3.5 flex items-center justify-between gap-3 md:mb-5">
         <span className={`${ghost} text-chalk/70`}>
-          {tracks.length} {tracks.length === 1 ? 'Recording' : 'Recordings'}
+          {tracks.length}{' '}
+          {tracks.length === 1 ? ui.music.recording : ui.music.recordings}
         </span>
         <Link
           to={href}
           className={`${ghost} text-chalk hover:border-gilt/70 hover:text-gilt`}
         >
-          Watch <span aria-hidden="true">↗</span>
+          {ui.music.watch} <span aria-hidden="true">↗</span>
         </Link>
       </div>
 
@@ -172,7 +176,7 @@ export function AlbumCard({
       <button
         type="button"
         onClick={onToggle}
-        aria-label={`${playing ? 'Pause' : 'Play'} ${track.title}`}
+        aria-label={`${playing ? ui.music.pause : ui.music.play} ${track.title}`}
         className="sleeve-frame block w-full"
       >
         <span className="sleeve block aspect-[4/5] w-full overflow-hidden bg-abyss">
@@ -204,7 +208,7 @@ export function AlbumCard({
         <button
           type="button"
           onClick={onToggle}
-          aria-label={playing ? 'Pause' : 'Play'}
+          aria-label={playing ? ui.music.pause : ui.music.play}
           className="shrink-0 text-chalk transition-colors duration-300 hover:text-gilt"
         >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
@@ -219,7 +223,7 @@ export function AlbumCard({
         <button
           type="button"
           onClick={() => go(index - 1)}
-          aria-label="Previous recording"
+          aria-label={ui.music.previous}
           className="shrink-0 text-chalk transition-colors duration-300 hover:text-gilt"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
@@ -230,7 +234,7 @@ export function AlbumCard({
         <button
           type="button"
           onClick={() => go(index + 1)}
-          aria-label="Next recording"
+          aria-label={ui.music.next}
           className="shrink-0 text-chalk transition-colors duration-300 hover:text-gilt"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
@@ -244,7 +248,7 @@ export function AlbumCard({
           ref={barRef}
           role="slider"
           tabIndex={0}
-          aria-label={`Seek within ${track.title}`}
+          aria-label={fill(ui.music.seek, { title: track.title })}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(progress * 100)}
@@ -307,7 +311,7 @@ export function AlbumCard({
           <button
             type="button"
             onClick={() => engine.setVolume(engine.volume > 0 ? 0 : 0.8)}
-            aria-label={engine.volume > 0 ? 'Mute' : 'Unmute'}
+            aria-label={engine.volume > 0 ? ui.music.mute : ui.music.unmute}
             className="text-chalk transition-colors duration-300 hover:text-gilt"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -329,7 +333,7 @@ export function AlbumCard({
             step={0.01}
             value={engine.volume}
             onChange={(e) => engine.setVolume(Number(e.target.value))}
-            aria-label="Volume"
+            aria-label={ui.music.volume}
             // pointer-events matter as much as the width: a range input paints
             // its thumb outside its box, so a collapsed w-0 slider still sits
             // over the speaker icon and eats the click that would open it.
@@ -342,7 +346,7 @@ export function AlbumCard({
           type="button"
           onClick={() => setListOpen((v) => !v)}
           aria-expanded={listOpen}
-          aria-label={listOpen ? 'Hide the recordings' : 'Show the recordings'}
+          aria-label={listOpen ? ui.music.hideList : ui.music.showList}
           className={`shrink-0 transition-colors duration-300 hover:text-gilt ${
             listOpen ? 'text-gilt' : 'text-chalk'
           }`}
@@ -356,7 +360,7 @@ export function AlbumCard({
 
       {missing && (
         <p className="mt-3 font-mono text-[0.62rem] leading-relaxed text-chalk/55">
-          Audio for this take is not on the media host yet.
+          {ui.music.audioMissing}
         </p>
       )}
 

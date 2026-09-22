@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { mediaUrl } from '@/lib/media'
+import { useUi } from '@/content/ContentProvider'
+import { fill } from '@/lib/copy'
 
 interface Props {
   poster: string
@@ -52,6 +54,7 @@ export function VideoStage({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [started, setStarted] = useState(false)
+  const ui = useUi()
 
   const start = () => {
     if (!videoSrc) {
@@ -116,7 +119,11 @@ export function VideoStage({
           <button
             type="button"
             onClick={start}
-            aria-label={videoSrc ? `Play ${title}` : 'Jump to the recording'}
+            aria-label={
+              videoSrc
+                ? fill(ui.workDetail.playLabel, { title })
+                : ui.workDetail.jumpLabel
+            }
             className="group absolute inset-0 flex flex-col items-center justify-center gap-10"
           >
             <span className="relative flex h-24 w-24 items-center justify-center rounded-full md:h-28 md:w-28">
@@ -141,7 +148,7 @@ export function VideoStage({
 
             {!videoSrc && (
               <span className="rounded-full bg-void/55 px-6 py-2 text-center text-[0.68rem] tracking-[0.3em] text-mist uppercase backdrop-blur-sm">
-                Footage in the edit — press play for the recording
+                {ui.workDetail.noFootage}
               </span>
             )}
           </button>

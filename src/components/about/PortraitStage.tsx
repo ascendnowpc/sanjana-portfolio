@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useScroll, useSpring } from 'framer-motion'
-import { PORTRAIT, PROFILE } from '@/data/site'
+import {
+  usePortraitCopy,
+  useProfile,
+  useUi,
+} from '@/content/ContentProvider'
+import { fill } from '@/lib/copy'
 import { Reveal } from '@/components/ui/Reveal'
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
@@ -120,6 +125,9 @@ type Stage = 'idle' | 'loading' | 'ready' | 'failed'
  * were never waiting on the picture.
  */
 export function PortraitStage() {
+  const profile = useProfile()
+  const portrait = usePortraitCopy()
+  const ui = useUi()
   const sectionRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -351,7 +359,7 @@ export function PortraitStage() {
     }
   }, [stage, reduced, scrolled, drawAt])
 
-  const fallback = mediaUrl(PROFILE.portraits[0])
+  const fallback = mediaUrl(profile.portraits[0])
 
   return (
     <section ref={sectionRef} className="relative">
@@ -379,7 +387,7 @@ export function PortraitStage() {
             {stage === 'failed' ? (
               <img
                 src={fallback}
-                alt={`${PROFILE.name} — portrait`}
+                alt={fill(ui.about.portraitAlt, { name: profile.name, n: 1 })}
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover grayscale-[35%] md:inset-y-[12%] md:h-[76%]"
               />
@@ -418,7 +426,9 @@ export function PortraitStage() {
                   />
                 </div>
                 <p className="mono-label mt-3 text-center text-[0.5625rem] text-dust">
-                  Loading portrait — {Math.round(loaded * 100)}%
+                  {fill(ui.portrait.loading, {
+                    percent: Math.round(loaded * 100),
+                  })}
                 </p>
               </div>
             </div>
@@ -429,18 +439,18 @@ export function PortraitStage() {
         <div className="md:col-start-1 md:row-start-1">
           <div className="py-20 md:py-[38vh]">
             <Reveal>
-              <p className="label text-dust">Portrait</p>
+              <p className="label text-dust">{ui.portrait.label}</p>
               {/* No display headline here any more. The section used to open
                   on one, and the lead now carries the section by itself —
                   first person, and the first thing read on the page. */}
               <p className="mt-8 max-w-[46ch] text-lg leading-[1.7] font-light text-mist">
-                {PORTRAIT.lead}
+                {portrait.lead}
               </p>
             </Reveal>
 
             <div className="mt-24 space-y-20 md:mt-32 md:space-y-[20vh]">
-              {PORTRAIT.beats.map((beat) => (
-                <Reveal key={beat.accent}>
+              {portrait.beats.map((beat, bi) => (
+                <Reveal key={`${beat.accent}-${bi}`}>
                   <h3 className="mono-label text-xs text-chalk">
                     {beat.heading}{' '}
                     {/* Reversed out rather than coloured in. The reference

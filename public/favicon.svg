@@ -1,16 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#9df3ff"/>
-      <stop offset="100%" stop-color="#4fd8e8"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="12" fill="#04070f"/>
-  <g fill="url(#g)">
-    <rect x="14" y="26" width="4" height="12" rx="2"/>
-    <rect x="23" y="18" width="4" height="28" rx="2"/>
-    <rect x="32" y="10" width="4" height="44" rx="2"/>
-    <rect x="41" y="21" width="4" height="22" rx="2"/>
-    <rect x="50" y="28" width="4" height="8" rx="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Microphone">
+  <!--
+    The tab icon: a microphone, in the site's own palette.
+
+    Drawn rather than lettered because sixteen pixels is not enough for a name
+    and is plenty for a silhouette. Everything here is a shape that survives
+    being drawn four times smaller than it is described: the capsule is a solid
+    pill, the cradle a single thick arc, and the grille is three lines with as
+    much air between them as they have width. At favicon size those blur into
+    an even grey the way a real grille does, instead of closing up into a
+    smudge.
+
+    Cream on near-black, which is the site's own contrast the whole way down
+    (the chalk and ink tokens in index.css). No gradient: the mark this
+    replaces had one, and a vertical fade across sixteen pixels reads as an
+    icon that failed to load rather than as a highlight. The warm gilt is kept
+    for the one accent this site gives itself, on the capsule's rim, where it
+    is the only colour and it is doing one job.
+  -->
+  <rect width="64" height="64" rx="13" fill="#0b0b0b"/>
+
+  <!-- The capsule, and its warm rim. -->
+  <rect x="24" y="9" width="16" height="30" rx="8" fill="#f2f2f2"/>
+  <rect x="24" y="9" width="16" height="30" rx="8" fill="none" stroke="#c8a45c" stroke-width="1.5" opacity="0.85"/>
+
+  <!-- Grille: the ground's own colour laid back over the capsule, so the
+       lines read as openings in it rather than as marks on it. -->
+  <g stroke="#0b0b0b" stroke-width="1.6" stroke-linecap="round" opacity="0.55">
+    <path d="M27.5 17h9"/>
+    <path d="M27.5 22h9"/>
+    <path d="M27.5 27h9"/>
   </g>
+
+  <!-- Cradle, stem and base. -->
+  <path d="M18 29v1a14 14 0 0 0 28 0v-1" fill="none" stroke="#f2f2f2" stroke-width="4" stroke-linecap="round"/>
+  <path d="M32 44v8" stroke="#f2f2f2" stroke-width="4" stroke-linecap="round"/>
+  <path d="M23 54h18" stroke="#f2f2f2" stroke-width="4" stroke-linecap="round"/>
 </svg>

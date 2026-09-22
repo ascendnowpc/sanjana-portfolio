@@ -1,20 +1,24 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { PROFILE } from '@/data/site'
+import { useProfile, useUi } from '@/content/ContentProvider'
 import { Reveal } from '@/components/ui/Reveal'
 import { SplitText } from '@/components/ui/SplitText'
-
-const ENQUIRY_TYPES = [
-  'Solo concert',
-  'Theatre casting',
-  'Session vocals',
-  'Collaboration',
-] as const
 
 type Status = 'idle' | 'sending' | 'sent'
 
 export default function Contact() {
-  const [type, setType] = useState<string>(ENQUIRY_TYPES[0])
+  const profile = useProfile()
+  const ui = useUi()
+  const enquiryTypes = ui.contact.enquiryTypes
+  /**
+   * `null` means "whatever the first type is", rather than a copy of it.
+   *
+   * The list is editable, so the selected value has to survive its own label
+   * being rewritten from the panel: holding the string would leave the chip
+   * row with nothing lit the moment somebody fixes a typo in the first entry.
+   */
+  const [type, setType] = useState<string | null>(null)
+  const selected = type ?? enquiryTypes[0]
   const [status, setStatus] = useState<Status>('idle')
 
   /**
@@ -31,9 +35,9 @@ export default function Contact() {
     <div className="min-h-screen bg-void pt-36 pb-32">
       <div className="mx-auto max-w-[1600px] px-6 md:px-12">
         <header className="mb-20">
-          <p className="label mb-6 text-bloom">Contact</p>
+          <p className="label mb-6 text-bloom">{ui.contact.eyebrow}</p>
           <h1 className="tracked text-[clamp(2rem,6vw,4.75rem)] leading-[1.1] text-chalk">
-            <SplitText text="Say hello" />
+            <SplitText text={ui.contact.heading} />
           </h1>
         </header>
 
@@ -42,10 +46,12 @@ export default function Contact() {
           <Reveal>
             <form onSubmit={submit} className="max-w-2xl">
               <fieldset className="mb-12">
-                <legend className="label mb-5 text-dust">Enquiry type</legend>
+                <legend className="label mb-5 text-dust">
+                  {ui.contact.enquiryLegend}
+                </legend>
                 <div className="flex flex-wrap gap-3">
-                  {ENQUIRY_TYPES.map((t) => {
-                    const on = type === t
+                  {enquiryTypes.map((t) => {
+                    const on = selected === t
                     return (
                       <button
                         key={t}
@@ -67,10 +73,19 @@ export default function Contact() {
               </fieldset>
 
               <div className="space-y-10">
-                <Field label="Your name" name="name" required />
-                <Field label="Email" name="email" type="email" required />
-                <Field label="Date or window" name="date" />
-                <Field label="Tell me about the room" name="message" textarea />
+                <Field label={ui.contact.fields.name} name="name" required />
+                <Field
+                  label={ui.contact.fields.email}
+                  name="email"
+                  type="email"
+                  required
+                />
+                <Field label={ui.contact.fields.date} name="date" />
+                <Field
+                  label={ui.contact.fields.message}
+                  name="message"
+                  textarea
+                />
               </div>
 
               <motion.button
@@ -79,9 +94,9 @@ export default function Contact() {
                 whileTap={{ scale: 0.98 }}
                 className="mt-14 w-full border border-edge px-10 py-4 text-[0.62rem] tracking-[0.34em] text-chalk uppercase transition-all duration-500 hover:border-bloom hover:bg-bloom hover:text-void disabled:opacity-60 sm:w-auto"
               >
-                {status === 'idle' && 'Send enquiry'}
-                {status === 'sending' && 'Sending…'}
-                {status === 'sent' && 'Received — thank you'}
+                {status === 'idle' && ui.contact.submit}
+                {status === 'sending' && ui.contact.sending}
+                {status === 'sent' && ui.contact.sent}
               </motion.button>
 
               {status === 'sent' && (
@@ -90,8 +105,7 @@ export default function Contact() {
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-6 text-xs font-light text-mist"
                 >
-                  This form is a front-end demo — nothing was sent. Wire it to
-                  Supabase or an email service before going live.
+                  {ui.contact.demoNote}
                 </motion.p>
               )}
             </form>
@@ -101,30 +115,35 @@ export default function Contact() {
           <Reveal delay={0.1}>
             <aside className="space-y-12 border-t border-edge/50 pt-10 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-14">
               <div>
-                <p className="label mb-4 text-dust">Booking</p>
+                <p className="label mb-4 text-dust">{ui.contact.bookingLabel}</p>
                 <a
-                  href={`mailto:${PROFILE.contact.booking}`}
+                  href={`mailto:${profile.contact.booking}`}
                   className="text-sm font-light text-chalk transition-colors hover:text-bloom"
                 >
-                  {PROFILE.contact.booking}
+                  {profile.contact.booking}
                 </a>
               </div>
               <div>
-                <p className="label mb-4 text-dust">General</p>
+                <p className="label mb-4 text-dust">{ui.contact.generalLabel}</p>
                 <a
-                  href={`mailto:${PROFILE.contact.email}`}
+                  href={`mailto:${profile.contact.email}`}
                   className="text-sm font-light text-chalk transition-colors hover:text-bloom"
                 >
-                  {PROFILE.contact.email}
+                  {profile.contact.email}
                 </a>
               </div>
               <div>
-                <p className="label mb-4 text-dust">Elsewhere</p>
+                <p className="label mb-4 text-dust">
+                  {ui.contact.elsewhereLabel}
+                </p>
                 <div className="flex flex-col gap-2.5">
                   {[
-                    { label: 'Instagram', href: PROFILE.contact.instagram },
-                    { label: 'YouTube', href: PROFILE.contact.youtube },
-                    { label: 'Spotify', href: PROFILE.contact.spotify },
+                    {
+                      label: ui.socials.instagram,
+                      href: profile.contact.instagram,
+                    },
+                    { label: ui.socials.youtube, href: profile.contact.youtube },
+                    { label: ui.socials.spotify, href: profile.contact.spotify },
                   ].map((s) => (
                     <a
                       key={s.label}
@@ -139,8 +158,8 @@ export default function Contact() {
                 </div>
               </div>
               <div>
-                <p className="label mb-4 text-dust">Based in</p>
-                <p className="text-sm font-light text-chalk">{PROFILE.basedIn}</p>
+                <p className="label mb-4 text-dust">{ui.contact.basedLabel}</p>
+                <p className="text-sm font-light text-chalk">{profile.basedIn}</p>
               </div>
             </aside>
           </Reveal>

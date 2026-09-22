@@ -1,4 +1,4 @@
-import type { SiteProfile, Testimonial } from '@/types/content'
+import type { PortraitCopy, SiteProfile, Testimonial } from '@/types/content'
 
 /** PLACEHOLDER COPY — swap for Sanjana's real bio, links and portraits. */
 export const PROFILE: SiteProfile = {
@@ -79,23 +79,15 @@ export const PROFILE: SiteProfile = {
  * the model and back down needs a line to land on, and a paragraph does not
  * give them one. The heads carry a fact apiece for the same reason — a
  * scanner who reads nothing else still comes away with four of them.
+ *
+ * `PortraitBeat` itself now lives in types/content.ts with the rest of the
+ * editable model — the panel writes these, so its shape belongs beside every
+ * other shape the panel writes. `accent` is the beat's final word, reversed
+ * out by the page: split in the copy rather than found by a regex over the
+ * string, so the emphasis falls on the word carrying the fact — `grade`,
+ * `Belle`, `songs` — and never on a preposition that happened to end the line.
  */
-export interface PortraitBeat {
-  /** Small-caps heading, all but its final word. */
-  heading: string
-  /**
-   * The final word, which the page reverses out.
-   *
-   * Split in the copy rather than found by a regex over the string, so the
-   * emphasis is a thing somebody chose. It falls on the word carrying the
-   * fact — `stage`, `opening`, `take` — never on a preposition that happened
-   * to end the line.
-   */
-  accent: string
-  body: string
-}
-
-export const PORTRAIT = {
+export const PORTRAIT: PortraitCopy = {
   lead: 'Singing has been the one constant in my life, woven into practically everything I do. My work spans solo concert repertoire, musical theatre, Western classical, Hindi classical, and honor choir. Being on stage lets me be completely consumed by it, nothing else on my mind.',
 
   beats: [
@@ -119,7 +111,7 @@ export const PORTRAIT = {
       accent: 'songs',
       body: "In tenth grade, I was cast as Missy in The Marvelous Wonderettes, my first time carrying a role of this weight: ninety uninterrupted minutes on stage, eleven songs, three of them solos. It proved to be one of the most liberating experiences of my life, despite embodying someone else's character entirely. I loved every second of it, being on stage, singing, doing what I love.",
     },
-  ] satisfies PortraitBeat[],
+  ],
 }
 
 /**

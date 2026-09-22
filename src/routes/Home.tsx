@@ -10,10 +10,14 @@ import { MagneticLink } from '@/components/ui/MagneticLink'
 import { SplitText } from '@/components/ui/SplitText'
 import { HouseMusic, type HouseMusicHandle } from '@/components/audio/HouseMusic'
 import { SoundGate } from '@/components/audio/SoundGate'
-import { usePerformances } from '@/hooks/useContent'
-import { CATEGORY_MAP } from '@/data/categories'
-import { HOUSE_CLIP } from '@/data/music'
-import { PROFILE } from '@/data/site'
+import {
+  useCategoryMap,
+  useMusicCopy,
+  usePerformances,
+  useProfile,
+  useUi,
+} from '@/content/ContentProvider'
+import { fill } from '@/lib/copy'
 
 /**
  * That the sound question has been put to this visitor.
@@ -40,6 +44,10 @@ const Small = ({ children }: { children: React.ReactNode }) => (
 
 export default function Home() {
   const { items } = usePerformances()
+  const profile = useProfile()
+  const ui = useUi()
+  const categoryMap = useCategoryMap()
+  const { houseClip } = useMusicCopy()
   const [focused, setFocused] = useState<Performance | null>(null)
   /** Where the caption sits, so it never lands on the frame it describes. */
   const [anchor, setAnchor] = useState<CaptionAnchor>({
@@ -77,8 +85,8 @@ export default function Home() {
     }
   }, [])
 
-  /** The take the page sounds on arrival. See HOUSE_CLIP. */
-  const house = items.find((p) => p.slug === HOUSE_CLIP.slug)
+  /** The take the page sounds on arrival. See `music.houseClip`. */
+  const house = items.find((p) => p.slug === houseClip.slug)
   const houseTrack = house?.tracks[0]
   const houseHandle = useRef<HouseMusicHandle>(null)
 
@@ -146,25 +154,27 @@ export default function Home() {
               exit={{ opacity: 0, y: -14, filter: 'blur(8px)' }}
               transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
             >
+              {/* One <p> a line, one word a token. The shape is in the copy
+                  rather than in this markup, so a line can be rewritten,
+                  lengthened or dropped from the panel without a deploy — and
+                  `{name}` is a slot, so the sentence cannot disagree with the
+                  wordmark above it. */}
               <div className="flex flex-col gap-3">
-                <p>
-                  <Small>Welcome</Small>
-                </p>
-                <p className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
-                  <Small>to</Small>
-                  <Big>{PROFILE.name}’S</Big>
-                  <Small>universe</Small>
-                </p>
-                <p className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
-                  <Small>of</Small>
-                  <Big>Solo Concerts</Big>
-                  <Big>+</Big>
-                  <Big>Musical Theatre</Big>
-                </p>
-                <p className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
-                  <Small>and</Small>
-                  <Big>Honor Choir</Big>
-                </p>
+                {ui.home.welcome.map((line, li) => (
+                  <p
+                    key={li}
+                    className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1"
+                  >
+                    {line.map((token, ti) => {
+                      const text = fill(token.text, { name: profile.name })
+                      return token.kind === 'big' ? (
+                        <Big key={ti}>{text}</Big>
+                      ) : (
+                        <Small key={ti}>{text}</Small>
+                      )
+                    })}
+                  </p>
+                ))}
               </div>
             </motion.div>
           ) : focused ? (
@@ -186,7 +196,7 @@ export default function Home() {
                   which is exactly the "strange colours" in the reference's
                   absence — everything there is one warm off-white. */}
               <p className="label on-scrim mb-5 text-mist">
-                {CATEGORY_MAP[focused.category].label} — {focused.year}
+                {categoryMap[focused.category]?.label} — {focused.year}
               </p>
               <h2 className="tracked on-scrim text-[clamp(1.4rem,4vw,3.1rem)] leading-[1.25] text-chalk">
                 <SplitText text={focused.title} stagger={0.035} />
@@ -203,29 +213,28 @@ export default function Home() {
 
       {/* ---------------- bottom nav, reference-style ---------------- */}
       <div className="absolute inset-x-0 bottom-10 flex flex-col items-center gap-3 px-6 md:bottom-14">
-        <p className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
-          <Small>the</Small>
-          <MagneticLink to="/work" className="pointer-events-auto">
-            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
-              Work
-            </span>
-          </MagneticLink>
-          <Small>and</Small>
-          <MagneticLink to="/about" className="pointer-events-auto">
-            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
-              About
-            </span>
-          </MagneticLink>
-          <Small>me</Small>
-        </p>
-        <p className="flex items-baseline justify-center gap-x-3">
-          <Small>or</Small>
-          <MagneticLink to="/contact" className="pointer-events-auto">
-            <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
-              Contact
-            </span>
-          </MagneticLink>
-        </p>
+        {ui.home.nav.map((line, li) => (
+          <p
+            key={li}
+            className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1"
+          >
+            {line.map((token, ti) =>
+              token.kind === 'link' ? (
+                <MagneticLink
+                  key={ti}
+                  to={token.to ?? '/'}
+                  className="pointer-events-auto"
+                >
+                  <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
+                    {token.text}
+                  </span>
+                </MagneticLink>
+              ) : (
+                <Small key={ti}>{token.text}</Small>
+              ),
+            )}
+          </p>
+        ))}
       </div>
 
       {/* ---------------- the room's own sound ---------------- */}
@@ -235,8 +244,8 @@ export default function Home() {
           gated={asking}
           src={houseTrack.audioSrc}
           title={house.title}
-          from={HOUSE_CLIP.from}
-          to={HOUSE_CLIP.to}
+          from={houseClip.from}
+          to={houseClip.to ?? undefined}
         />
       )}
 
@@ -256,14 +265,14 @@ export default function Home() {
             pointer is held away from the middle, and holds still when it comes
             back. Dragging and scrolling still work, but they are no longer the
             thing to tell someone about first. */}
-        <span className="label text-dust">Move your cursor to look around</span>
+        <span className="label text-dust">{ui.home.driftHint}</span>
         <span className="breathe block h-6 w-px bg-gradient-to-b from-transparent via-bloom to-transparent" />
       </motion.div>
 
       {/* Tiles are decorative for assistive tech (they duplicate down the
           tunnel); this is the real, linear index of the same work. */}
       <nav className="sr-only">
-        <h2>All work</h2>
+        <h2>{ui.home.srHeading}</h2>
         <ul>
           {items.map((p) => (
             <li key={p.slug}>

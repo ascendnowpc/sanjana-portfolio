@@ -2,8 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { CategoryId, Performance } from '@/types/content'
-import { CATEGORIES, CATEGORY_MAP } from '@/data/categories'
-import { usePerformances } from '@/hooks/useContent'
+import {
+  useCategories,
+  useCategoryMap,
+  usePerformances,
+  useUi,
+} from '@/content/ContentProvider'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { useTransition } from '@/components/layout/TransitionProvider'
 import { LoopingPreview } from '@/components/media/LoopingPreview'
@@ -50,13 +54,11 @@ type View = 'grid' | 'list'
  */
 const GUTTER = 'mx-auto w-full max-w-[1600px] px-6 md:px-12'
 
-const VIEW_OPTIONS: readonly SegmentedOption<View>[] = [
-  { value: 'grid', label: 'Grid View' },
-  { value: 'list', label: 'List View' },
-]
-
 export default function Work() {
   const { items } = usePerformances()
+  const ui = useUi()
+  const CATEGORIES = useCategories()
+  const CATEGORY_MAP = useCategoryMap()
   const [params, setParams] = useSearchParams()
   const { zoomTo } = useTransition()
   const reduced = usePrefersReducedMotion()
@@ -66,6 +68,13 @@ export default function Work() {
   const raw = params.get('category')
   const active: Filter =
     raw && raw in CATEGORY_MAP ? (raw as CategoryId) : 'all'
+  const viewOptions = useMemo<readonly SegmentedOption<View>[]>(
+    () => [
+      { value: 'grid', label: ui.work.gridView },
+      { value: 'list', label: ui.work.listView },
+    ],
+    [ui.work.gridView, ui.work.listView],
+  )
   const view: View = params.get('view') === 'list' ? 'list' : 'grid'
 
   const filtered = useMemo(
@@ -91,7 +100,7 @@ export default function Work() {
         pieces: filtered.filter((p) => p.category === category.id),
       }))
       .filter((s) => s.pieces.length > 0)
-  }, [filtered, active])
+  }, [filtered, active, CATEGORIES])
 
   const [hovered, setHovered] = useState<string | null>(null)
 
@@ -133,13 +142,13 @@ export default function Work() {
 
   const categoryOptions = useMemo<readonly SegmentedOption<Filter>[]>(
     () => [
-      { value: 'all', label: 'All' },
+      { value: 'all', label: ui.work.allFilter },
       ...CATEGORIES.map((c) => ({
         value: c.id as Filter,
         label: c.short ?? c.label,
       })),
     ],
-    [],
+    [CATEGORIES, ui.work.allFilter],
   )
 
   const backdropSrc = backdrop
@@ -151,7 +160,7 @@ export default function Work() {
       {/* The page has no visible title — the reference opens on empty black
           and the first thing on it is work. Screen readers still need to be
           told what they have arrived at. */}
-      <h1 className="sr-only">Work — the archive</h1>
+      <h1 className="sr-only">{ui.work.srTitle}</h1>
 
       {/* The grid the pointer finds in the empty parts of the page.
 
@@ -186,7 +195,7 @@ export default function Work() {
             options={categoryOptions}
             value={active}
             onChange={(v) => setParam('category', v === 'all' ? null : v)}
-            label="Filter the archive by category"
+            label={ui.work.filterLabel}
           />
         </div>
       </div>
@@ -241,7 +250,7 @@ export default function Work() {
             {filtered.map((p) => {
               const { lead, tail } = splitTitle(p.title)
               const c = CATEGORY_MAP[p.category]
-              const name = c.short ?? c.label
+              const name = c?.short ?? c?.label ?? p.category
               const other = hovered !== null && hovered !== p.slug
               return (
                 <Link
@@ -320,7 +329,7 @@ export default function Work() {
 
         {!filtered.length && (
           <p className={`${GUTTER} mono-label py-24 text-center text-[0.625rem] text-white/40`}>
-            Nothing filed under this category yet.
+            {ui.work.empty}
           </p>
         )}
       </div>
@@ -330,10 +339,10 @@ export default function Work() {
       <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
         <Segmented
           className="pointer-events-auto"
-          options={VIEW_OPTIONS}
+          options={viewOptions}
           value={view}
           onChange={(v) => setParam('view', v === 'grid' ? null : v)}
-          label="Choose how the archive is laid out"
+          label={ui.work.viewLabel}
         />
       </div>
     </div>

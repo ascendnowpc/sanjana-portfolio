@@ -1,8 +1,12 @@
 import { useMemo } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { usePerformances } from '@/hooks/useContent'
-import { CATEGORY_MAP } from '@/data/categories'
+import {
+  useCategoryMap,
+  usePerformances,
+  useUi,
+} from '@/content/ContentProvider'
+import { fill } from '@/lib/copy'
 import { VideoStage } from '@/components/media/VideoStage'
 import { WaveformPlayer } from '@/components/audio/WaveformPlayer'
 import { Reveal } from '@/components/ui/Reveal'
@@ -13,6 +17,8 @@ import { mediaUrl } from '@/lib/media'
 export default function WorkDetail() {
   const { slug = '' } = useParams()
   const { items, loading } = usePerformances()
+  const ui = useUi()
+  const categoryMap = useCategoryMap()
 
   const { current, prev, next } = useMemo(() => {
     const ordered = items.slice().sort((a, b) => b.year - a.year)
@@ -30,21 +36,25 @@ export default function WorkDetail() {
     return <Navigate to="/404" replace />
   }
 
-  const category = CATEGORY_MAP[current.category]
-  const accent = current.accent ?? category.accent
+  const category = categoryMap[current.category]
+  const accent = current.accent ?? category?.accent ?? '#e6e6e6'
 
   // Archive entries carry a year, a runtime and little else until the venue
   // and personnel are filled in, so every optional row drops out rather than
   // rendering an empty definition.
   const meta = [
-    { label: 'Year', value: String(current.year) },
-    { label: 'Venue', value: current.venue },
-    { label: 'City', value: current.city },
-    current.role ? { label: 'Role', value: current.role } : null,
-    current.runtime ? { label: 'Runtime', value: current.runtime } : null,
+    { label: ui.workDetail.meta.year, value: String(current.year) },
+    { label: ui.workDetail.meta.venue, value: current.venue },
+    { label: ui.workDetail.meta.city, value: current.city },
+    current.role
+      ? { label: ui.workDetail.meta.role, value: current.role }
+      : null,
+    current.runtime
+      ? { label: ui.workDetail.meta.runtime, value: current.runtime }
+      : null,
     current.tracks.length
       ? {
-          label: 'Recording',
+          label: ui.workDetail.meta.recording,
           value: totalRuntime(current.tracks.map((t) => t.duration)),
         }
       : null,
@@ -68,7 +78,7 @@ export default function WorkDetail() {
             to={`/work?category=${current.category}`}
             className="label text-dust transition-colors duration-300 hover:text-chalk"
           >
-            {category.label} — {current.year}
+            {category?.label} — {current.year}
           </Link>
 
           <h1 className="tracked mt-8 text-[clamp(1.9rem,6vw,5rem)] leading-[1.06] text-chalk">
@@ -92,7 +102,7 @@ export default function WorkDetail() {
             transition={{ duration: 0.8, delay: 0.75 }}
           >
             <span className="text-lg leading-none">+</span>
-            <span className="label">More info</span>
+            <span className="label">{ui.workDetail.moreInfo}</span>
           </motion.a>
         </motion.div>
       </header>
@@ -156,7 +166,11 @@ export default function WorkDetail() {
                   <WaveformPlayer
                     tracks={current.tracks}
                     accent={accent}
-                    label={current.venue ? `Listen — ${current.venue}` : 'Listen'}
+                    label={
+                      current.venue
+                        ? fill(ui.workDetail.listenAt, { venue: current.venue })
+                        : ui.workDetail.listen
+                    }
                   />
                 </div>
               </Reveal>
@@ -166,7 +180,7 @@ export default function WorkDetail() {
             {current.credits.length > 0 && (
               <Reveal delay={0.1}>
                 <div className="mt-24 border-t border-edge/50 pt-14">
-                  <p className="label mb-8 text-dust">Credits</p>
+                  <p className="label mb-8 text-dust">{ui.workDetail.credits}</p>
                   <ul className="grid gap-x-12 gap-y-5 sm:grid-cols-2">
                     {current.credits.map((c) => (
                       <li
@@ -190,7 +204,7 @@ export default function WorkDetail() {
         {current.gallery.length > 1 && (
           <Reveal>
             <div className="mt-28 border-t border-edge/50 pt-14">
-              <p className="label mb-8 text-dust">Stills</p>
+              <p className="label mb-8 text-dust">{ui.workDetail.stills}</p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {current.gallery.map((src, i) => (
                   <motion.div
@@ -204,7 +218,10 @@ export default function WorkDetail() {
                   >
                     <img
                       src={mediaUrl(src)}
-                      alt={`${current.title} — still ${i + 1}`}
+                      alt={fill(ui.workDetail.stillAlt, {
+                        title: current.title,
+                        n: i + 1,
+                      })}
                       loading="lazy"
                       className="h-full w-full object-cover brightness-75 transition-all duration-1000 hover:scale-105 hover:brightness-100"
                     />
@@ -219,8 +236,8 @@ export default function WorkDetail() {
       {/* ---------------- prev / next ---------------- */}
       <nav className="mt-32 grid border-t border-edge/50 sm:grid-cols-2">
         {[
-          { p: prev, dir: 'Previous', align: 'text-left' },
-          { p: next, dir: 'Next', align: 'sm:text-right' },
+          { p: prev, dir: ui.workDetail.previous, align: 'text-left' },
+          { p: next, dir: ui.workDetail.next, align: 'sm:text-right' },
         ].map(({ p, dir, align }) => (
           <Link
             key={dir}

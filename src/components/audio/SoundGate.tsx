@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
+import { useUi } from '@/content/ContentProvider'
 
 interface Props {
   /**
@@ -11,24 +12,17 @@ interface Props {
   onChoose: (withSound: boolean) => void
 }
 
-/**
- * The invitation, word by word.
+/*
+ * The invitation, word by word, lives in the editable copy now — `ui.soundGate
+ * .words`, each with its own `size` and `drop`.
  *
- * Not a stack of left-aligned lines: each word starts where the last one
+ * It is not a stack of left-aligned lines: each word starts where the last one
  * ended and sits a little lower, so the sentence falls across the middle of
  * the screen on a diagonal. `drop` is that fall, in ems of the word's own
  * line, and `size` is the small variation between words that keeps the run
- * from reading as one mechanically rotated line.
+ * from reading as one mechanically rotated line. Both are on the panel, which
+ * means a rewritten sentence can be re-laid rather than re-typeset in code.
  */
-const LINE = [
-  { word: 'Click', size: 1, drop: 0 },
-  { word: 'anywhere', size: 0.92, drop: 1.3 },
-  { word: 'to', size: 0.8, drop: 2.65 },
-  { word: 'turn', size: 0.86, drop: 3.15 },
-  { word: 'on', size: 0.76, drop: 3.85 },
-  { word: 'your', size: 0.9, drop: 5.15 },
-  { word: 'sound', size: 0.95, drop: 6.4 },
-]
 
 /**
  * The question the index opens on: sound, or no sound.
@@ -59,6 +53,8 @@ const LINE = [
  */
 export function SoundGate({ onChoose }: Props) {
   const reduced = usePrefersReducedMotion()
+  const ui = useUi()
+  const line = ui.soundGate.words
 
   return createPortal(
     <motion.div
@@ -77,7 +73,7 @@ export function SoundGate({ onChoose }: Props) {
         type="button"
         onClick={() => onChoose(true)}
         className="group absolute inset-0 flex cursor-pointer flex-col items-center justify-center px-6"
-        aria-label="Enter with sound"
+        aria-label={ui.soundGate.enterLabel}
       >
         {/* One line, held on one line: the diagonal is the whole figure, and
             a wrap would break it into two unrelated ones. The size is in vw
@@ -94,9 +90,9 @@ export function SoundGate({ onChoose }: Props) {
             paddingBottom: '6.4em',
           }}
         >
-          {LINE.map(({ word, size, drop }, i) => (
+          {line.map(({ word, size, drop }, i) => (
             <motion.span
-              key={word}
+              key={`${word}-${i}`}
               className="inline-block"
               style={{ fontSize: `${size}em` }}
               initial={
@@ -114,7 +110,7 @@ export function SoundGate({ onChoose }: Props) {
               {word}
               {/* The space belongs to the word before it, so it carries that
                   word's size and drop rather than the next one's. */}
-              {i < LINE.length - 1 ? '\u00a0' : ''}
+              {i < line.length - 1 ? '\u00a0' : ''}
             </motion.span>
           ))}
         </span>
@@ -136,7 +132,7 @@ export function SoundGate({ onChoose }: Props) {
           }}
           className="label border-b border-dust/40 pb-2 text-dust transition-colors duration-500 hover:border-chalk hover:text-chalk"
         >
-          Enter without sound
+          {ui.soundGate.decline}
         </button>
       </motion.div>
     </motion.div>,

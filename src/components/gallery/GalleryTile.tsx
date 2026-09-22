@@ -2,6 +2,7 @@ import { memo, useEffect, useRef } from 'react'
 import type { TileLayout } from './layout'
 import { LoopingPreview } from '@/components/media/LoopingPreview'
 import { mediaUrl } from '@/lib/media'
+import { useUi } from '@/content/ContentProvider'
 
 /**
  * How much a frame grows while it is being read.
@@ -67,6 +68,7 @@ export interface TileRefs {
  * re-rendering.
  */
 function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
+  const ui = useUi()
   const rootRef = useRef<HTMLDivElement>(null)
   const shadeRef = useRef<HTMLDivElement>(null)
   const p = tile.performance
@@ -197,7 +199,7 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
                 animation: 'tile-caption 520ms var(--ease-out-expo) both',
               }}
             >
-              Learn more
+              {ui.gallery.learnMore}
             </span>
           </>
         )}
