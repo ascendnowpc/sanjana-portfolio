@@ -16,9 +16,9 @@ const ModelStage = lazy(() => import('@/components/three/ModelStage'))
 /**
  * What stands on the stage.
  *
- * One scan: `singer.glb`, the figure at the mic, alone. It has no skeleton —
- * it is a single fused static mesh — so nothing here is posed; the figure
- * simply stands and the room turns around it.
+ * One piece: `mic.glb`, the Shure 55 on its desk stand, alone. It is a single
+ * static mesh with no skeleton, so nothing here is posed; the mic simply
+ * stands and the room turns around it.
  *
  * It is the piece the stage is sized by, so its height is the stage unit and
  * is left at 1. Everything about how large it reads is therefore in FRAMING
@@ -27,11 +27,10 @@ const ModelStage = lazy(() => import('@/components/three/ModelStage'))
  * instead of orbiting an axis it does not sit on.
  *
  * The rotation is the only composition left, and it is a few degrees of turn
- * and nothing else. The stage held an instrument before this, and an
- * instrument can be leaned — it reads as a piece propped against a wall. A
- * standing figure cannot: any lean at all reads as somebody falling over. So
- * the piece is turned a little off square, to take the museum-exhibit
- * stiffness out of it, and left upright.
+ * and nothing else. An object on a round weighted base is not a thing that
+ * leans — any lean at all reads as a mic about to go over — so the piece is
+ * turned a little off square, to take the museum-exhibit stiffness out of it,
+ * and left upright.
  *
  * Not run through `mediaUrl`: it sits at the root of public/, outside the
  * public/media/ tree that scripts/upload-media.mjs mirrors into R2, so the
@@ -39,7 +38,7 @@ const ModelStage = lazy(() => import('@/components/three/ModelStage'))
  */
 const PIECES: Piece[] = [
   {
-    src: '/singer.glb',
+    src: '/mic.glb',
     rotation: [0, 0.1, 0],
   },
 ]
@@ -47,11 +46,12 @@ const PIECES: Piece[] = [
 /**
  * The move, read down the page.
  *
- * It stays inside about sixty degrees of front on purpose. Turn a figure far
- * enough and the shot is the back of a head, which is a worse picture than any
- * of the three below and is where a full turntable spends a third of its time.
- * So the run opens on one side, crosses the face around the second beat, and
- * finishes on the other with the eye dropped almost to shoulder height.
+ * It stays inside about sixty degrees of front on purpose. The grille is the
+ * face of this object — the ribbed chrome fan is the whole reason a Shure 55
+ * is recognisable — and the back of it is a plain shell, which is where a full
+ * turntable spends a third of its time. So the run opens on one side, crosses
+ * the grille square-on around the second beat, and finishes on the other with
+ * the eye dropped to just under the head.
  *
  * The dolly is not monotonic either. Pulling back a little at both ends and
  * sitting closest at the middle beat gives the section a centre — the reader
@@ -65,32 +65,33 @@ const POSES: Pose[] = [
 ]
 
 /**
- * Wide enough that the whole scan stays in the column.
+ * Tall and narrow, because the piece is.
  *
  * The box is what the camera must hold, in stage units, and the piece on it is
- * one unit tall by definition — but this scan is not a tall thin object. It is
- * a seated figure with two mic stands in front of it: 1.36 wide and 0.86 deep
- * for its one of height. The stage held a guitar before it, half a unit across
- * and a tenth of one deep, and the box below was cut to that. Left alone it
- * cropped the new piece down the middle.
+ * one unit tall by definition. This one is genuinely a tall thin object: the
+ * mic and its stand are 0.47 wide and 0.47 deep for their one of height, and
+ * near enough rotationally symmetric that the silhouette barely changes width
+ * through the sweep. The stage held a wide seated scan before this, 1.36
+ * across, and the box was opened up to 0.7 to hold it — left alone that would
+ * now frame a column of empty stage with a mic somewhere in the middle of it.
  *
- * So the width is now what the fit is governed by, not the height: a portrait
- * column has an aspect under 1, and `fit` takes the worse of the two axes, so
- * the horizontal term wins at every size this column is laid out at. The
- * figure therefore reads smaller here than the instrument did, with air above
- * and below it. That is the shape of the thing, not a mistake — a wide scan in
- * a tall column either has air or loses its edges.
+ * So the height is what the fit is governed by again. A portrait column has an
+ * aspect under 1 and `fit` takes the worse of the two axes, so the horizontal
+ * term only wins once the column is narrower than about half its height; at
+ * 0.3 against 0.64 the vertical term carries every width this column is laid
+ * out at, and the piece reads full height with a little air top and bottom.
  *
- * 0.7 rather than the 0.81 a full turn of the bounding box would need: the
- * outermost few centimetres are the feet of the mic stands, and letting them
- * pass the edge at the two extremes of the sweep buys back a third of the
- * subject’s size in the middle of it, where the face is.
+ * 0.64 rather than a flat 0.5 because the box is the *nominal* one and the
+ * move does not sit at nominal: the middle beat dollies in to 0.94, which is
+ * the shot the framing has to survive, and the ends lift the aim by a few
+ * hundredths on top of that. A box cut to the model exactly loses the top of
+ * the grille and the front of the base at that beat.
  */
 const FRAMING: Framing = {
-  halfWidth: 0.7,
-  halfHeight: 0.5,
-  // Centred now. The aim only ever trucked across to sit over the pair; with
-  // one object on the turn axis, the turn axis is the middle of the picture.
+  halfWidth: 0.3,
+  halfHeight: 0.64,
+  // Centred. The aim only ever trucked across to sit over a pair; with one
+  // object on the turn axis, the turn axis is the middle of the picture.
   aim: { x: 0, y: 0 },
 }
 
@@ -128,11 +129,12 @@ function saveData() {
  * speed and this plays at the reader's.
  *
  * The model is not decoration that happens to be 3D, and it is not loaded like
- * decoration either. Twelve megabytes is a real cost, so it is spent only when
- * three things hold: the reader is within a screen of the section, the browser
- * can actually draw it, and they have not asked their browser to save data.
- * When any of those fails the column shows a portrait instead and the section
- * reads exactly the same — the words were never waiting on the renderer.
+ * decoration either. A megabyte of mesh plus a renderer is a real cost, so it
+ * is spent only when three things hold: the reader is within a screen of the
+ * section, the browser can actually draw it, and they have not asked their
+ * browser to save data. When any of those fails the column shows a portrait
+ * instead and the section reads exactly the same — the words were never
+ * waiting on the renderer.
  */
 export function PortraitStage() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -267,9 +269,10 @@ export function PortraitStage() {
               </div>
             )}
 
-            {/* The wait, which is measured rather than spun. Twelve megabytes
-                is long enough that a spinner reads as a hang; a bar that is
-                visibly moving reads as a download, which is what it is. */}
+            {/* The wait, which is measured rather than spun. A bar that is
+                visibly moving reads as a download, which is what it is, and it
+                degrades honestly: on a fast line the piece is here before the
+                bar has anything to say, and the whole thing stays invisible. */}
             <div
               className="pointer-events-none absolute inset-x-0 bottom-8 flex justify-center transition-opacity duration-700 md:bottom-16"
               style={{ opacity: stage === 'loading' ? 1 : 0 }}
