@@ -205,8 +205,12 @@ function EditBar() {
             editor spends an afternoon on it than after. */}
         {status && !status.configured && (
           <p className="mt-2 border-t border-white/10 pt-2 text-[0.62rem] leading-relaxed text-amber-200/80">
-            Publishing is not set up on this deployment
-            {status.missing.length ? ` (missing ${status.missing.join(', ')})` : ''}.
+            {status.unavailable ?? (
+              <>
+                Publishing is not set up on this deployment
+                {status.missing.length ? ` (missing ${status.missing.join(', ')})` : ''}.
+              </>
+            )}{' '}
             Edits are saved in this browser; the panel’s Access tab can export
             them as JSON. EDITING.md has the five minutes of setup.
           </p>

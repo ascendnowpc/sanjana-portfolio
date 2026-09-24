@@ -1,5 +1,5 @@
 import { createHash, createHmac } from 'node:crypto'
-import { authorise, env, json, readJson } from './_lib'
+import { authorise, env, json, readJson } from './_lib.js'
 
 /**
  * Hand the browser a one-off permission to write one file into the bucket.

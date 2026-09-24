@@ -41,6 +41,17 @@ export function uploadStatus(): Promise<UploadStatus> {
   statusPromise ??= (async () => {
     try {
       const res = await fetch(ENDPOINT, { headers: { accept: 'application/json' } })
+      // A function that exists but crashed (a bad import, a runtime error)
+      // answers 500 — not the same thing as having no endpoint, and not
+      // fixed by setting environment variables. Say which it is.
+      if (res.status >= 500 && res.status !== 501) {
+        return {
+          configured: false,
+          missing: [],
+          bucket: null,
+          unavailable: `The upload function is failing (HTTP ${res.status}); check the deployment's function logs.`,
+        }
+      }
       if (!res.ok || !res.headers.get('content-type')?.includes('json')) {
         return {
           configured: false,
