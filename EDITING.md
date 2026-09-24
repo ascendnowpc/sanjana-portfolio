@@ -172,7 +172,13 @@ And the bucket has to allow the site's origin to PUT — the second rule in
 npx wrangler r2 bucket cors set sanjana-portfolio-media --file infra/r2-cors.json
 ```
 
-Without that rule an upload fails before it starts and the browser will not say
+No terminal? The dashboard does the same job: R2 → the bucket → **Settings** →
+**CORS Policy** → **Add CORS policy** → **JSON**. It takes a different shape from
+the file above, and it replaces the whole policy rather than adding to it — so
+paste **both** rules, or the site's audio goes silent. MEDIA.md has that version
+ready to copy.
+
+Without the rule an upload fails before it starts and the browser will not say
 why; see MEDIA.md.
 
 The bar and the panel both ask the deployment what it can do and say plainly what

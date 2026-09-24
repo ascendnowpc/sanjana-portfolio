@@ -147,7 +147,53 @@ header the rest of the media carries.
 Without this rule an upload fails before it starts, with no status and no detail —
 the browser will not say more about a refused cross-origin preflight. The editor
 says so in those words when a PUT dies that way, because it is the one failure
-here that looks like a bug in the page.
+here that looks like a bug in the page. Cloudflare's own documentation puts it
+plainly: *"Without a CORS policy, browser-based uploads and downloads using
+presigned URLs will fail, even though the presigned URL itself is valid."*
+
+### The same policy, for the dashboard
+
+The dashboard's CORS editor (R2 → the bucket → **Settings** → **CORS Policy** →
+**Add CORS policy** → **JSON**) does not take the file above. It wants a bare
+array with PascalCase keys, where wrangler wants a `rules` object with lowercase
+ones — the same policy in two shapes, which is worth knowing before pasting one
+into the other and wondering why it is rejected.
+
+**Paste both rules or neither.** The editor replaces the whole policy, so a paste
+containing only the upload rule silently drops the read rule above it, and the
+first thing to break is not uploading — it is the waveform player, which goes
+silent rather than erroring. That is the failure this file's first rule exists to
+prevent.
+
+```json
+[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["Range", "Content-Type"],
+    "ExposeHeaders": [
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges",
+      "Content-Type"
+    ],
+    "MaxAgeSeconds": 86400
+  },
+  {
+    "AllowedOrigins": [
+      "https://sanjana-portfolio-dun.vercel.app",
+      "http://localhost:5173"
+    ],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type", "Cache-Control"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+An origin is `scheme://host[:port]` and nothing else — a trailing slash or a path
+makes it invalid. Rule changes can take up to 30 seconds to propagate.
 
 Verify with:
 
