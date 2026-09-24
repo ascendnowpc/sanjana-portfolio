@@ -5,31 +5,43 @@ import type {
 } from '@/types/content'
 import { PERFORMANCES } from '@/data/performances'
 import { CATEGORIES } from '@/data/categories'
+import { COVERS } from '@/data/covers'
 import { MUSIC_COVERS, HOUSE_CLIP } from '@/data/music'
 import { PORTRAIT, PROFILE, TESTIMONIALS } from '@/data/site'
 import { UI } from '@/data/ui'
 import { getPerformances, getProfile } from './content'
 import { isSupabaseConfigured } from './supabase'
+import PUBLISHED from '@/content/published.json'
 
 /**
  * The one mutable copy of the site's content, and the only thing that writes
  * it.
  *
- * Three layers, in order of authority:
+ * Four layers, in order of authority:
  *
- *   1. `DEFAULT_CONTENT` — the bundled data modules. Always present, so the
- *      site renders correctly on a browser that has never seen the panel.
- *   2. Supabase, when it is configured. Replaces the archive and the profile
- *      in layer 1 once it resolves; see lib/content.ts.
- *   3. The admin's saved edits, from this browser's localStorage. These win
- *      over both, because somebody sat down and typed them.
+ *   1. `BUNDLED` — the typed data modules. Always present, so the site renders
+ *      correctly on a browser that has never seen the editor.
+ *   2. `src/content/published.json` — what was last published *from the site*.
+ *      It is a file in the repository, committed by the publish endpoint (see
+ *      api/publish.ts), which is what makes an edit made in a browser a fact
+ *      about the deploy rather than a fact about that browser. Empty until the
+ *      first publish.
+ *   3. Supabase, when it is configured. Replaces the archive and the profile
+ *      once it resolves; see lib/content.ts.
+ *   4. The editor's unpublished edits, from this browser's localStorage. These
+ *      win over the rest, because somebody is in the middle of typing them.
  *
- * Layer 3 is per-browser and that is a real limitation, not a detail: edits
- * made here are visible to whoever made them and to nobody else. The panel
- * says so on its own face and offers the saved JSON for download, which is
- * what turns a local edit into a deployed one — commit the file, or load the
- * rows into Supabase. Anything more (a write path to the database) needs a
- * service key, and a service key in a bundle is a public service key.
+ * Layer 4 is per-browser, and that used to be the end of the story: an edit
+ * was visible to whoever made it and to nobody else, and the only way out was
+ * to export a JSON file and hand it to whoever deploys. Layer 2 is the way
+ * out. `publishContent` in lib/publish.ts posts the composed content to a
+ * function holding a GitHub token, the function commits it as layer 2, and the
+ * deploy that follows carries the edit to everyone.
+ *
+ * Layer 4 is therefore a *draft*, and it is dropped once the deploy catches up
+ * with it — see `readSaved`. Without that rule an editor who publishes would
+ * go on seeing their own localStorage copy forever and could never tell
+ * whether the publish had worked.
  */
 
 const KEY = 'sanjana.site-content.v1'
@@ -39,6 +51,16 @@ const VERSION = 1
 
 interface Saved {
   version: number
+  /** When these edits were written, so a later publish can supersede them. */
+  savedAt?: number
+  content: DeepPartial<SiteContent>
+}
+
+/** The shape of src/content/published.json. */
+interface Published {
+  version: number
+  /** ISO stamp written by the publish endpoint. Null before the first one. */
+  publishedAt: string | null
   content: DeepPartial<SiteContent>
 }
 
@@ -48,12 +70,14 @@ type DeepPartial<T> = T extends readonly unknown[]
     ? { [K in keyof T]?: DeepPartial<T[K]> }
     : T
 
-export const DEFAULT_CONTENT: SiteContent = {
+/** Layer 1: what the code says, with nothing layered over it. */
+const BUNDLED: SiteContent = {
   profile: PROFILE,
   portrait: PORTRAIT,
   testimonials: TESTIMONIALS,
   categories: CATEGORIES,
   performances: PERFORMANCES,
+  covers: COVERS,
   music: {
     covers: MUSIC_COVERS,
     houseClip: { ...HOUSE_CLIP, to: HOUSE_CLIP.to ?? null },
@@ -64,10 +88,16 @@ export const DEFAULT_CONTENT: SiteContent = {
    *
    * It is checked in the browser, which means it is a latch and not a lock:
    * anybody who opens the bundle can read it, and anybody who opens devtools
-   * can set the flag it guards. It keeps the panel out of the way of a visitor
-   * who wanders into /admin. It does not keep a determined stranger out, and
-   * nothing that runs entirely in a page can. Real protection means a server
-   * holding the password and the content behind it — see DATABASE.md.
+   * can set the flag it guards. It keeps the editor out of the way of a
+   * visitor who wanders into /admin. It does not keep a determined stranger
+   * out, and nothing that runs entirely in a page can.
+   *
+   * Publishing is the part that had to be held properly, and it is: the
+   * endpoint checks the password again on the server, against `ADMIN_PASSWORD`
+   * in the deployment's environment, and the token that can write to the
+   * repository never enters the page. So this latch decides who sees the
+   * editing UI, and the server decides who can change the site. See
+   * api/publish.ts and EDITING.md.
    */
   admin: { password: 'sanjana@admin' },
 }
@@ -85,7 +115,7 @@ function clone<T>(value: T): T {
  * Objects merge key by key; **arrays replace wholesale**. That asymmetry is
  * the point. A saved object that is missing a key added since it was written
  * picks the new key up from the defaults, so an old blob never blanks a new
- * field. But an array the admin has edited *is* the list — merging index by
+ * field. But an array the editor has edited *is* the list — merging index by
  * index would resurrect a deleted performance the moment the defaults still
  * had one at that position.
  */
@@ -109,12 +139,38 @@ function merge<T>(base: T, patch: unknown): T {
   return out as T
 }
 
+const published = PUBLISHED as Published
+
+/** Layers 1 + 2: the deploy's own content, before anybody's draft. */
+export const DEFAULT_CONTENT: SiteContent =
+  published.version === VERSION && published.content
+    ? merge(BUNDLED, published.content)
+    : BUNDLED
+
+/** When the deploy's content was last published, in epoch ms. 0 if never. */
+const publishedAt = published.publishedAt
+  ? Date.parse(published.publishedAt) || 0
+  : 0
+
+/**
+ * Layer 4, unless the deploy has already caught up with it.
+ *
+ * A draft older than the running deploy's publish stamp is one that has been
+ * published and shipped, so keeping it would mean showing the editor a local
+ * copy of content that is now in the code — and hiding every change anybody
+ * else published since. Dropping it is what makes "publish" feel like it did
+ * something.
+ */
 function readSaved(): DeepPartial<SiteContent> | null {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Saved
     if (parsed?.version !== VERSION || !parsed.content) return null
+    if (publishedAt && (parsed.savedAt ?? 0) <= publishedAt) {
+      localStorage.removeItem(KEY)
+      return null
+    }
     return parsed.content
   } catch {
     // Private mode, a blocked origin, or a half-written blob. The site is
@@ -125,7 +181,7 @@ function readSaved(): DeepPartial<SiteContent> | null {
 }
 
 /**
- * Layers 1 and 3, composed.
+ * Layers 1–2 (+3 once it lands) and 4, composed.
  *
  * `null` overrides mean "no edits saved", which is not the same thing as a
  * patch whose value is null — `merge` reads that second one as "set this field
@@ -137,9 +193,9 @@ function compose(): SiteContent {
   return overrides ? merge(base, overrides) : base
 }
 
-/** Layer 1 (+2 once it lands), before the admin's edits. */
+/** Layers 1–2 (+3 once it lands), before the editor's draft. */
 let base: SiteContent = DEFAULT_CONTENT
-/** Layer 3. */
+/** Layer 4. */
 let overrides: DeepPartial<SiteContent> | null = readSaved()
 /** What everything actually reads. Recomputed, never mutated in place. */
 let current: SiteContent = compose()
@@ -169,22 +225,46 @@ export function hasOverrides(): boolean {
   return overrides !== null
 }
 
+/** When the running deploy's content was published. Null before the first. */
+export function publishedStamp(): string | null {
+  return published.publishedAt
+}
+
 /**
- * Save a whole new content object.
+ * Show `next` on the site now, without writing it to storage.
  *
- * The full object is written rather than a diff against the defaults: a diff
- * would have to decide what "unchanged" means for an array of thirty-six
- * performances, and the honest answer is that it cannot. It is re-merged over
- * the defaults on read anyway (see `merge`), so a field added to the model
- * later still appears.
+ * This is what a keystroke in the page calls. Inline editing is a live thing —
+ * the site behind the caret *is* the preview — so an edit has to reach every
+ * component that reads it in the same frame, and a localStorage write per
+ * keystroke is both wasteful and a way to persist a half-typed word. The
+ * editor calls `persistDraft` when the field is done with.
  */
-export function saveContent(next: SiteContent): { ok: boolean; error?: string } {
-  overrides = clone(next)
+export function applyDraft(next: SiteContent) {
+  // Not cloned, deliberately. `setAtPath` builds `next` by copying only the
+  // nodes along the path it changed, and `compose` copies every array it merges,
+  // so what readers get already shares nothing mutable with the defaults — while
+  // a `structuredClone` of the whole site on every keystroke is the one thing
+  // here that would actually be felt while typing.
+  //
+  // The contract that comes with that: a caller hands this object over and does
+  // not mutate it afterwards. Every caller in the codebase either built it fresh
+  // (`setAtPath`) or holds it as React state (the panel's draft), both of which
+  // already treat it as immutable.
+  overrides = next
   emit()
+}
+
+/** Write whatever is live to this browser's storage. */
+export function persistDraft(): { ok: boolean; error?: string } {
+  if (!overrides) return { ok: true }
   try {
     localStorage.setItem(
       KEY,
-      JSON.stringify({ version: VERSION, content: overrides } satisfies Saved),
+      JSON.stringify({
+        version: VERSION,
+        savedAt: Date.now(),
+        content: overrides,
+      } satisfies Saved),
     )
     return { ok: true }
   } catch (err) {
@@ -198,6 +278,20 @@ export function saveContent(next: SiteContent): { ok: boolean; error?: string } 
           : 'Edits are live but could not be written to this browser’s storage.',
     }
   }
+}
+
+/**
+ * Save a whole new content object: live, and written down.
+ *
+ * The full object is written rather than a diff against the defaults: a diff
+ * would have to decide what "unchanged" means for an array of thirty-six
+ * performances, and the honest answer is that it cannot. It is re-merged over
+ * the defaults on read anyway (see `merge`), so a field added to the model
+ * later still appears.
+ */
+export function saveContent(next: SiteContent): { ok: boolean; error?: string } {
+  applyDraft(next)
+  return persistDraft()
 }
 
 /** Throw the local edits away and go back to what the deploy ships. */
@@ -240,8 +334,66 @@ export function exportContent(): string {
   return JSON.stringify({ version: VERSION, content: current }, null, 2)
 }
 
+/* ============================ editing by path ============================ */
+
 /**
- * Whether layer 2 is still in the air.
+ * Where a value lives inside the content object, as the keys you would type.
+ *
+ * `['ui', 'about', 'headline', 0]` is the first line of the About page's
+ * statement. Inline editing needs this because a component that renders one
+ * string has to be able to write that one string back without knowing, or
+ * rebuilding, the shape around it.
+ */
+export type ContentPath = readonly (string | number)[]
+
+/** Read a value out of the live content. Undefined when the path is wrong. */
+export function getAtPath(path: ContentPath, root: unknown = current): unknown {
+  let node: unknown = root
+  for (const key of path) {
+    if (node == null || typeof node !== 'object') return undefined
+    node = (node as Record<string | number, unknown>)[key]
+  }
+  return node
+}
+
+/**
+ * A copy of `root` with `path` set to `value`.
+ *
+ * Copies only the nodes along the path and shares the rest, which is what lets
+ * a keystroke in one field re-render that field's subtree and nothing else. A
+ * numeric key makes an array where nothing exists yet, so a new row can be
+ * written at an index that is not there.
+ */
+function setIn<T>(root: T, path: ContentPath, value: unknown): T {
+  if (!path.length) return value as T
+  const [key, ...rest] = path
+  const isIndex = typeof key === 'number'
+  const node: unknown =
+    root == null || typeof root !== 'object' ? (isIndex ? [] : {}) : root
+
+  if (Array.isArray(node)) {
+    const next = node.slice()
+    next[key as number] = setIn(node[key as number], rest, value)
+    return next as T
+  }
+  const obj = node as Record<string | number, unknown>
+  return { ...obj, [key]: setIn(obj[key], rest, value) } as T
+}
+
+/**
+ * Set one field and show it immediately. Returns the whole new content.
+ *
+ * Nothing is written to storage — see `applyDraft`. Callers that are finishing
+ * an edit rather than typing it call `persistDraft` afterwards.
+ */
+export function setAtPath(path: ContentPath, value: unknown): SiteContent {
+  const next = setIn(current, path, value)
+  applyDraft(next)
+  return next
+}
+
+/**
+ * Whether layer 3 is still in the air.
  *
  * False from the first frame when Supabase is not configured, which is the
  * default — there is nothing to wait for, so nothing should wait. The detail
@@ -254,7 +406,7 @@ export function isRemotePending(): boolean {
 }
 
 /**
- * Pull layer 2 in, once.
+ * Pull layer 3 in, once.
  *
  * Only ever touches `base`, so a database that comes back with the old copy
  * cannot undo an edit somebody just made. Called from `ContentProvider` on

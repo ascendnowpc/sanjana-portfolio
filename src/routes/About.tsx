@@ -1,13 +1,17 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { usePerformances, useProfile, useUi } from '@/content/ContentProvider'
+import { useEdit } from '@/edit/EditProvider'
 import { fill } from '@/lib/copy'
 import { Overture } from '@/components/ui/Overture'
-import { MusicShelf } from '@/components/audio/MusicShelf'
+import { Shelf } from '@/components/about/Shelf'
 import { PortraitStage } from '@/components/about/PortraitStage'
 import { Testimonials } from '@/components/about/Testimonials'
 import { Starfield } from '@/components/layout/Starfield'
 import { mediaUrl } from '@/lib/media'
+import { EditableText } from '@/components/edit/Editable'
+import { MediaEdit, MediaEditButton } from '@/components/edit/EditableMedia'
+import { AddItem, ItemControls, RegionEdit } from '@/components/edit/ListEdit'
 
 /*
  * The looping film this page opens on is `ui.about.film`, with its first frame
@@ -40,6 +44,7 @@ export default function About() {
   const { items } = usePerformances()
   const profile = useProfile()
   const ui = useUi()
+  const { editing } = useEdit()
 
   const stripRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
@@ -100,17 +105,53 @@ export default function About() {
             {ui.about.headline.map((line, i) => (
               <span key={i}>
                 {i > 0 && <br />}
-                {line}
+                <EditableText
+                  path={['ui', 'about', 'headline', i]}
+                  value={line}
+                  placeholder="A line of the statement"
+                />
+                {/* The controls keep their own size: everything in them is set
+                    in rem, so they do not inherit the 10vw display type they
+                    sit inside. */}
+                <ItemControls
+                  path={['ui', 'about', 'headline']}
+                  index={i}
+                  className="ml-3 align-middle"
+                  blank={() => 'A new line'}
+                />
               </span>
             ))}
           </h1>
+
+          {editing && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <MediaEditButton
+                target={{
+                  path: ['ui', 'about', 'film'],
+                  kind: 'video',
+                  label: 'The opening film',
+                  derive: { poster: ['ui', 'about', 'filmPoster'] },
+                }}
+                label="Replace the opening film"
+              />
+              <MediaEditButton
+                target={{
+                  path: ['ui', 'about', 'filmPoster'],
+                  kind: 'poster',
+                  label: 'The film’s first frame',
+                }}
+                label="Replace its first frame"
+              />
+              <RegionEdit drawer="about" label="About fields" />
+            </div>
+          )}
         </Overture>
 
         {/* ---------------- 2. the portrait ---------------- */}
         <PortraitStage />
 
-        {/* ---------------- 3. the recordings ---------------- */}
-        <MusicShelf items={items} />
+        {/* ---------------- 3. the recordings, and the covers ---------------- */}
+        <Shelf items={items} />
 
         {/* ---------------- 4. portraits over the name ---------------- */}
         {/* The bottom padding is the name's other half, and nothing else. The
@@ -166,7 +207,9 @@ export default function About() {
             >
               {profile.portraits.slice(0, 5).map((src, i) => (
                 <motion.div
-                  key={src}
+                  // Indexed, not keyed on the value: a freshly added frame is
+                  // an empty string, and two of those would collide.
+                  key={`${src}-${i}`}
                   className="relative min-w-0 flex-1 overflow-hidden bg-ink"
                   style={{ aspectRatio: '4 / 5' }}
                   initial={{ opacity: 0, y: 40 }}
@@ -187,9 +230,34 @@ export default function About() {
                     loading="lazy"
                     className="h-full w-full object-cover grayscale-[35%] transition-all duration-1000 hover:scale-105 hover:grayscale-0"
                   />
+                  <MediaEdit
+                    target={{
+                      path: ['profile', 'portraits', i],
+                      kind: 'portrait',
+                      label: `Portrait ${i + 1}`,
+                    }}
+                    label={`Portrait ${i + 1}`}
+                  />
+                  <ItemControls
+                    path={['profile', 'portraits']}
+                    index={i}
+                    className="absolute top-2 right-2 z-40"
+                    blank={() => ''}
+                  />
                 </motion.div>
               ))}
             </motion.div>
+
+            {editing && (
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <AddItem
+                  path={['profile', 'portraits']}
+                  label="Add a portrait"
+                  blank={() => ''}
+                />
+                <RegionEdit drawer="profile" label="Profile fields" />
+              </div>
+            )}
           </div>
         </div>
 

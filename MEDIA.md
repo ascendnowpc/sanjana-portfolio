@@ -122,10 +122,32 @@ Two halves, both needed:
    npx wrangler r2 bucket cors list sanjana-portfolio-media   # verify
    ```
 
-Origins are `*`, which grants nothing extra: the bucket is already
-world-readable over r2.dev, and CORS only governs cross-origin *script*
+Origins are `*` on the read rule, which grants nothing extra: the bucket is
+already world-readable over r2.dev, and CORS only governs cross-origin *script*
 access to bytes anyone can already fetch. `Range` is in the allowed headers
 and `Content-Range`/`Accept-Ranges` in the exposed ones, or seeking breaks.
+
+### The second rule: uploading from the site
+
+`infra/r2-cors.json` has a second rule allowing **PUT** — that is what lets the
+editor put a file in the bucket from the browser (see EDITING.md). The flow is:
+the site asks `/api/upload` to sign a URL for one key, and the browser then PUTs
+the file straight to R2. Nothing but the signature passes through the site, which
+is not an optimisation — a serverless request body caps out at a few megabytes
+and a recording is several hundred.
+
+That rule is **not** `*`, and must not be: a PUT is a write, and the origins are
+the only thing narrowing who a signed URL can be used from. Put the site's real
+hostnames in it — the production domain, any preview domain used for editing, and
+`http://localhost:5173` for development — and re-apply with the `cors set`
+command above. `Content-Type` and `Cache-Control` are the two headers the browser
+sends so the object is stored with its own type and the year-long immutable cache
+header the rest of the media carries.
+
+Without this rule an upload fails before it starts, with no status and no detail —
+the browser will not say more about a refused cross-origin preflight. The editor
+says so in those words when a PUT dies that way, because it is the one failure
+here that looks like a bug in the page.
 
 Verify with:
 

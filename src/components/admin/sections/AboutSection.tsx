@@ -57,7 +57,23 @@ export function AboutSection({
             onChange={(v) =>
               onUiChange({ ...ui, about: { ...ui.about, film: v } })
             }
-            hint="Media files are cached for a year once served. A re-cut has to arrive under a new filename or browsers keep showing the old one."
+            upload={{
+              kind: 'video',
+              deriveKinds: ['poster'],
+              // The still comes off the film, so the field beside this one fills
+              // itself — and both land at new keys, which is the only way a
+              // re-cut is ever seen. See the hint.
+              onResult: (result) =>
+                onUiChange({
+                  ...ui,
+                  about: {
+                    ...ui.about,
+                    film: result.key,
+                    filmPoster: result.poster ?? ui.about.filmPoster,
+                  },
+                }),
+            }}
+            hint="Media files are cached for a year once served, so every upload lands under a new filename — which is what makes a re-cut visible at all."
           />
           <MediaField
             label="First frame"
@@ -65,6 +81,7 @@ export function AboutSection({
             onChange={(v) =>
               onUiChange({ ...ui, about: { ...ui.about, filmPoster: v } })
             }
+            upload={{ kind: 'poster' }}
           />
         </Row>
       </Group>
@@ -173,6 +190,7 @@ export function AboutSection({
                   label="Still"
                   value={item.portrait}
                   onChange={(v) => setItem({ ...item, portrait: v })}
+                  upload={{ kind: 'portrait', clearable: true }}
                   hint="Sits in the record’s label. A full https:// URL also works."
                 />
                 <Color

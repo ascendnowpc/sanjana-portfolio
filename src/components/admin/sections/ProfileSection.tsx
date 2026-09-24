@@ -102,6 +102,7 @@ export function ProfileSection({
           label="Portrait paths"
           items={value.portraits}
           media="image"
+          upload="portrait"
           addLabel="Add portrait"
           onChange={(v) => set('portraits', v)}
         />

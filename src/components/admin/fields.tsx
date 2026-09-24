@@ -1,5 +1,9 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { mediaUrl } from '@/lib/media'
+import type { DeriveKind, MediaResult } from '@/components/edit/MediaDialog'
+import { MediaDialog } from '@/components/edit/MediaDialog'
+import type { MediaKind } from '@/lib/uploads'
 
 /**
  * The panel's form vocabulary.
@@ -261,13 +265,32 @@ export function MediaField({
   onChange,
   kind = 'image',
   className,
+  upload,
 }: BaseProps & {
   value: string
   onChange: (v: string) => void
   kind?: 'image' | 'video' | 'audio'
+  /**
+   * Where a dropped file should go in the bucket, and what else to make of it.
+   *
+   * Given, the field grows an Upload button that opens the same dialog the page
+   * uses (see components/edit/MediaDialog.tsx) — in its callback mode, so the
+   * keys come back here and land in the panel's draft rather than going straight
+   * onto the live site. A panel that wrote through would take the panel's own
+   * Discard button away from whoever had just uploaded the wrong take.
+   */
+  upload?: {
+    kind: MediaKind
+    /** Which of audio / poster / preview this field's owner can hold. */
+    deriveKinds?: DeriveKind[]
+    /** The derived keys and measured facts, for the sibling fields. */
+    onResult?: (result: MediaResult) => void
+    clearable?: boolean
+  }
 }) {
   const id = useId()
   const resolved = mediaUrl(value)
+  const [picking, setPicking] = useState(false)
   return (
     <div className={className}>
       <Label htmlFor={id} hint={hint}>
@@ -295,15 +318,48 @@ export function MediaField({
             </span>
           )}
         </div>
-        <input
-          id={id}
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="/media/posters/example.jpg"
-          className={`${CONTROL} self-start font-mono text-xs`}
-        />
+        <div className="min-w-0 flex-1">
+          <input
+            id={id}
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="/media/posters/example.jpg"
+            className={`${CONTROL} font-mono text-xs`}
+          />
+          {upload && (
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              className="mt-2 rounded-sm border border-white/15 px-3 py-1.5 text-[0.6rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
+            >
+              Upload a file
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Through a portal: the panel's fields sit inside scrolling, clipping
+          containers, and a dialog is neither. */}
+      {upload &&
+        picking &&
+        createPortal(
+          <MediaDialog
+            target={{
+              kind: upload.kind,
+              label,
+              value,
+              clearable: upload.clearable,
+              deriveKinds: upload.deriveKinds,
+              onResult: (result) => {
+                onChange(result.key)
+                upload.onResult?.(result)
+              },
+            }}
+            onClose={() => setPicking(false)}
+          />,
+          document.body,
+        )}
     </div>
   )
 }
@@ -323,6 +379,7 @@ export function StringList({
   rows,
   addLabel = 'Add',
   media,
+  upload,
 }: {
   label: string
   hint?: string
@@ -332,6 +389,8 @@ export function StringList({
   addLabel?: string
   /** Render each row as a media field with a preview. */
   media?: 'image' | 'video' | 'audio'
+  /** Where a dropped file goes, when these rows are uploadable media keys. */
+  upload?: MediaKind
 }) {
   const set = (i: number, v: string) =>
     onChange(items.map((item, j) => (j === i ? v : item)))
@@ -364,6 +423,7 @@ export function StringList({
                   value={item}
                   onChange={(v) => set(i, v)}
                   kind={media}
+                  upload={upload ? { kind: upload } : undefined}
                 />
               ) : rows ? (
                 <textarea

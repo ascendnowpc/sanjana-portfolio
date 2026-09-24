@@ -127,6 +127,12 @@ export const UI: UiCopy = {
     film: '/media/video/about-intro-1080.mp4',
     filmPoster: '/media/posters/about-intro.jpg',
     portraitAlt: '{name} — portrait {n}',
+    // The two keys over the listening shelf. Both are plain words on purpose:
+    // they are read as a choice between two bodies of work, not as headings.
+    shelfTabs: {
+      recordings: 'Recordings',
+      covers: 'Musical covers',
+    },
   },
 
   portrait: {
@@ -136,6 +142,15 @@ export const UI: UiCopy = {
 
   testimonials: {
     heading: 'Testimonials',
+  },
+
+  covers: {
+    heading: 'Musical covers',
+    empty: 'No covers here yet.',
+    watch: 'Watch',
+    closeVideo: 'Close',
+    videoLabel: '{title} — video',
+    original: 'Originally {artist}',
   },
 
   music: {

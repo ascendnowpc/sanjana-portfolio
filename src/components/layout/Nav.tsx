@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useProfile, useUi } from '@/content/ContentProvider'
+import { useEdit } from '@/edit/EditProvider'
 import { TROUGH, chip } from '@/components/works/Segmented'
 import { cn } from '@/lib/utils'
+import { EditableText } from '@/components/edit/Editable'
+import { ItemControls } from '@/components/edit/ListEdit'
 
 /**
  * The top bar.
@@ -31,6 +34,7 @@ export function Nav() {
   const [open, setOpen] = useState(false)
   const profile = useProfile()
   const ui = useUi()
+  const { editing } = useEdit()
   const sections = ui.nav.sections
   const cta = ui.nav.cta
   const all = [...sections, cta]
@@ -55,22 +59,31 @@ export function Nav() {
               // key, and it sits directly on the well, not in a chip.
               className="tracked px-2.5 text-sm text-white transition-opacity duration-300 hover:opacity-70 md:px-3"
             >
-              {profile.name}
+              <EditableText path={['profile', 'name']} value={profile.name} />
             </Link>
-            {sections.map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                className={cn(chip(at(l.to)), 'hidden md:block')}
+            {sections.map((l, i) => (
+              <span
+                key={`${l.to}-${i}`}
+                className={cn('hidden items-center md:flex', editing && 'gap-1')}
               >
-                {l.label}
-              </NavLink>
+                <NavLink to={l.to} className={chip(at(l.to))}>
+                  <EditableText
+                    path={['ui', 'nav', 'sections', i, 'label']}
+                    value={l.label}
+                  />
+                </NavLink>
+                <ItemControls
+                  path={['ui', 'nav', 'sections']}
+                  index={i}
+                  blank={() => ({ to: '/', label: 'New' })}
+                />
+              </span>
             ))}
           </div>
 
           <div className={cn(TROUGH, 'hidden md:flex')}>
             <NavLink to={cta.to} className={chip(true)}>
-              {cta.label}
+              <EditableText path={['ui', 'nav', 'cta', 'label']} value={cta.label} />
             </NavLink>
           </div>
 
@@ -108,7 +121,7 @@ export function Nav() {
           >
             {all.map((l, i) => (
               <motion.div
-                key={l.to}
+                key={`${l.to}-${i}`}
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.08 + i * 0.07, duration: 0.5 }}

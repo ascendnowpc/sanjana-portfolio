@@ -19,6 +19,7 @@ import {
   TextArea,
   Toggle,
 } from '@/components/admin/fields'
+import type { MediaResult } from '@/components/edit/MediaDialog'
 
 /**
  * The archive — thirty-six pieces by default, every field of every one.
@@ -290,6 +291,48 @@ function PerformanceEditor({
   const set = <K extends keyof Performance>(key: K, v: Performance[K]) =>
     onChange({ ...value, [key]: v })
 
+  /**
+   * One dropped recording, written across six fields at once.
+   *
+   * Everything in `result` that arrived is used and everything that did not is
+   * left alone, so a file the browser could not take a still from keeps the
+   * still that is already there rather than blanking it.
+   *
+   * The soundtrack is the awkward one: a performance keeps its audio on a
+   * `Track`, so an extracted mp3 either joins the first track or a whole track
+   * has to be built for it — a path written into an empty list would leave a
+   * track with a file and no id, title or length.
+   */
+  const onVideo = (result: MediaResult) =>
+    onChange({
+      ...value,
+      videoSrc: result.key,
+      poster: result.poster ?? value.poster,
+      previewSrc: result.preview ?? value.previewSrc,
+      aspect: result.aspect ?? value.aspect,
+      runtime: result.runtime ?? value.runtime,
+      tracks: result.audio
+        ? value.tracks.length
+          ? value.tracks.map((t, i) =>
+              i === 0
+                ? {
+                    ...t,
+                    audioSrc: result.audio,
+                    duration: result.duration ?? t.duration,
+                  }
+                : t,
+            )
+          : [
+              {
+                id: `${value.slug}-1`,
+                title: value.title,
+                duration: result.duration ?? 0,
+                audioSrc: result.audio,
+              },
+            ]
+        : value.tracks,
+    })
+
   return (
     <div className="space-y-6">
       <Row>
@@ -393,6 +436,7 @@ function PerformanceEditor({
           label="Poster"
           value={value.poster}
           onChange={(v) => set('poster', v)}
+          upload={{ kind: 'poster' }}
           hint="The still shown before anything plays. Cut to 16:9 — that is the shape every tile is given."
         />
         <MediaField
@@ -400,13 +444,24 @@ function PerformanceEditor({
           kind="video"
           value={value.videoSrc ?? ''}
           onChange={(v) => set('videoSrc', v || undefined)}
-          hint="The full recording, played by the detail page."
+          upload={{
+            kind: 'video',
+            deriveKinds: ['audio', 'poster', 'preview'],
+            clearable: true,
+            // One dropped recording fills this whole box: the film, its
+            // soundtrack as a track, the poster, the hover loop, the shape and
+            // the runtime. It is what scripts/ingest-video.mjs does at a
+            // terminal, done here instead — see lib/videoPipeline.ts.
+            onResult: (result) => onVideo(result),
+          }}
+          hint="The full recording, played by the detail page. Drop one here and the soundtrack, the still, the hover loop, the aspect ratio and the runtime are all taken from it."
         />
         <MediaField
           label="Preview"
           kind="video"
           value={value.previewSrc ?? ''}
           onChange={(v) => set('previewSrc', v || undefined)}
+          upload={{ kind: 'preview', clearable: true }}
           hint="Short silent loop for the hover preview. Falls back to the video, then to a slow move across the poster."
         />
         <Num
@@ -419,6 +474,7 @@ function PerformanceEditor({
         <StringList
           label="Stills"
           media="image"
+          upload="poster"
           items={value.gallery}
           addLabel="Add still"
           onChange={(v) => set('gallery', v)}
@@ -497,6 +553,7 @@ function PerformanceEditor({
               kind="audio"
               value={item.audioSrc ?? ''}
               onChange={(v) => setItem({ ...item, audioSrc: v || undefined })}
+              upload={{ kind: 'audio', clearable: true }}
               hint="Left empty, the player synthesises a demo tone so the interface is still testable."
             />
             <Text
