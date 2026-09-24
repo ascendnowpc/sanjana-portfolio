@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useProfile, useUi } from '@/content/ContentProvider'
+import { useEdit } from '@/edit/EditProvider'
+import { EditableText } from '@/components/edit/Editable'
+import { ItemControls, RegionEdit } from '@/components/edit/ListEdit'
 import { Reveal } from '@/components/ui/Reveal'
 import { SplitText } from '@/components/ui/SplitText'
 
@@ -9,6 +12,7 @@ type Status = 'idle' | 'sending' | 'sent'
 export default function Contact() {
   const profile = useProfile()
   const ui = useUi()
+  const { editing } = useEdit()
   const enquiryTypes = ui.contact.enquiryTypes
   /**
    * `null` means "whatever the first type is", rather than a copy of it.
@@ -35,10 +39,30 @@ export default function Contact() {
     <div className="min-h-screen bg-void pt-36 pb-32">
       <div className="mx-auto max-w-[1600px] px-6 md:px-12">
         <header className="mb-20">
-          <p className="label mb-6 text-bloom">{ui.contact.eyebrow}</p>
+          <p className="label mb-6 text-bloom">
+            <EditableText
+              path={['ui', 'contact', 'eyebrow']}
+              value={ui.contact.eyebrow}
+            />
+          </p>
           <h1 className="tracked text-[clamp(2rem,6vw,4.75rem)] leading-[1.1] text-chalk">
-            <SplitText text={ui.contact.heading} />
+            {/* `SplitText` animates one span a character, which a caret cannot
+                live inside. */}
+            {editing ? (
+              <EditableText
+                path={['ui', 'contact', 'heading']}
+                value={ui.contact.heading}
+              />
+            ) : (
+              <SplitText text={ui.contact.heading} />
+            )}
           </h1>
+          {editing && (
+            <div className="mt-8 flex flex-wrap gap-3">
+              <RegionEdit drawer="copy" label="Contact page copy" />
+              <RegionEdit drawer="profile" label="Addresses & links" />
+            </div>
+          )}
         </header>
 
         <div className="grid gap-16 lg:grid-cols-[1fr_380px] lg:gap-24">
@@ -47,26 +71,39 @@ export default function Contact() {
             <form onSubmit={submit} className="max-w-2xl">
               <fieldset className="mb-12">
                 <legend className="label mb-5 text-dust">
-                  {ui.contact.enquiryLegend}
+                  <EditableText
+                    path={['ui', 'contact', 'enquiryLegend']}
+                    value={ui.contact.enquiryLegend}
+                  />
                 </legend>
-                <div className="flex flex-wrap gap-3">
-                  {enquiryTypes.map((t) => {
+                <div className="flex flex-wrap items-center gap-3">
+                  {enquiryTypes.map((t, i) => {
                     const on = selected === t
                     return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setType(t)}
-                        aria-pressed={on}
-                        className="border px-5 py-2.5 text-[0.62rem] tracking-[0.28em] uppercase transition-all duration-400"
-                        style={{
-                          borderColor: on ? '#ffffff' : '#2e2e2e',
-                          color: on ? 'var(--color-void)' : '#9a9a9a',
-                          background: on ? '#ffffff' : 'transparent',
-                        }}
-                      >
-                        {t}
-                      </button>
+                      <span key={`${t}-${i}`} className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setType(t)}
+                          aria-pressed={on}
+                          className="border px-5 py-2.5 text-[0.62rem] tracking-[0.28em] uppercase transition-all duration-400"
+                          style={{
+                            borderColor: on ? '#ffffff' : '#2e2e2e',
+                            color: on ? 'var(--color-void)' : '#9a9a9a',
+                            background: on ? '#ffffff' : 'transparent',
+                          }}
+                        >
+                          <EditableText
+                            path={['ui', 'contact', 'enquiryTypes', i]}
+                            value={t}
+                            placeholder="Kind of enquiry"
+                          />
+                        </button>
+                        <ItemControls
+                          path={['ui', 'contact', 'enquiryTypes']}
+                          index={i}
+                          blank={() => 'Something else'}
+                        />
+                      </span>
                     )
                   })}
                 </div>
@@ -115,51 +152,86 @@ export default function Contact() {
           <Reveal delay={0.1}>
             <aside className="space-y-12 border-t border-edge/50 pt-10 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-14">
               <div>
-                <p className="label mb-4 text-dust">{ui.contact.bookingLabel}</p>
+                <p className="label mb-4 text-dust">
+                  <EditableText
+                    path={['ui', 'contact', 'bookingLabel']}
+                    value={ui.contact.bookingLabel}
+                  />
+                </p>
                 <a
                   href={`mailto:${profile.contact.booking}`}
                   className="text-sm font-light text-chalk transition-colors hover:text-bloom"
                 >
-                  {profile.contact.booking}
-                </a>
-              </div>
-              <div>
-                <p className="label mb-4 text-dust">{ui.contact.generalLabel}</p>
-                <a
-                  href={`mailto:${profile.contact.email}`}
-                  className="text-sm font-light text-chalk transition-colors hover:text-bloom"
-                >
-                  {profile.contact.email}
+                  <EditableText
+                    path={['profile', 'contact', 'booking']}
+                    value={profile.contact.booking}
+                  />
                 </a>
               </div>
               <div>
                 <p className="label mb-4 text-dust">
-                  {ui.contact.elsewhereLabel}
+                  <EditableText
+                    path={['ui', 'contact', 'generalLabel']}
+                    value={ui.contact.generalLabel}
+                  />
+                </p>
+                <a
+                  href={`mailto:${profile.contact.email}`}
+                  className="text-sm font-light text-chalk transition-colors hover:text-bloom"
+                >
+                  <EditableText
+                    path={['profile', 'contact', 'email']}
+                    value={profile.contact.email}
+                  />
+                </a>
+              </div>
+              <div>
+                <p className="label mb-4 text-dust">
+                  <EditableText
+                    path={['ui', 'contact', 'elsewhereLabel']}
+                    value={ui.contact.elsewhereLabel}
+                  />
                 </p>
                 <div className="flex flex-col gap-2.5">
                   {[
                     {
                       label: ui.socials.instagram,
                       href: profile.contact.instagram,
+                      path: ['ui', 'socials', 'instagram'] as (string | number)[],
                     },
-                    { label: ui.socials.youtube, href: profile.contact.youtube },
-                    { label: ui.socials.spotify, href: profile.contact.spotify },
+                    {
+                      label: ui.socials.youtube,
+                      href: profile.contact.youtube,
+                      path: ['ui', 'socials', 'youtube'] as (string | number)[],
+                    },
+                    {
+                      label: ui.socials.spotify,
+                      href: profile.contact.spotify,
+                      path: ['ui', 'socials', 'spotify'] as (string | number)[],
+                    },
                   ].map((s) => (
                     <a
-                      key={s.label}
+                      key={s.path.join('.')}
                       href={s.href}
                       target="_blank"
                       rel="noreferrer noopener"
                       className="w-fit text-sm font-light text-mist transition-colors hover:text-bloom"
                     >
-                      {s.label}
+                      <EditableText path={s.path} value={s.label} />
                     </a>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="label mb-4 text-dust">{ui.contact.basedLabel}</p>
-                <p className="text-sm font-light text-chalk">{profile.basedIn}</p>
+                <p className="label mb-4 text-dust">
+                  <EditableText
+                    path={['ui', 'contact', 'basedLabel']}
+                    value={ui.contact.basedLabel}
+                  />
+                </p>
+                <p className="text-sm font-light text-chalk">
+                  <EditableText path={['profile', 'basedIn']} value={profile.basedIn} />
+                </p>
               </div>
             </aside>
           </Reveal>

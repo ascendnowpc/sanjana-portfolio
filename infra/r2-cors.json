@@ -8,6 +8,18 @@
       },
       "exposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges", "Content-Type"],
       "maxAgeSeconds": 86400
+    },
+    {
+      "allowed": {
+        "origins": [
+          "https://sanjana-portfolio.vercel.app",
+          "http://localhost:5173"
+        ],
+        "methods": ["PUT"],
+        "headers": ["Content-Type", "Cache-Control"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
     }
   ]
 }

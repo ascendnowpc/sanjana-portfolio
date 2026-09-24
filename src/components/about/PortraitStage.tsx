@@ -5,10 +5,20 @@ import {
   useProfile,
   useUi,
 } from '@/content/ContentProvider'
+import { useEdit } from '@/edit/EditProvider'
 import { fill } from '@/lib/copy'
 import { Reveal } from '@/components/ui/Reveal'
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
+import { EditableText } from '@/components/edit/Editable'
+import { AddItem, ItemControls, RegionEdit } from '@/components/edit/ListEdit'
+
+/** A fresh beat: a small-caps heading, its reversed-out word, and the prose. */
+const blankBeat = () => ({
+  heading: 'A heading and its',
+  accent: 'word',
+  body: 'What this beat says.',
+})
 
 /**
  * The piece on the stage, as a frame sequence rather than a film.
@@ -128,6 +138,7 @@ export function PortraitStage() {
   const profile = useProfile()
   const portrait = usePortraitCopy()
   const ui = useUi()
+  const { editing } = useEdit()
   const sectionRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -439,12 +450,22 @@ export function PortraitStage() {
         <div className="md:col-start-1 md:row-start-1">
           <div className="py-20 md:py-[38vh]">
             <Reveal>
-              <p className="label text-dust">{ui.portrait.label}</p>
+              <p className="label text-dust">
+                <EditableText
+                  path={['ui', 'portrait', 'label']}
+                  value={ui.portrait.label}
+                />
+              </p>
               {/* No display headline here any more. The section used to open
                   on one, and the lead now carries the section by itself —
                   first person, and the first thing read on the page. */}
               <p className="mt-8 max-w-[46ch] text-lg leading-[1.7] font-light text-mist">
-                {portrait.lead}
+                <EditableText
+                  path={['portrait', 'lead']}
+                  value={portrait.lead}
+                  placeholder="The opening paragraph, in the first person"
+                  multiline
+                />
               </p>
             </Reveal>
 
@@ -452,20 +473,46 @@ export function PortraitStage() {
               {portrait.beats.map((beat, bi) => (
                 <Reveal key={`${beat.accent}-${bi}`}>
                   <h3 className="mono-label text-xs text-chalk">
-                    {beat.heading}{' '}
+                    <EditableText
+                      path={['portrait', 'beats', bi, 'heading']}
+                      value={beat.heading}
+                      placeholder="Heading"
+                    />{' '}
                     {/* Reversed out rather than coloured in. The reference
                         does this with a highlighter; there is no second
                         colour on this site to do it with, and white on the
                         black ground is the same gesture at full strength. */}
                     <span className="bg-bloom px-1.5 py-0.5 text-void">
-                      {beat.accent}
+                      <EditableText
+                        path={['portrait', 'beats', bi, 'accent']}
+                        value={beat.accent}
+                        placeholder="word"
+                      />
                     </span>
+                    <ItemControls
+                      path={['portrait', 'beats']}
+                      index={bi}
+                      className="ml-3 align-middle"
+                      blank={blankBeat}
+                    />
                   </h3>
                   <p className="mt-6 max-w-[46ch] leading-[1.75] font-light text-mist">
-                    {beat.body}
+                    <EditableText
+                      path={['portrait', 'beats', bi, 'body']}
+                      value={beat.body}
+                      placeholder="What this beat says"
+                      multiline
+                    />
                   </p>
                 </Reveal>
               ))}
+
+              {editing && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <AddItem path={['portrait', 'beats']} label="Add a beat" blank={blankBeat} />
+                  <RegionEdit drawer="about" label="Portrait column" />
+                </div>
+              )}
             </div>
           </div>
         </div>

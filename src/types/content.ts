@@ -195,6 +195,43 @@ export interface MusicCopy {
   houseClip: HouseClip
 }
 
+/**
+ * One song she did not write, sung anyway.
+ *
+ * Its own collection rather than a category of `Performance`, because a cover
+ * is a different kind of fact: there is no venue, no billing and no run, and
+ * the thing worth naming is whose song it was. A performance that happens to
+ * include a cover still belongs in the archive — this is for the covers that
+ * exist on their own, filmed at home or in a studio.
+ *
+ * `audioSrc` is normally not typed in by hand: the uploader lifts the
+ * soundtrack off the video it is given (see lib/videoPipeline.ts) and writes
+ * both keys at once.
+ */
+export interface MusicalCover {
+  /** Stable id. Generated on create; it is what keeps one card sounding. */
+  id: string
+  /** The song. */
+  title: string
+  /** Whose song it is — the writer, or the recording everybody knows. */
+  artist: string
+  /** One line under the title: the arrangement, the room, the occasion. */
+  note?: string
+  /** The sleeve. 4:5, like the discipline covers — see data/music.ts. */
+  cover: string
+  /** The film of it, if it was filmed. */
+  videoSrc?: string
+  /** The soundtrack. Usually extracted from `videoSrc` on upload. */
+  audioSrc?: string
+  /** Seconds. Drives the scrubber before a file is attached. */
+  duration: number
+  year?: number
+  /** Hex rim accent, as on `Testimonial`. Falls back to the site's gilt. */
+  accent?: string
+  /** Pulled to the front of the shelf. */
+  featured?: boolean
+}
+
 /** A destination and the word that stands for it. */
 export interface NavLinkCopy {
   to: string
@@ -317,6 +354,11 @@ export interface UiCopy {
     filmPoster: string
     /** `{name}`, `{n}` */
     portraitAlt: string
+    /** The two keys over the listening shelf. See `covers` below. */
+    shelfTabs: {
+      recordings: string
+      covers: string
+    }
   }
 
   portrait: {
@@ -327,6 +369,20 @@ export interface UiCopy {
 
   testimonials: {
     heading: string
+  }
+
+  /** The second key of the About page's shelf — see `MusicalCover`. */
+  covers: {
+    heading: string
+    /** Shown in place of the shelf when the collection is empty. */
+    empty: string
+    /** The button on a card that has a film behind it. */
+    watch: string
+    closeVideo: string
+    /** `{title}` */
+    videoLabel: string
+    /** `{artist}` — the line under a cover's title. */
+    original: string
   }
 
   music: {
@@ -438,6 +494,8 @@ export interface SiteContent {
   testimonials: Testimonial[]
   categories: Category[]
   performances: Performance[]
+  /** The About page's second shelf. See `MusicalCover`. */
+  covers: MusicalCover[]
   music: MusicCopy
   ui: UiCopy
   admin: AdminSettings

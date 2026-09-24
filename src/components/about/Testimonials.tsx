@@ -2,8 +2,22 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { motion, useScroll, useSpring, useTransform } from 'framer-motion'
 import type { Testimonial } from '@/types/content'
 import { useTestimonials, useUi } from '@/content/ContentProvider'
+import { useEditing } from '@/edit/EditProvider'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
+import { EditableText } from '@/components/edit/Editable'
+import { MediaEdit } from '@/components/edit/EditableMedia'
+import { AddItem, ItemControls, RegionEdit } from '@/components/edit/ListEdit'
+
+/** A fresh card, for the add buttons. Five fields, all of them required. */
+const blankTestimonial = (): Testimonial => ({
+  source: 'Name',
+  role: 'Who they are',
+  context: 'The night, the run, the record',
+  quote: 'What they said',
+  portrait: '',
+  accent: '#c8a45c',
+})
 
 /**
  * The word the run is read against.
@@ -69,10 +83,24 @@ function Card({
           <span className="mono-label mr-1 align-[0.14em] text-[0.44em] text-dust">
             {String(index + 1).padStart(2, '0')}
           </span>
-          {item.source}
+          <EditableText
+            path={['testimonials', index, 'source']}
+            value={item.source}
+            placeholder="Name"
+          />
+          <ItemControls
+            path={['testimonials']}
+            index={index}
+            className="ml-3 align-middle"
+            blank={blankTestimonial}
+          />
         </h3>
         <p className="mt-3 max-w-[32ch] text-sm leading-[1.6] font-light text-mist">
-          {item.role}
+          <EditableText
+            path={['testimonials', index, 'role']}
+            value={item.role}
+            placeholder="Who they are"
+          />
         </p>
       </header>
 
@@ -170,6 +198,16 @@ function Card({
                   boxShadow: '0 0 0 3px rgba(255,255,255,0.5)',
                 }}
               />
+              <MediaEdit
+                target={{
+                  path: ['testimonials', index, 'portrait'],
+                  kind: 'portrait',
+                  label: 'The still on the label',
+                  clearable: true,
+                }}
+                label="Still"
+                className="rounded-full"
+              />
             </div>
 
             {/* The sheen. A record is read as a record by the light crossing
@@ -185,14 +223,28 @@ function Card({
           </div>
 
           <p className="mono-label mt-[6%] text-[0.5625rem] text-dust">
-            {item.context}
+            <EditableText
+              path={['testimonials', index, 'context']}
+              value={item.context}
+              placeholder="The night, the run, the record"
+            />
           </p>
           <blockquote className="mt-4">
             <p
               className="font-[family-name:var(--font-display)] leading-[1.42] font-light text-ink italic"
               style={{ fontSize: 'clamp(1.05rem, 1.35vw, 1.3rem)' }}
             >
-              “{item.quote}”
+              {/* The quotation marks are the page's, not the quote's, so they
+                  stay outside the field — otherwise every edit would have to
+                  remember to type them. */}
+              “
+              <EditableText
+                path={['testimonials', index, 'quote']}
+                value={item.quote}
+                placeholder="What they said"
+                multiline
+              />
+              ”
             </p>
           </blockquote>
         </div>
@@ -234,6 +286,7 @@ function Card({
 export function Testimonials() {
   const items = useTestimonials()
   const ui = useUi()
+  const editing = useEditing()
   const sectionRef = useRef<HTMLElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const reduced = usePrefersReducedMotion()
@@ -276,11 +329,25 @@ export function Testimonials() {
       className="font-[family-name:var(--font-poster)] leading-[0.86] tracking-[0.012em] text-dust/75 uppercase"
       style={{ fontSize: 'clamp(2.6rem, 14.5vw, 20rem)' }}
     >
-      {ui.testimonials.heading}
+      <EditableText
+        path={['ui', 'testimonials', 'heading']}
+        value={ui.testimonials.heading}
+      />
     </h2>
   )
 
-  if (reduced) {
+  /**
+   * The grid, rather than the pinned run.
+   *
+   * Two reasons to take this branch, and the second one is new. A reader who has
+   * asked for no motion gets the cards as a grid because the travel is the part
+   * motion sensitivity objects to. An *editor* gets the same grid because the
+   * run is three screens of scroll-driven horizontal transform: a caret inside a
+   * card that is being translated under a pinned section is unusable, and the
+   * cards are laid at an angle on top of that. The words are the same words
+   * either way.
+   */
+  if (reduced || editing) {
     return (
       <section className="px-6 py-32 md:px-12">
         <div className="mx-auto max-w-[1600px]">
@@ -290,6 +357,21 @@ export function Testimonials() {
               <Card key={`${item.source}-${i}`} item={item} index={i} />
             ))}
           </div>
+          {editing && (
+            <div className="mt-20 flex flex-wrap items-center gap-3">
+              <AddItem
+                path={['testimonials']}
+                label="Add a testimonial"
+                blank={blankTestimonial}
+              />
+              <RegionEdit drawer="about" label="Testimonial rims & crops" />
+              <p className="w-full text-[0.72rem] leading-relaxed text-dust">
+                Shown as a grid while you are editing. Turn editing off to see
+                the run as a visitor does — three screens of cards crossing the
+                word behind them.
+              </p>
+            </div>
+          )}
         </div>
       </section>
     )

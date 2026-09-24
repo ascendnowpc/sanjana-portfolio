@@ -1,35 +1,43 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useSiteContent } from '@/content/ContentProvider'
+import { useEdit } from '@/edit/EditProvider'
 import {
   exportContent,
   hasOverrides,
   importContent,
-  resetContent,
-  saveContent,
+  publishedStamp,
 } from '@/lib/contentStore'
+import { publishStatus, type PublishStatus } from '@/lib/publish'
 import type { SiteContent } from '@/types/content'
 import { AboutSection } from '@/components/admin/sections/AboutSection'
 import { AccessSection } from '@/components/admin/sections/AccessSection'
 import { CategoriesSection } from '@/components/admin/sections/CategoriesSection'
 import { CopySection } from '@/components/admin/sections/CopySection'
+import { CoversSection } from '@/components/admin/sections/CoversSection'
 import { PerformancesSection } from '@/components/admin/sections/PerformancesSection'
 import { ProfileSection } from '@/components/admin/sections/ProfileSection'
 
 /**
  * The panel.
  *
- * One rule runs through the whole thing: **nothing on the site is editable
- * anywhere but here, and everything on the site is editable here.** The second
- * half is the harder one to hold, and it is why the Copy tab exists at all —
- * a "content" panel that edits the biography but not the word "Testimonials"
- * above the quotes is a panel that still needs a developer.
+ * One rule ran through this from the beginning: **everything on the site is
+ * editable here.** It still holds, and there is now a second way in — the site
+ * itself. Signing in here turns on an edit mode that runs on every page, where a
+ * heading is the field that holds it and a film is the thing you drop a new film
+ * onto (see edit/EditProvider.tsx).
  *
- * Edits are held in a draft and committed on Save rather than written as they
- * are typed. A panel that writes through is a panel with no way out of a
- * mistake: there is no undo on a site's content, so the escape hatch has to be
- * "I have not saved yet". Leaving with unsaved work is confirmed, for the same
- * reason.
+ * So the panel is no longer the only door, and that changes what it is *for*
+ * rather than making it redundant. A form is better than a page for the things a
+ * page cannot show: a hex accent, the order of thirty-six performances, an alt
+ * text, which recording plays under the index, a field on a piece that has no
+ * value yet and therefore nothing on screen to click. It is also simply faster
+ * when the job is twelve entries rather than one word.
+ *
+ * Edits here are held in a draft and committed on Save rather than written as
+ * they are typed — unlike the page, where the site behind the caret *is* the
+ * preview and writing through is the whole point. A form has no such feedback,
+ * so it keeps its escape hatch: "I have not saved yet".
  *
  * `/admin` is a private convenience rather than a page of the site, so it is
  * kept out of the sitemap, out of the navigation and out of the crawler's way.
@@ -39,6 +47,7 @@ const TABS = [
   { id: 'profile', label: 'Profile' },
   { id: 'about', label: 'About page' },
   { id: 'work', label: 'Performances' },
+  { id: 'covers', label: 'Musical covers' },
   { id: 'categories', label: 'Disciplines' },
   { id: 'copy', label: 'Site text' },
   { id: 'access', label: 'Access & data' },
@@ -46,18 +55,9 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
-/** Remembered for the session only — a closed browser asks again. */
-const UNLOCKED_KEY = 'sanjana.admin-unlocked'
-
 export default function Admin() {
   const live = useSiteContent()
-  const [unlocked, setUnlocked] = useState(() => {
-    try {
-      return sessionStorage.getItem(UNLOCKED_KEY) === '1'
-    } catch {
-      return false
-    }
-  })
+  const { signedIn, signIn } = useEdit()
 
   // Crawlers are told to leave this alone. It is not protection — see the
   // Access tab for what the password is and is not worth — it is only there so
@@ -72,55 +72,23 @@ export default function Admin() {
     }
   }, [])
 
-  if (!unlocked) {
-    return (
-      <Login
-        expected={live.admin.password}
-        onUnlock={() => {
-          try {
-            sessionStorage.setItem(UNLOCKED_KEY, '1')
-          } catch {
-            /* the session simply will not be remembered */
-          }
-          setUnlocked(true)
-        }}
-      />
-    )
-  }
+  if (!signedIn) return <Login onSubmit={signIn} />
 
-  return (
-    <Panel
-      live={live}
-      onLock={() => {
-        try {
-          sessionStorage.removeItem(UNLOCKED_KEY)
-        } catch {
-          /* nothing to clear */
-        }
-        setUnlocked(false)
-      }}
-    />
-  )
+  return <Panel live={live} />
 }
 
 /* ============================== the door ============================== */
 
-function Login({
-  expected,
-  onUnlock,
-}: {
-  expected: string
-  onUnlock: () => void
-}) {
+function Login({ onSubmit }: { onSubmit: (password: string) => boolean }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState(false)
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (value === expected) {
-      onUnlock()
-      return
-    }
+    // The session owns the check and the flag, so signing in here also turns on
+    // editing everywhere else. It used to be this route's own state, which meant
+    // the door only opened onto the form behind it.
+    if (onSubmit(value)) return
     setError(true)
     setValue('')
   }
@@ -133,15 +101,13 @@ function Login({
           Sign in
         </h1>
         <p className="mt-4 text-sm leading-relaxed font-light text-mist">
-          Everything on the site is edited from behind this door — the words,
-          the photographs, the archive and the links.
+          Everything on the site is edited from behind this door — the words, the
+          photographs, the archive and the links. From here, or from the pages
+          themselves.
         </p>
 
         <div className="mt-10">
-          <label
-            htmlFor="admin-password"
-            className="label mb-3 block text-dust"
-          >
+          <label htmlFor="admin-password" className="label mb-3 block text-dust">
             Password
           </label>
           <input
@@ -164,7 +130,7 @@ function Login({
               error ? 'text-red-400 opacity-100' : 'opacity-0'
             }`}
           >
-            {error ? 'That password is not right.' : ' '}
+            {error ? 'That password is not right.' : ' '}
           </p>
         </div>
 
@@ -188,32 +154,45 @@ function Login({
 
 /* ============================== the panel ============================== */
 
-function Panel({
-  live,
-  onLock,
-}: {
-  live: SiteContent
-  onLock: () => void
-}) {
+function Panel({ live }: { live: SiteContent }) {
+  const navigate = useNavigate()
+  const {
+    replace,
+    discard,
+    publish,
+    publishing,
+    signOut,
+    setEditing,
+    dirty,
+    note: sessionNote,
+  } = useEdit()
+
   const [tab, setTab] = useState<TabId>('profile')
   /**
    * The working copy.
    *
-   * Seeded once, deliberately. Re-seeding it whenever `live` changed would
-   * undo the editor's own keystrokes, since saving is what changes `live`.
+   * Seeded once, deliberately. Re-seeding it whenever `live` changed would undo
+   * the editor's own keystrokes, since saving is what changes `live` — and now
+   * that the same content can be edited on the page, `live` moves for reasons
+   * this form knows nothing about.
    */
   const [draft, setDraft] = useState<SiteContent>(() => structuredClone(live))
-  const [dirty, setDirty] = useState(false)
+  const [localDirty, setLocalDirty] = useState(false)
   const [note, setNote] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(
     null,
   )
+  const [status, setStatus] = useState<PublishStatus | null>(null)
+
+  useEffect(() => {
+    void publishStatus().then(setStatus)
+  }, [])
 
   /** Write one top-level slice, which is what every section hands back. */
   const put = useCallback(
     <K extends keyof SiteContent>(key: K) =>
       (value: SiteContent[K]) =>
         setDraft((prev) => {
-          setDirty(true)
+          setLocalDirty(true)
           setNote(null)
           return { ...prev, [key]: value }
         }),
@@ -221,29 +200,41 @@ function Panel({
   )
 
   const save = () => {
-    const result = saveContent(draft)
-    setDirty(false)
-    setNote(
-      result.ok
-        ? { tone: 'ok', text: 'Saved. The site is showing your changes.' }
-        : { tone: 'bad', text: result.error ?? 'Could not save.' },
-    )
+    replace(draft)
+    setLocalDirty(false)
+    setNote({
+      tone: 'ok',
+      text: 'Saved. The site is showing your changes — publish to make them live for everybody.',
+    })
   }
 
-  const discard = () => {
+  const revert = () => {
     setDraft(structuredClone(live))
-    setDirty(false)
+    setLocalDirty(false)
     setNote({ tone: 'ok', text: 'Unsaved changes discarded.' })
   }
 
-  // The browser's own guard. It is the only thing that can catch a closed tab
-  // or a typed URL, which is most of the ways somebody leaves a page.
+  /**
+   * Publish what is in the *form*, not what the store is showing.
+   *
+   * Saving first is not a convenience here, it is the only correct order: the
+   * endpoint commits the composed content, and a publish that skipped the save
+   * would commit the site as it was before the last thing typed into this form.
+   */
+  const publishNow = async () => {
+    if (localDirty) replace(draft)
+    const result = await publish('Content: publish edits made in the panel')
+    if (result.ok) setLocalDirty(false)
+  }
+
+  // The browser's own guard, for the form's unsaved draft. The session keeps its
+  // own for unpublished edits; this one is about the boxes on this screen.
   useEffect(() => {
-    if (!dirty) return
+    if (!localDirty) return
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
+  }, [localDirty])
 
   const download = () => {
     const blob = new Blob([exportContent()], { type: 'application/json' })
@@ -264,8 +255,11 @@ function Panel({
     [draft.performances],
   )
 
+  const shown = note ?? sessionNote
+  const stamp = publishedStamp()
+
   return (
-    <div className="min-h-screen bg-neutral-950 pb-32 text-neutral-200">
+    <div className="min-h-screen bg-neutral-950 pb-40 text-neutral-200">
       {/* ---------------- bar ---------------- */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-neutral-950/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 md:px-8">
@@ -274,26 +268,34 @@ function Panel({
               {draft.profile.name} — admin
             </p>
             <p className="mt-1 text-xs text-neutral-500">
-              {dirty ? 'Unsaved changes' : 'All changes saved'}
+              {localDirty
+                ? 'Unsaved changes in this form'
+                : dirty
+                  ? 'Saved here, not yet published'
+                  : 'Everything published'}
             </p>
           </div>
 
-          {note && (
+          {shown && (
             <p
               role="status"
-              className={`text-xs ${
-                note.tone === 'ok' ? 'text-emerald-400' : 'text-red-400'
+              className={`max-w-md text-xs ${
+                shown.tone === 'ok'
+                  ? 'text-emerald-400'
+                  : shown.tone === 'bad'
+                    ? 'text-red-400'
+                    : 'text-sky-300'
               }`}
             >
-              {note.text}
+              {shown.text}
             </p>
           )}
 
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={discard}
-              disabled={!dirty}
+              onClick={revert}
+              disabled={!localDirty}
               className="rounded-sm border border-white/15 px-3 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
               Discard
@@ -301,10 +303,42 @@ function Panel({
             <button
               type="button"
               onClick={save}
-              disabled={!dirty}
-              className="rounded-sm border border-white bg-white px-4 py-2 text-[0.62rem] tracking-[0.18em] text-black uppercase transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
+              disabled={!localDirty}
+              className="rounded-sm border border-white/25 px-4 py-2 text-[0.62rem] tracking-[0.18em] text-white uppercase transition-colors hover:border-white disabled:cursor-not-allowed disabled:opacity-30"
             >
               Save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void publishNow()
+              }}
+              disabled={
+                (!dirty && !localDirty) ||
+                publishing ||
+                (status ? !status.configured : false)
+              }
+              title={
+                status && !status.configured
+                  ? (status.unavailable ??
+                    `Publishing needs ${status.missing.join(', ')} set on the deployment — see EDITING.md.`)
+                  : 'Commit the content to the repository and rebuild the site'
+              }
+              className="rounded-sm border border-white bg-white px-4 py-2 text-[0.62rem] tracking-[0.18em] text-black uppercase transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              {publishing ? 'Publishing…' : 'Publish'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Straight into edit mode on the page, which is the other half
+                // of this screen rather than a different tool.
+                setEditing(true)
+                navigate('/')
+              }}
+              className="rounded-sm border border-white/15 px-3 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
+            >
+              Edit on the site
             </button>
             <Link
               to="/"
@@ -314,7 +348,7 @@ function Panel({
             </Link>
             <button
               type="button"
-              onClick={onLock}
+              onClick={signOut}
               className="rounded-sm border border-white/15 px-3 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
             >
               Lock
@@ -371,6 +405,10 @@ function Panel({
           />
         )}
 
+        {tab === 'covers' && (
+          <CoversSection value={draft.covers} onChange={put('covers')} />
+        )}
+
         {tab === 'categories' && (
           <CategoriesSection
             categories={draft.categories}
@@ -381,23 +419,23 @@ function Panel({
           />
         )}
 
-        {tab === 'copy' && (
-          <CopySection value={draft.ui} onChange={put('ui')} />
-        )}
+        {tab === 'copy' && <CopySection value={draft.ui} onChange={put('ui')} />}
 
         {tab === 'access' && (
           <AccessSection
             value={draft.admin}
             onChange={put('admin')}
             hasLocalEdits={hasOverrides()}
+            publishedAt={stamp}
+            publishStatus={status}
             onExport={download}
             onReset={() => {
-              resetContent()
-              // The store now holds the shipped defaults; the draft has to
+              discard()
+              // The store now holds the published content; the draft has to
               // follow it or the next Save would put the discarded edits back.
               setDraft(structuredClone(live))
-              setDirty(false)
-              setNote({ tone: 'ok', text: 'Reset to the deployed content.' })
+              setLocalDirty(false)
+              setNote({ tone: 'ok', text: 'Reset to the published content.' })
             }}
             onImport={(json) => {
               const result = importContent(json)
@@ -405,7 +443,7 @@ function Panel({
                 setNote({ tone: 'bad', text: result.error ?? 'Import failed.' })
                 return
               }
-              setDirty(false)
+              setLocalDirty(false)
               setNote({ tone: 'ok', text: 'Imported and saved.' })
             }}
           />
@@ -415,9 +453,14 @@ function Panel({
       {/* One quiet line at the foot, because it is the fact that decides what
           somebody should do with their work when they are done here. */}
       <p className="mx-auto mt-16 max-w-[1400px] px-5 text-xs leading-relaxed text-neutral-600 md:px-8">
-        Changes are saved in this browser only. Use{' '}
-        <strong className="font-normal text-neutral-400">Export JSON</strong> on
-        the Access &amp; data tab to hand them to whoever deploys the site.
+        <strong className="font-normal text-neutral-400">Save</strong> keeps your
+        work in this browser.{' '}
+        <strong className="font-normal text-neutral-400">Publish</strong> commits
+        it to the repository, which rebuilds the site for everybody — about a
+        minute.{' '}
+        {status && !status.configured
+          ? 'Publishing is not set up on this deployment yet; until it is, use Export JSON on the Access & data tab. EDITING.md has the setup.'
+          : 'Export JSON on the Access & data tab is still there as a way to hand the content to somebody else.'}
       </p>
     </div>
   )

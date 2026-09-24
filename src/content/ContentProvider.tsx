@@ -74,6 +74,11 @@ export function useMusicCopy() {
   return useSiteContent().music
 }
 
+/** The About page's covers shelf. See `MusicalCover`. */
+export function useCovers() {
+  return useSiteContent().covers
+}
+
 export function useCategories(): Category[] {
   return useSiteContent().categories
 }

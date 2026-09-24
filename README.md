@@ -30,7 +30,7 @@ npm run preview
 | `/work/:slug` | A performance: video, recording, credits, stills |
 | `/about` | Editorial bio, portrait strip, stats, press |
 | `/contact` | Booking enquiry form |
-| `/admin` | The content panel — password, then every editable value on the site |
+| `/admin` | The panel — password, then every editable value on the site. Signing in here also turns on edit mode on every other page |
 
 `/work` reads `?category=` (`solo-concert`, `musical-theatre`,
 `classical-repertoire`, `hindi-singing`, `honor-choir`, `collaboration`) and
@@ -140,59 +140,78 @@ the bars near the playhead reacting to a live `AnalyserNode`.
 
 Drop real files in and the same component switches to `file` mode untouched.
 
-## The admin panel
+## Editing the site
 
-Everything the site says is editable from `/admin`, reached from the **Admin
-login** link at the foot of every page. The password is in
-`DEFAULT_CONTENT.admin.password` in `src/lib/contentStore.ts`, and can be
-changed from the panel's own Access tab.
+Two ways in, editing the same content. **[EDITING.md](./EDITING.md)** is the
+full guide; this is the shape of it.
 
-Six tabs, between them covering the whole content model:
+**On the site.** Sign in at `/admin` or from the link at the foot of every page,
+turn on edit mode, and the page becomes the form: the heading you are reading is
+the field that holds it, and hovering a photograph or a film offers to replace
+it. Drop a video on one and the soundtrack is extracted, a still is taken, the
+shape and the length are measured, and every field that wants one of those is
+filled — in the browser, from one file.
+
+**In the panel at `/admin`.** The same content as a form. Better for what a page
+cannot show — a hex accent, the order of thirty-six performances, an alt text, a
+field with no value yet and so nothing on screen to click — and faster when the
+job is twelve entries rather than one word. Seven tabs:
 
 | Tab | What it edits |
 |---|---|
 | Profile | Name, role, tagline, bio, training, portraits, press, stats, contacts, social links |
 | About page | The opening statement and film, the portrait column, the testimonial cards |
 | Performances | All 36 archive entries — every field, plus their tracks, credits and stills |
+| Musical covers | The second key of the About page's shelf: songs she did not write |
 | Disciplines | The six categories, their accents and cover art, and the recording the index opens on |
 | Site text | Every other word on the site: headings, buttons, filter keys, form labels, the welcome sentence, the sound question, the 404 page, and the labels a screen reader hears instead of an icon |
-| Access & data | The password, and export / import / reset |
+| Access & data | The password, publishing, and export / import / reset |
 
-**Where edits live.** In the editor's own browser, in `localStorage`. They
-survive a reload and outlive the tab; they do not reach another device or
-another visitor. That is the honest ceiling for a site with no server of its
-own — there is nowhere else to put them that does not require a secret this
-bundle would have to ship.
+**Then Publish**, which commits the content to this repository as
+`src/content/published.json` and rebuilds the site for everybody. Until then an
+edit lives in the editor's own browser, in `localStorage` — it survives a reload
+and outlives the tab, and reaches nobody else. That is deliberate: a
+half-finished rewrite should not be on the live site while it is being thought
+about. **Export JSON** is still there as the other way to hand a draft over.
 
-So the panel is a drafting surface, and **Export JSON** is how a draft becomes
-a deploy: hand the file to whoever builds the site and its values replace the
-defaults in `src/data/`, or load the archive rows into Supabase
-([DATABASE.md](./DATABASE.md)).
+Publishing needs `ADMIN_PASSWORD` and a `GITHUB_TOKEN` on the deployment, and
+uploading needs the R2 keys; both functions live under `api/` and neither secret
+ever reaches the browser. The editing bar says plainly when something is missing.
+See [EDITING.md](./EDITING.md).
 
-**What the password is worth.** It keeps a passer-by out of the panel. It is
-checked in the browser, so it is also shipped to the browser: anyone who reads
-the built JavaScript can read it, and anyone who opens devtools can set the
-flag it guards without it. Nothing behind it is private — every field is
-content the site already displays — but do not reuse a password from anywhere
-else, and do not treat `/admin` as a secure area. Real protection needs a
-server holding both the password and the content.
+**What the panel's password is worth.** It keeps a passer-by out of the editor. It
+is checked in the browser, so it is also shipped to the browser: anyone who reads
+the built JavaScript can read it. Nothing behind it is private — every field is
+content the site already displays. What it cannot do is change the site for
+anybody else: that needs `ADMIN_PASSWORD`, which is checked on the server and
+should be a different, longer password.
 
 ### How it is wired
 
 ```
-src/data/*.ts            the defaults — what a fresh browser sees
-  └─ src/lib/contentStore.ts   merges: defaults → Supabase → saved edits
-       └─ src/content/ContentProvider.tsx   serves it to the tree
-            └─ every component, via useProfile() / useUi() / usePerformances()
+src/data/*.ts                     the defaults — what the site was built with
+  └─ src/content/published.json   what has been edited since, committed by api/publish.ts
+       └─ src/lib/contentStore.ts merges: data → published → Supabase → this browser's draft
+            └─ src/content/ContentProvider.tsx   serves it to the tree
+                 └─ every component, via useProfile() / useUi() / usePerformances()
+
+src/edit/EditProvider.tsx         the session: signed in, edit mode, writes by path
+  └─ src/components/edit/*        the fields, the media dialog, the bar and the drawer
 ```
 
-Saved edits win over both layers below them; a field added to the model later
-still picks up its default, because the saved blob is re-merged over the
-defaults on every read rather than replacing them.
+A later layer wins over an earlier one, and a field added to the model later
+still picks up its default, because every layer is re-merged over the one below
+it on read rather than replacing it.
 
-The invariant worth keeping: **a string a component holds itself is a string
-nobody can edit.** New copy goes in `src/data/ui.ts` and is read through
-`useUi()`, never typed into the JSX.
+Two invariants worth keeping:
+
+- **A string a component holds itself is a string nobody can edit.** New copy
+  goes in `src/data/ui.ts`, is typed on `UiCopy`, and is read through `useUi()` —
+  never typed into the JSX.
+- **A field on the page is the same field in the panel.** Inline editing writes
+  by path into the one store the panel writes to, so the two can never be two
+  answers. New copy gets a box on the Site text tab as well as its place on the
+  page.
 
 ## Putting the real content in
 
@@ -247,14 +266,22 @@ src/
 │   ├── media/       VideoStage, LoopingPreview
 │   ├── works/       the /work index: IndexRow, WorkFrame, Segmented
 │   ├── layout/      Nav, Footer, Cursor, Preloader, route transition
-│   ├── admin/       the panel's form vocabulary and its six tab editors
+│   ├── admin/       the panel's form vocabulary and its seven tab editors
+│   ├── edit/        editing in place: fields, the media dialog, the bar, the drawer
 │   └── ui/          Reveal, SplitText, Marquee, MagneticLink
-├── content/         ContentProvider — live content for the whole tree
+├── content/         ContentProvider, and published.json — what has been
+│                    edited on the site since, committed into the code
 ├── routes/          Home, Work, WorkDetail, About, Contact, Admin, NotFound
-├── data/            all content — the defaults the panel edits
-├── lib/             content store, content repository, Supabase client, helpers
+├── edit/            the editing session: signed in, edit mode, writes by path
+├── data/            all content — the defaults the editor starts from
+├── lib/             content store, publish and upload clients, the video
+│                    pipeline, content repository, Supabase client, helpers
 ├── hooks/           useAudioEngine, usePointer, useMediaQuery
 └── types/           the content model everything speaks
+
+api/                 the two server functions, and the only two secrets
+├── publish.ts       commits the content to this repository
+└── upload.ts        signs one PUT into the media bucket
 ```
 
 `src/lib/content.ts` is the only file that knows where content comes *from*, and

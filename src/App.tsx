@@ -8,6 +8,7 @@ import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { TransitionProvider } from '@/components/layout/TransitionProvider'
 import { Preloader } from '@/components/layout/Preloader'
 import { ContentProvider, useUi } from '@/content/ContentProvider'
+import { EditProvider, useEdit } from '@/edit/EditProvider'
 
 import Home from '@/routes/Home'
 
@@ -20,6 +21,15 @@ const About = lazy(() => import('@/routes/About'))
 const Contact = lazy(() => import('@/routes/Contact'))
 const Admin = lazy(() => import('@/routes/Admin'))
 const NotFound = lazy(() => import('@/routes/NotFound'))
+
+/**
+ * The editing bar, the drawer and everything they pull in.
+ *
+ * Split off hardest of all and mounted only for somebody who has signed in, so a
+ * visitor downloads none of it — not the bar, not the panel's form sections
+ * behind the drawer, and not the video tools behind those.
+ */
+const EditLayer = lazy(() => import('@/components/edit/EditLayer'))
 
 /**
  * The tab, the crawler's summary, and the colour a phone paints its chrome.
@@ -46,6 +56,17 @@ function DocumentHead() {
   }, [ui.meta.title, ui.meta.description, ui.meta.themeColor])
 
   return null
+}
+
+/** The editor's chrome, for the editor only. */
+function EditChrome() {
+  const { signedIn } = useEdit()
+  if (!signedIn) return null
+  return (
+    <Suspense fallback={null}>
+      <EditLayer />
+    </Suspense>
+  )
 }
 
 function Shell() {
@@ -82,6 +103,10 @@ function Shell() {
       </motion.main>
 
       {!isHome && !isAdmin && <Footer />}
+
+      {/* Over every page, the panel included: signing in at /admin and pressing
+          "View site" has to leave the bar where it was. */}
+      <EditChrome />
     </>
   )
 }
@@ -90,12 +115,17 @@ export default function App() {
   return (
     <ContentProvider>
       <BrowserRouter>
-        <DocumentHead />
-        <TransitionProvider>
-          <Preloader />
-          <Ambience />
-          <Shell />
-        </TransitionProvider>
+        {/* Inside the router, because the editing bar links into the panel;
+            inside the content provider, because the session reads the password
+            it checks out of the content it edits. */}
+        <EditProvider>
+          <DocumentHead />
+          <TransitionProvider>
+            <Preloader />
+            <Ambience />
+            <Shell />
+          </TransitionProvider>
+        </EditProvider>
       </BrowserRouter>
     </ContentProvider>
   )

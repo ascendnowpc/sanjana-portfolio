@@ -11,6 +11,8 @@
     "media:upload": "node scripts/upload-media.mjs"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "framer-motion": "^13.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

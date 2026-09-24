@@ -379,3 +379,76 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ------------------------------------------------------------------
+   Editing in place.
+
+   Everything in this block is behind edit mode, which only exists for a
+   signed-in editor — so none of it is ever painted for a visitor, and none
+   of it is allowed to change the layout of what it marks. That second part
+   is the whole constraint: an outline that takes up room would reflow the
+   page the moment editing came on, and the page you are editing has to be
+   the page you are publishing. So the marks are `outline` (which is drawn
+   outside the box without participating in it) and box-shadow, never border
+   or padding.
+
+   The cyan is deliberate, and it is the one place on this site that carries
+   a hue on purpose: the palette above is greyscale so the photography can
+   hold the colour, which means a grey outline over a black-and-white
+   photograph is invisible exactly where editing is most likely. This colour
+   belongs to the editing UI, appears nowhere in the published page, and is
+   the signal that what you are looking at is a field rather than a heading.
+------------------------------------------------------------------- */
+@layer components {
+  /* A word on the page that is also an input. */
+  .edit-field {
+    outline: 1px dashed color-mix(in srgb, #38bdf8 55%, transparent);
+    outline-offset: 2px;
+    border-radius: 1px;
+    cursor: text;
+    transition: outline-color 200ms ease, background-color 200ms ease;
+  }
+  .edit-field:hover {
+    outline-color: color-mix(in srgb, #38bdf8 85%, transparent);
+    background-color: color-mix(in srgb, #38bdf8 10%, transparent);
+  }
+  .edit-field:focus {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+    background-color: color-mix(in srgb, #38bdf8 12%, transparent);
+  }
+  /* An empty field has nothing to click on, so it is given a body. */
+  .edit-field:empty::before {
+    content: attr(data-placeholder);
+    color: color-mix(in srgb, #38bdf8 70%, transparent);
+    font-style: italic;
+  }
+
+  /* A region with structure behind it — a list, an archive entry, a shelf —
+     whose deeper fields are edited in the drawer rather than on the page. */
+  .edit-region {
+    outline: 1px dashed color-mix(in srgb, #38bdf8 28%, transparent);
+    outline-offset: 6px;
+    border-radius: 2px;
+  }
+
+  /* The affordance over a picture or a film. Hidden until the pointer is on
+     the frame: the still underneath is the thing being judged. */
+  .edit-media-overlay {
+    opacity: 0;
+    transition: opacity 220ms ease;
+    background: color-mix(in srgb, #020617 62%, transparent);
+  }
+  .edit-media-overlay:hover,
+  .edit-media-overlay:focus-visible,
+  .edit-media-overlay:focus-within {
+    opacity: 1;
+  }
+
+  /* The bar, the drawer and the dialog are the only editing chrome that sits
+     over the page, and they sit over everything — including the nav, which is
+     z-40, and the preloader. */
+  .edit-chrome {
+    z-index: 90;
+  }
+}

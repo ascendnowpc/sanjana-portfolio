@@ -96,6 +96,7 @@ export function CategoriesSection({
                     covers: { ...music.covers, [item.id]: v },
                   })
                 }
+                upload={{ kind: 'cover', clearable: true }}
                 hint="The sleeve on the About page’s listening shelf. Cut it to 4:5 — a 16:9 frame centre-cropped into that loses a good deal of both sides. Left empty, the card falls back to the poster of the most recent piece."
               />
             </div>

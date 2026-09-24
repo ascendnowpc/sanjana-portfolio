@@ -356,6 +356,75 @@ export function CopySection({
           onChange={field('about', 'portraitAlt')}
           hint="{name}, {n} — read aloud in place of each photograph."
         />
+        <Row>
+          <Text
+            label="Shelf key — recordings"
+            value={value.about.shelfTabs.recordings}
+            onChange={(v) =>
+              put('about', {
+                ...value.about,
+                shelfTabs: { ...value.about.shelfTabs, recordings: v },
+              })
+            }
+            hint="The first of the two keys over the listening shelf."
+          />
+          <Text
+            label="Shelf key — covers"
+            value={value.about.shelfTabs.covers}
+            onChange={(v) =>
+              put('about', {
+                ...value.about,
+                shelfTabs: { ...value.about.shelfTabs, covers: v },
+              })
+            }
+            hint="The second. Hidden from visitors until there is a cover behind it."
+          />
+        </Row>
+      </Group>
+
+      <Group
+        title="Musical covers"
+        description="The second key of the About page's shelf. The covers themselves are on their own tab; these are the words around them."
+      >
+        <Row>
+          <Text
+            label="Section heading"
+            value={value.covers.heading}
+            onChange={field('covers', 'heading')}
+          />
+          <Text
+            label="Nothing there yet"
+            value={value.covers.empty}
+            onChange={field('covers', 'empty')}
+            hint="Only ever seen while editing — a visitor is not shown the key at all until there is something behind it."
+          />
+        </Row>
+        <Row>
+          <Text
+            label="Under the title"
+            value={value.covers.original}
+            onChange={field('covers', 'original')}
+            hint="{artist} — whose song it is."
+          />
+          <Text
+            label="Open the film"
+            value={value.covers.watch}
+            onChange={field('covers', 'watch')}
+          />
+        </Row>
+        <Row>
+          <Text
+            label="Close the film"
+            value={value.covers.closeVideo}
+            onChange={field('covers', 'closeVideo')}
+          />
+          <Text
+            label="Film (spoken)"
+            value={value.covers.videoLabel}
+            onChange={field('covers', 'videoLabel')}
+            hint="{title}"
+          />
+        </Row>
       </Group>
 
       <Group

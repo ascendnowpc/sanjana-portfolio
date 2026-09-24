@@ -17,7 +17,10 @@ import {
   useProfile,
   useUi,
 } from '@/content/ContentProvider'
+import { useEdit } from '@/edit/EditProvider'
 import { fill } from '@/lib/copy'
+import { EditableText } from '@/components/edit/Editable'
+import { ItemControls, RegionEdit } from '@/components/edit/ListEdit'
 
 /**
  * That the sound question has been put to this visitor.
@@ -46,6 +49,7 @@ export default function Home() {
   const { items } = usePerformances()
   const profile = useProfile()
   const ui = useUi()
+  const { editing } = useEdit()
   const categoryMap = useCategoryMap()
   const { houseClip } = useMusicCopy()
   const [focused, setFocused] = useState<Performance | null>(null)
@@ -148,7 +152,13 @@ export default function Home() {
           {!arrived ? (
             <motion.div
               key="welcome"
-              className="absolute max-w-4xl px-6 text-center"
+              // The layer over the gallery is `pointer-events-none` so the room
+              // can be dragged through it. A field that cannot be clicked is not
+              // a field, so editing takes the events back — and takes the drag
+              // with them, which is the right trade while words are being typed.
+              className={`absolute max-w-4xl px-6 text-center ${
+                editing ? 'pointer-events-auto' : ''
+              }`}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -14, filter: 'blur(8px)' }}
@@ -166,16 +176,44 @@ export default function Home() {
                     className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1"
                   >
                     {line.map((token, ti) => {
-                      const text = fill(token.text, { name: profile.name })
-                      return token.kind === 'big' ? (
-                        <Big key={ti}>{text}</Big>
-                      ) : (
-                        <Small key={ti}>{text}</Small>
+                      // Edit mode shows the template, not the filled string:
+                      // `{name}` is a slot the sentence has to keep, and a word
+                      // that had been substituted away could not be typed back.
+                      const shown = editing
+                        ? token.text
+                        : fill(token.text, { name: profile.name })
+                      const field = (
+                        <EditableText
+                          path={['ui', 'home', 'welcome', li, ti, 'text']}
+                          value={shown}
+                          placeholder="Word"
+                        />
+                      )
+                      return (
+                        <span key={ti} className="inline-flex items-baseline gap-1">
+                          {token.kind === 'big' ? (
+                            <Big>{field}</Big>
+                          ) : (
+                            <Small>{field}</Small>
+                          )}
+                          <ItemControls
+                            path={['ui', 'home', 'welcome', li]}
+                            index={ti}
+                            blank={() => ({ kind: token.kind, text: 'word' })}
+                          />
+                        </span>
                       )
                     })}
                   </p>
                 ))}
               </div>
+
+              {editing && (
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                  <RegionEdit drawer="copy" label="Index copy & the sound question" />
+                  <RegionEdit drawer="categories" label="What plays under the index" />
+                </div>
+              )}
             </motion.div>
           ) : focused ? (
             <motion.div
@@ -218,21 +256,35 @@ export default function Home() {
             key={li}
             className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1"
           >
-            {line.map((token, ti) =>
-              token.kind === 'link' ? (
-                <MagneticLink
-                  key={ti}
-                  to={token.to ?? '/'}
+            {line.map((token, ti) => (
+              <span key={ti} className="inline-flex items-baseline gap-1">
+                {token.kind === 'link' ? (
+                  <MagneticLink to={token.to ?? '/'} className="pointer-events-auto">
+                    <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
+                      <EditableText
+                        path={['ui', 'home', 'nav', li, ti, 'text']}
+                        value={token.text}
+                        placeholder="Word"
+                      />
+                    </span>
+                  </MagneticLink>
+                ) : (
+                  <Small>
+                    <EditableText
+                      path={['ui', 'home', 'nav', li, ti, 'text']}
+                      value={token.text}
+                      placeholder="Word"
+                    />
+                  </Small>
+                )}
+                <ItemControls
+                  path={['ui', 'home', 'nav', li]}
+                  index={ti}
                   className="pointer-events-auto"
-                >
-                  <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
-                    {token.text}
-                  </span>
-                </MagneticLink>
-              ) : (
-                <Small key={ti}>{token.text}</Small>
-              ),
-            )}
+                  blank={() => ({ kind: 'small', text: 'and' })}
+                />
+              </span>
+            ))}
           </p>
         ))}
       </div>
@@ -265,7 +317,12 @@ export default function Home() {
             pointer is held away from the middle, and holds still when it comes
             back. Dragging and scrolling still work, but they are no longer the
             thing to tell someone about first. */}
-        <span className="label text-dust">{ui.home.driftHint}</span>
+        <span className={`label text-dust ${editing ? 'pointer-events-auto' : ''}`}>
+          <EditableText
+            path={['ui', 'home', 'driftHint']}
+            value={ui.home.driftHint}
+          />
+        </span>
         <span className="breathe block h-6 w-px bg-gradient-to-b from-transparent via-bloom to-transparent" />
       </motion.div>
 

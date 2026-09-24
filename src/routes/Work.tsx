@@ -8,6 +8,9 @@ import {
   usePerformances,
   useUi,
 } from '@/content/ContentProvider'
+import { useEdit } from '@/edit/EditProvider'
+import { EditableText } from '@/components/edit/Editable'
+import { AddItem, RegionEdit } from '@/components/edit/ListEdit'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { useTransition } from '@/components/layout/TransitionProvider'
 import { LoopingPreview } from '@/components/media/LoopingPreview'
@@ -57,6 +60,7 @@ const GUTTER = 'mx-auto w-full max-w-[1600px] px-6 md:px-12'
 export default function Work() {
   const { items } = usePerformances()
   const ui = useUi()
+  const { editing } = useEdit()
   const CATEGORIES = useCategories()
   const CATEGORY_MAP = useCategoryMap()
   const [params, setParams] = useSearchParams()
@@ -329,8 +333,41 @@ export default function Work() {
 
         {!filtered.length && (
           <p className={`${GUTTER} mono-label py-24 text-center text-[0.625rem] text-white/40`}>
-            {ui.work.empty}
+            <EditableText path={['ui', 'work', 'empty']} value={ui.work.empty} />
           </p>
+        )}
+
+        {/* The way into the archive from the archive.
+            At the foot rather than the head: the page opens on work, which is
+            the whole design of it, and a row of editing chrome across the top of
+            an empty black screen would be the first thing on it. A new piece is
+            added here and then opened, where every one of its fields — the film
+            included — is on the page in front of you. */}
+        {editing && (
+          <div className={`${GUTTER} flex flex-wrap items-center gap-3 py-16`}>
+            <AddItem
+              path={['performances']}
+              label="Add a piece"
+              blank={() => ({
+                slug: `new-piece-${Date.now().toString(36)}`,
+                title: 'New piece',
+                subtitle: '',
+                category: CATEGORIES[0]?.id ?? 'solo-concert',
+                year: new Date().getFullYear(),
+                venue: '',
+                city: '',
+                blurb: '',
+                description: '',
+                poster: '',
+                gallery: [],
+                credits: [],
+                tracks: [],
+              })}
+            />
+            <RegionEdit drawer="performances" label="The archive" />
+            <RegionEdit drawer="categories" label="Disciplines" />
+            <RegionEdit drawer="copy" label="Archive labels" />
+          </div>
         )}
       </div>
 

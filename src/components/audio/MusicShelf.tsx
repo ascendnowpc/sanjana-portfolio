@@ -4,7 +4,6 @@ import {
   useCategories,
   useMusicCopy,
   useProfile,
-  useUi,
 } from '@/content/ContentProvider'
 import { Reveal } from '@/components/ui/Reveal'
 import { AlbumCard } from '@/components/audio/AlbumCard'
@@ -29,13 +28,18 @@ interface Album {
 const NARROW_PER_WIDE = 2
 
 /**
- * The listening shelf: one card a discipline, built from the archive.
+ * The recordings shelf: one card a discipline, built from the archive.
  *
  * Nothing here is a second copy of the work. A card *is* its category — every
  * recording filed under it, in the order it was performed — so a new piece in
  * `performances.ts` turns up in the right card with nothing else to edit. The
  * only hand-picked value is the cover, in `music.covers` — editable from the
- * admin panel like everything else.
+ * page and from the panel like everything else.
+ *
+ * It renders the columns and nothing around them: the heading, the width and
+ * the two keys over it belong to `Shelf`, which is what hosts both this and the
+ * covers beside it. Before there was a second shelf this owned its own section,
+ * and leaving it that way would have put two headings on one band.
  *
  * Two columns of unequal width — the wide one nearly twice the narrow — which
  * is what gives the shelf its stagger: the left card runs deeper than the
@@ -48,7 +52,6 @@ const NARROW_PER_WIDE = 2
  */
 export function MusicShelf({ items }: { items: Performance[] }) {
   const profile = useProfile()
-  const ui = useUi()
   const categories = useCategories()
   const { covers } = useMusicCopy()
 
@@ -97,29 +100,11 @@ export function MusicShelf({ items }: { items: Performance[] }) {
   if (!albums.length) return null
 
   return (
-    /* Narrower than the rest of the page on purpose. The shelf stops growing
-       at ~1064px of content, so on a wide screen it sits in the middle with
-       real margin either side rather than running the full 1600 — cards that
-       fill a 1920 display stop reading as record sleeves and start reading as
-       page sections. */
-    <section className="mx-auto max-w-[1160px] px-6 pt-32 pb-32 md:px-12 md:pt-44">
-      <Reveal>
-        {/* The same poster face the page opens on, at a fraction of the size.
-            Held small deliberately: at display scale it would compete with the
-            sleeves it is labelling, and the job here is to name the shelf, not
-            to start a second headline. */}
-        <h2
-          className="font-[family-name:var(--font-poster)] leading-none tracking-[0.012em] text-chalk uppercase"
-          style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}
-        >
-          {ui.music.heading}
-        </h2>
-      </Reveal>
-
+    <>
       {/* The wide column opens up only at xl. Held at 1.9 all the way down,
           the narrow card runs out of room for its own transport row before
           the layout collapses to one column. */}
-      <div className="mt-16 grid items-start gap-5 md:gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-12 xl:grid-cols-[1.9fr_1fr]">
+      <div className="mt-14 grid items-start gap-5 md:gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-12 xl:grid-cols-[1.9fr_1fr]">
         {columns.map((column, col) => (
           <div key={col} className="grid min-w-0 gap-5 md:gap-6 lg:gap-12">
             {column.map((a, i) => (
@@ -140,6 +125,6 @@ export function MusicShelf({ items }: { items: Performance[] }) {
           </div>
         ))}
       </div>
-    </section>
+    </>
   )
 }

@@ -9,6 +9,9 @@
 
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    /* The published content (src/content/published.json) is imported by the
+       store, so it is typechecked and bundled like any other module. */
+    "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
