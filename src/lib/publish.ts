@@ -48,6 +48,18 @@ export function publishStatus(): Promise<PublishStatus> {
       const res = await fetch(ENDPOINT, { headers: { accept: 'application/json' } })
       // A static deploy with no functions answers the SPA's index.html here,
       // which parses as neither JSON nor a reason — so say the plain thing.
+      // A function that exists but crashed (a bad import, a runtime error)
+      // answers 500 — not the same thing as having no endpoint, and not
+      // fixed by setting environment variables. Say which it is.
+      if (res.status >= 500 && res.status !== 501) {
+        return {
+          configured: false,
+          missing: [],
+          repo: null,
+          branch: null,
+          unavailable: `The publish function is failing (HTTP ${res.status}); check the deployment's function logs.`,
+        }
+      }
       if (!res.ok || !res.headers.get('content-type')?.includes('json')) {
         return {
           configured: false,

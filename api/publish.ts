@@ -1,4 +1,4 @@
-import { authorise, env, json, readJson, repoTarget } from './_lib'
+import { authorise, env, json, readJson, repoTarget } from './_lib.js'
 
 /**
  * Publish: turn what somebody typed on the site into a commit.
