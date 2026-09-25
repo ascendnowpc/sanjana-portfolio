@@ -79,18 +79,20 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
    * Landscape footage wears its poster, which is already 16:9. Portrait
    * footage is hung upright, and its 16:9 poster would have to be cropped to a
    * sliver to fill that — so it wears its own 9:16 cover if it has one, and
-   * otherwise a still taken from its hover loop (lib/portraitStills.ts). While
-   * that still is being taken the frame holds its dark ground rather than
-   * flashing the cropped poster and then swapping it out; only if the still
-   * cannot be taken at all does the 16:9 poster come back as a last resort.
+   * otherwise a still taken from its hover loop (lib/portraitStills.ts).
+   *
+   * The frame is never empty while that still is being taken: the 16:9
+   * poster is there from the first paint and the still fades in over it.
+   * Holding the frame blank instead is what stopped some of these playing —
+   * their video mounted with no poster, and Safari will not autoplay a video
+   * it considers invisible.
    */
   const portrait = tile.aspect < 1
   const derive = portrait && !p.posterPortrait ? p.previewSrc : undefined
   const still = usePortraitStill(derive)
-  let cover: string | undefined = p.poster
-  if (portrait && p.posterPortrait) cover = p.posterPortrait
-  // `undefined` while the still is being taken, `null` once it has failed.
-  else if (derive) cover = still === undefined ? undefined : (still ?? p.poster)
+  const cover = (portrait && p.posterPortrait) || p.poster
+  /** Laid over the cover once it exists. */
+  const overlay = derive ? still : null
   // Hovering always earns footage even if the tile missed the ambient cut.
   const showVideo = Boolean(preview) && (playing || active)
 
@@ -154,18 +156,13 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
         }}
       >
         <img
-          // Keyed on the picture, so a still that arrives after first paint
-          // fades in over the dark ground instead of cutting in.
-          key={cover ?? 'pending'}
-          src={cover ? mediaUrl(cover) : undefined}
+          src={mediaUrl(cover)}
           alt=""
           loading="lazy"
           decoding="async"
           draggable={false}
           className="h-full w-full object-cover"
           style={{
-            opacity: cover ? undefined : 0,
-            animation: portrait && cover ? 'tile-still 500ms ease-out both' : undefined,
             // Was 5s, which is longer than most hovers last: letting go of a
             // frame left its picture creeping back for another four seconds
             // over a wall that had moved on, and a dozen of those overlapping
@@ -185,10 +182,21 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
             these run at once, and pointing them at four-minute files would
             pull hundreds of megabytes through the wall. Falls back to
             `videoSrc` for any entry with no preview cut yet. */}
+        {/* The portrait still, faded in over the poster when it is ready. */}
+        {overlay && (
+          <img
+            src={overlay}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ animation: 'tile-still 500ms ease-out both' }}
+          />
+        )}
+
         {showVideo && (
           <LoopingPreview
             src={mediaUrl(preview)!}
-            poster={cover ? mediaUrl(cover) : undefined}
+            poster={overlay ?? mediaUrl(cover)}
           />
         )}
 
