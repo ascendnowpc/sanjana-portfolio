@@ -2,7 +2,7 @@ import { memo, useEffect, useRef } from 'react'
 import type { TileLayout } from './layout'
 import { LoopingPreview } from '@/components/media/LoopingPreview'
 import { mediaUrl } from '@/lib/media'
-import { useUi } from '@/content/ContentProvider'
+import { usePortraitStill } from '@/lib/portraitStills'
 
 /**
  * How much a frame grows while it is being read.
@@ -68,11 +68,29 @@ export interface TileRefs {
  * re-rendering.
  */
 function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
-  const ui = useUi()
   const rootRef = useRef<HTMLDivElement>(null)
   const shadeRef = useRef<HTMLDivElement>(null)
   const p = tile.performance
   const preview = p.previewSrc ?? p.videoSrc
+
+  /**
+   * The cover, at the frame's own shape.
+   *
+   * Landscape footage wears its poster, which is already 16:9. Portrait
+   * footage is hung upright, and its 16:9 poster would have to be cropped to a
+   * sliver to fill that — so it wears its own 9:16 cover if it has one, and
+   * otherwise a still taken from its hover loop (lib/portraitStills.ts). While
+   * that still is being taken the frame holds its dark ground rather than
+   * flashing the cropped poster and then swapping it out; only if the still
+   * cannot be taken at all does the 16:9 poster come back as a last resort.
+   */
+  const portrait = tile.aspect < 1
+  const derive = portrait && !p.posterPortrait ? p.previewSrc : undefined
+  const still = usePortraitStill(derive)
+  let cover: string | undefined = p.poster
+  if (portrait && p.posterPortrait) cover = p.posterPortrait
+  // `undefined` while the still is being taken, `null` once it has failed.
+  else if (derive) cover = still === undefined ? undefined : (still ?? p.poster)
   // Hovering always earns footage even if the tile missed the ambient cut.
   const showVideo = Boolean(preview) && (playing || active)
 
@@ -136,13 +154,18 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
         }}
       >
         <img
-          src={mediaUrl(p.poster)}
+          // Keyed on the picture, so a still that arrives after first paint
+          // fades in over the dark ground instead of cutting in.
+          key={cover ?? 'pending'}
+          src={cover ? mediaUrl(cover) : undefined}
           alt=""
           loading="lazy"
           decoding="async"
           draggable={false}
           className="h-full w-full object-cover"
           style={{
+            opacity: cover ? undefined : 0,
+            animation: portrait && cover ? 'tile-still 500ms ease-out both' : undefined,
             // Was 5s, which is longer than most hovers last: letting go of a
             // frame left its picture creeping back for another four seconds
             // over a wall that had moved on, and a dozen of those overlapping
@@ -163,7 +186,10 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
             pull hundreds of megabytes through the wall. Falls back to
             `videoSrc` for any entry with no preview cut yet. */}
         {showVideo && (
-          <LoopingPreview src={mediaUrl(preview)!} poster={mediaUrl(p.poster)} />
+          <LoopingPreview
+            src={mediaUrl(preview)!}
+            poster={cover ? mediaUrl(cover) : undefined}
+          />
         )}
 
         {/* Depth shading and the dim-everything-else state share one layer;
@@ -175,34 +201,9 @@ function GalleryTileBase({ tile, register, active, playing, onSelect }: Props) {
           style={{ opacity: 0.6 }}
         />
 
-        {/* The invitation, on the picture itself.
-
-            It used to sit with the title in the middle of the screen, several
-            hundred pixels from the frame it referred to, which is a caption
-            for a wall rather than for a picture. Here it is unambiguous: this
-            frame, the lit one, opens. Mounted only while hovered — a text node
-            per tile is cheap, but eighty of them are not. */}
-        {active && (
-          <>
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  'linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.1) 42%, transparent 70%)',
-                animation: 'tile-caption 420ms var(--ease-out-expo) both',
-              }}
-            />
-            <span
-              className="tracked on-scrim pointer-events-none absolute inset-x-0 bottom-[8%] text-center text-chalk"
-              style={{
-                fontSize: 'clamp(0.5rem, 0.72vw, 0.72rem)',
-                animation: 'tile-caption 520ms var(--ease-out-expo) both',
-              }}
-            >
-              {ui.gallery.learnMore}
-            </span>
-          </>
-        )}
+        {/* Nothing is printed on the picture any more. The invitation to open
+            it follows the cursor instead — see CursorLabel, mounted by the
+            index — so the footage of the lit frame is left clear. */}
       </button>
     </div>
   )

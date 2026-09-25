@@ -99,7 +99,9 @@ on a server.
 4. The film is uploaded, then each derived file.
 5. Every field that wants one of those is written: the film, the audio (onto the
    piece's first track, or a track built for it), the poster, the hover loop, the
-   aspect ratio, the runtime.
+   aspect ratio, the runtime. A still taken from **portrait** footage goes into
+   the front-page portrait cover instead of the poster, so the Work page keeps
+   its 16:9 poster (see *Portrait covers* in MEDIA.md).
 
 Notes on the edges:
 

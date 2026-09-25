@@ -156,10 +156,16 @@ const SPIN_UP = 1.15
  * and it costs one multiply per tile per frame.
  */
 const INTRO_ZOOM = 0.38
-/** A beat held wide before the pull begins, so the room registers as a whole. */
-const INTRO_HOLD_MS = 620
+/**
+ * A beat held wide before the pull begins, so the room registers as a whole.
+ *
+ * Long enough now to read the welcome sentence in, too. It was 620ms, and with
+ * the sentence retired at the handover below that gave it under two seconds on
+ * screen — gone before a first-time visitor had finished its first line.
+ */
+const INTRO_HOLD_MS = 1800
 /** How long the pull itself takes. */
-const INTRO_MS = 2400
+const INTRO_MS = 3200
 /**
  * Progress at which the room is close enough that the welcome copy makes way.
  *
@@ -168,7 +174,11 @@ const INTRO_MS = 2400
  * a little early means the sentence is gone before it is in the way, and the
  * two motions overlap instead of queueing.
  */
-const INTRO_HANDOVER = 0.55
+const INTRO_HANDOVER = 0.6
+
+/** Milliseconds from the start of the intro to the handover — the span the
+ *  welcome sentence has to itself. */
+const WELCOME_MS = INTRO_HOLD_MS + INTRO_MS * INTRO_HANDOVER
 
 /** Eased pull. Slow to leave, slow to arrive, quick through the middle. */
 function introEase(t: number) {
@@ -364,6 +374,16 @@ interface Props {
    *  index uses it to retire its welcome sentence as the room arrives. */
   onIntroDone?: () => void
   /**
+   * Called every frame of the intro with how far through the welcome it is,
+   * 0 → 1, reaching 1 exactly at the handover that fires `onIntroDone`.
+   *
+   * The index uses it to send its welcome sentence back into the room and to
+   * lift the dimming off the wall behind it, on the same clock as the pull —
+   * so the words and the room move as one shot, and both wait together while
+   * the sound gate holds the clock.
+   */
+  onIntroFrame?: (progress: number) => void
+  /**
    * Hold the opening pull at its widest, without starting it.
    *
    * The arrival is the first thing a visitor sees, and it is over in three
@@ -401,6 +421,7 @@ export function ImmersiveGallery({
   performances,
   onFocusChange,
   onIntroDone,
+  onIntroFrame,
   held = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -427,6 +448,11 @@ export function ImmersiveGallery({
   const arrivedRef = useRef(arrived)
   const onIntroDoneRef = useRef(onIntroDone)
   onIntroDoneRef.current = onIntroDone
+  const onIntroFrameRef = useRef(onIntroFrame)
+  onIntroFrameRef.current = onIntroFrame
+  /** The last progress handed to `onIntroFrame`, so a finished or held intro
+   *  stops calling it with the same number every frame. */
+  const lastWelcome = useRef(-1)
   // Read inside the loop, which is started once and never re-created.
   const heldRef = useRef(held)
   heldRef.current = held
@@ -842,6 +868,11 @@ export function ImmersiveGallery({
       // nobody can see is still technically running is a second of a site that
       // looks broken.
       const live = introT >= INTRO_HANDOVER
+      const welcome = reduced ? 1 : clamp(introClock.current / WELCOME_MS, 0, 1)
+      if (welcome !== lastWelcome.current) {
+        lastWelcome.current = welcome
+        onIntroFrameRef.current?.(welcome)
+      }
       if (!arrivedRef.current && introT >= INTRO_HANDOVER) {
         arrivedRef.current = true
         setArrived(true)

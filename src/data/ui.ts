@@ -86,6 +86,11 @@ export const UI: UiCopy = {
     decline: 'Enter without sound',
   },
 
+  sound: {
+    turnOn: 'Turn the music on',
+    turnOff: 'Turn the music off',
+  },
+
   work: {
     srTitle: 'Work — the archive',
     allFilter: 'All',

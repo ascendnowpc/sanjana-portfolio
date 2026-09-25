@@ -303,11 +303,20 @@ function PerformanceEditor({
    * has to be built for it — a path written into an empty list would leave a
    * track with a file and no id, title or length.
    */
-  const onVideo = (result: MediaResult) =>
+  const onVideo = (result: MediaResult) => {
+    // A still taken from portrait footage is portrait: it is the front page's
+    // cover, not the Work page's 16:9 poster, which keeps the one it has and
+    // only borrows this one if it has nothing at all.
+    const upright = (result.aspect ?? value.aspect ?? BLANK_ASPECT) < 1
     onChange({
       ...value,
       videoSrc: result.key,
-      poster: result.poster ?? value.poster,
+      poster: upright
+        ? value.poster || result.poster || ''
+        : (result.poster ?? value.poster),
+      posterPortrait: upright
+        ? (result.poster ?? value.posterPortrait)
+        : value.posterPortrait,
       previewSrc: result.preview ?? value.previewSrc,
       aspect: result.aspect ?? value.aspect,
       runtime: result.runtime ?? value.runtime,
@@ -332,6 +341,7 @@ function PerformanceEditor({
             ]
         : value.tracks,
     })
+  }
 
   return (
     <div className="space-y-6">
@@ -437,7 +447,14 @@ function PerformanceEditor({
           value={value.poster}
           onChange={(v) => set('poster', v)}
           upload={{ kind: 'poster' }}
-          hint="The still shown before anything plays. Cut to 16:9 — that is the shape every tile is given."
+          hint="The still shown before anything plays. Cut to 16:9 — that is the shape every frame on the Work page is given."
+        />
+        <MediaField
+          label="Front-page cover (portrait)"
+          value={value.posterPortrait ?? ''}
+          onChange={(v) => set('posterPortrait', v || undefined)}
+          upload={{ kind: 'poster', clearable: true }}
+          hint="Only for portrait (phone) footage. The front page hangs portrait footage upright, so it wants a 9:16 still rather than the 16:9 poster above, which the Work page keeps using. Leave it empty and the front page takes a still from the preview loop instead."
         />
         <MediaField
           label="Video"

@@ -26,6 +26,7 @@ create table if not exists performances (
   role         text,                   -- character / billing, for theatre
   runtime      text,
   poster       text not null,          -- path or CDN url
+  poster_portrait text,                -- 9:16 index-wall cover for portrait footage
   video_src    text,                   -- optional; the UI degrades without it
   preview_src  text,                   -- short silent loop for the index wall
   aspect       real,                   -- width/height of the footage; 16:9 default
@@ -34,6 +35,9 @@ create table if not exists performances (
   sort_index   int  not null default 0,
   created_at   timestamptz not null default now()
 );
+
+-- For a database created before the column existed.
+alter table performances add column if not exists poster_portrait text;
 
 create table if not exists tracks (
   id               text primary key,
@@ -111,7 +115,9 @@ select
                       order by t.position)
        from tracks t where t.performance_slug = p.slug),
     '[]'::jsonb
-  ) as tracks
+  ) as tracks,
+  -- Last, because `create or replace view` can only add columns at the end.
+  p.poster_portrait as "posterPortrait"
 from performances p;
 
 -- ---------------------------------------------------------------------------
