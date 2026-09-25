@@ -93,11 +93,15 @@ export function CursorLabel({ text, visible }: Props) {
         {visible && (
           <motion.span
             key="label"
-            // On a dark pill of its own: the cursor is over footage by
-            // definition, and pale lettering straight on a bright stage shot
-            // disappears into it.
-            className="tracked block rounded-full border border-white/10 bg-void/75 py-2 pr-[0.95em] pl-[1.35em] whitespace-nowrap text-chalk shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
-            style={{ fontSize: 'clamp(0.6rem, 0.8vw, 0.78rem)' }}
+            // Bare lettering, no box. The cursor is over footage by
+            // definition, so the letters carry a heavier shadow than the
+            // site's usual scrim to stay legible on a bright stage shot.
+            className="tracked block whitespace-nowrap text-chalk"
+            style={{
+              fontSize: 'clamp(0.64rem, 0.84vw, 0.82rem)',
+              textShadow:
+                '0 0 2px rgba(0,0,0,0.95), 0 1px 6px rgba(0,0,0,0.9), 0 0 18px rgba(0,0,0,0.75)',
+            }}
             initial={reduced ? false : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.22 } }}
