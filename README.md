@@ -140,6 +140,16 @@ the bars near the playhead reacting to a live `AnalyserNode`.
 
 Drop real files in and the same component switches to `file` mode untouched.
 
+**The site's own music** (`HouseMusicProvider` in
+`src/components/audio/HouseMusic.tsx`) is one recording — `music.houseClip` —
+mounted above the router, so it keeps playing from page to page and loops
+rather than ending. A speaker in the bottom-left corner of every page turns it
+on and off, and the visit remembers the choice. The index asks the sound
+question once a visit before it uncovers the room, because a browser will not
+play audio until something has been pressed. The music fades out whenever any
+other film or recording on the page is sounding — a performance's video, a
+track on the About shelf — and comes back when it stops.
+
 ## Editing the site
 
 Two ways in, editing the same content. **[EDITING.md](./EDITING.md)** is the

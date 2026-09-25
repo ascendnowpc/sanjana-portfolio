@@ -8,6 +8,7 @@ so nothing in the content changes when you switch.
 content field         stored value                          served from
 --------------------  ------------------------------------  ------------------------------
 poster                /media/posters/<slug>.jpg             <R2 base>/media/posters/<slug>.jpg
+posterPortrait        /media/posters/<slug>-9x16.jpg        <R2 base>/media/posters/<slug>-9x16.jpg
 videoSrc              /media/video/<slug>.mp4               <R2 base>/media/video/<slug>.mp4
 previewSrc            /media/preview/<slug>-480.mp4         <R2 base>/media/preview/<slug>-480.mp4
 tracks[].audioSrc     /media/audio/<slug>.mp3               <R2 base>/media/audio/<slug>.mp3
@@ -37,6 +38,7 @@ Drop the real files here, using these exact names:
 | Portrait | `public/media/portraits/portrait-N.jpg` | 4:5, for the About strip. |
 | Testimonial label | `public/media/testimonials/<n>.jpg` | **Square.** Sits in the label of the record on each About testimonial card, at roughly 180px across and cropped to a circle, so it wants one subject filling the frame — a wide stage shot reads as mush at that size. Set `focus` on the entry (an `object-position`) when the subject is not in the middle of the frame. `portrait` also takes an absolute `https://` URL, which `mediaUrl` passes through untouched, so a hosted photograph can go in without the file joining the bucket. |
 | Music cover | `public/media/covers/<category>-4x5.jpg` | **4:5** (Instagram portrait), one a discipline, for the About listening cards. The sleeve is 4:5 too, so art exported at that ratio goes in untouched. Optional — `src/data/music.ts` falls back to a poster. |
+| Front-page portrait cover | `public/media/posters/<slug>-9x16.jpg` | **9:16**, optional, portrait footage only. Set it as `posterPortrait` on the entry. See *Portrait covers* below. |
 | Gallery still | `public/media/posters/<name>.jpg` | Any name; referenced from `gallery[]`. |
 
 All three files for one entry share the slug, so renaming an entry means
@@ -78,6 +80,28 @@ landscape and portrait phone footage. Tiles are cut to it, then normalised to
 equal *area* in `src/components/gallery/layout.ts`, so a 9:16 clip sits on the
 wall at the same visual weight as a 16:9 one instead of towering over it.
 Omit `aspect` and the tile falls back to 16:9.
+
+### Portrait covers
+
+`poster` is cut to 16:9 for every entry, because that is the shape the /work
+grid gives every frame — so the Work page never needs anything else. The
+front page is different: it hangs portrait footage upright, at its own ratio,
+and a 16:9 poster cropped to fill a 9:16 frame is a sliver out of its middle.
+
+So a portrait entry's front-page tile takes its cover from, in order:
+
+1. `posterPortrait`, a hand-picked 9:16 still, when the entry has one. Set it
+   from the Performances tab of the panel (*Front-page cover (portrait)*), or
+   drop the portrait video on the entry's *Video* field and the still taken
+   from it lands here rather than over the 16:9 poster.
+2. Otherwise, a still taken in the visitor's browser from the entry's own
+   `previewSrc` loop — already at the footage's ratio, a few dozen kilobytes,
+   and the clip the tile plays when it comes alive. See
+   `src/lib/portraitStills.ts`. This needs the bucket's GET CORS rule
+   (`infra/r2-cors.json`), which lets a canvas read the frame back.
+3. Only if that fails, the 16:9 poster, cropped, as before.
+
+Landscape entries ignore `posterPortrait` and always wear `poster`.
 
 ### Regenerating from source footage
 

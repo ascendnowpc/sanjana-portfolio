@@ -6,41 +6,80 @@ import {
   ImmersiveGallery,
   type CaptionAnchor,
 } from '@/components/gallery/ImmersiveGallery'
+import { CursorLabel } from '@/components/gallery/CursorLabel'
 import { MagneticLink } from '@/components/ui/MagneticLink'
 import { SplitText } from '@/components/ui/SplitText'
-import { HouseMusic, type HouseMusicHandle } from '@/components/audio/HouseMusic'
+import { useHouseMusic } from '@/components/audio/HouseMusic'
 import { SoundGate } from '@/components/audio/SoundGate'
 import {
   useCategoryMap,
-  useMusicCopy,
   usePerformances,
   useProfile,
   useUi,
 } from '@/content/ContentProvider'
 import { useEdit } from '@/edit/EditProvider'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import { fill } from '@/lib/copy'
+import { smoothstep } from '@/lib/utils'
 import { EditableText } from '@/components/edit/Editable'
 import { ItemControls, RegionEdit } from '@/components/edit/ListEdit'
 
 /**
- * That the sound question has been put to this visitor.
+ * The welcome sentence's trip into the room.
  *
- * The answer itself is not kept here — it goes to the player, which already
- * owns and remembers one, so declining the gate and silencing the control are
- * the same fact rather than two that can disagree.
+ * It starts in front of the screen, drawn larger than it is set, and travels
+ * back into the wall, the way the reference's own sentence does.
+ *
+ * Size is interpolated on a log scale rather than a straight line, because
+ * that is how distance reads: halving in size looks like the same step back
+ * whether it is from 1.3 to 0.65 or from 0.8 to 0.4. A straight line — or a
+ * true 1/z from a point just in front of the lens — spends most of its change
+ * in the first few hundred milliseconds, which is exactly when the sentence
+ * wants to hold still long enough to be read.
  */
-const GATE_KEY = 'house-gate-asked'
+/** Scale it starts at: a little in front of the screen. */
+const WELCOME_NEAR = 1.3
+/** The same on a phone, where the sentence already spans the screen at its
+ *  set size and could not start much larger without losing its ends. */
+const WELCOME_NEAR_MOBILE = 1.08
+/** Scale it has got to by the handover, when it is gone. */
+const WELCOME_FAR = 0.4
+/** How dark the wall is held while the sentence is read. It lifts as the
+ *  sentence recedes, and is gone by the time the sentence is. */
+const WELCOME_DIM = 0.8
 
-/** Large tracked word — the nouns that carry the sentence. */
-const Big = ({ children }: { children: React.ReactNode }) => (
-  <span className="tracked on-scrim text-[clamp(1.05rem,2.6vw,2.15rem)] text-chalk">
+/** How far back the sentence has gone, 0 → 1, for a given share of the
+ *  welcome. Steeply eased in: it barely moves at first, so it can be read
+ *  where it starts, and only picks up pace once it is on its way out. */
+const welcomeDepth = (progress: number) => Math.pow(progress, 2.5)
+
+/** The sentence's scale at a given share of the welcome. */
+function welcomeScale(progress: number, mobile: boolean) {
+  const near = mobile ? WELCOME_NEAR_MOBILE : WELCOME_NEAR
+  return near * Math.pow(WELCOME_FAR / near, welcomeDepth(progress))
+}
+
+/** Small connective word, sitting between the links at the foot. */
+const Small = ({ children }: { children: React.ReactNode }) => (
+  <span className="tracked on-scrim text-[clamp(0.5rem,0.9vw,0.72rem)] text-mist">
     {children}
   </span>
 )
 
-/** Small connective word, sitting between the nouns. */
-const Small = ({ children }: { children: React.ReactNode }) => (
-  <span className="tracked on-scrim text-[clamp(0.5rem,0.9vw,0.72rem)] text-mist">
+/**
+ * The welcome sentence's two sizes, in the reference's face — see
+ * `--font-welcome`. A touch smaller than the words at the foot of the page,
+ * because the sentence starts in front of the screen and is drawn larger than
+ * this to begin with.
+ */
+const WelcomeBig = ({ children }: { children: React.ReactNode }) => (
+  <span className="tracked-welcome on-scrim text-[clamp(0.98rem,2.2vw,1.85rem)] text-chalk">
+    {children}
+  </span>
+)
+
+const WelcomeSmall = ({ children }: { children: React.ReactNode }) => (
+  <span className="tracked-welcome on-scrim text-[clamp(0.48rem,0.82vw,0.68rem)] text-mist">
     {children}
   </span>
 )
@@ -51,7 +90,7 @@ export default function Home() {
   const ui = useUi()
   const { editing } = useEdit()
   const categoryMap = useCategoryMap()
-  const { houseClip } = useMusicCopy()
+  const isMobile = useIsMobile()
   const [focused, setFocused] = useState<Performance | null>(null)
   /** Where the caption sits, so it never lands on the frame it describes. */
   const [anchor, setAnchor] = useState<CaptionAnchor>({
@@ -80,6 +119,41 @@ export default function Home() {
   const [arrived, setArrived] = useState(false)
   const onIntroDone = useCallback(() => setArrived(true), [])
 
+  /**
+   * The sentence travelling back into the room, and the wall behind it
+   * coming up out of the dark as it goes.
+   *
+   * Driven off the gallery's own intro clock, once a frame, by writing the
+   * two styles directly — a re-render sixty times a second to move one line
+   * of type would be a strange thing to add to a page already turning eighty
+   * pictures.
+   *
+   * The travel is eased *in*: it barely moves at first, so the sentence can
+   * be read where it starts, and it picks up pace only as it goes. The wall's
+   * dimming follows the same curve, so the room is held dark behind the words
+   * while they are being read and brightens as they leave.
+   */
+  const welcomeRef = useRef<HTMLDivElement>(null)
+  const dimRef = useRef<HTMLDivElement>(null)
+  const mobileRef = useRef(isMobile)
+  mobileRef.current = isMobile
+  const onIntroFrame = useCallback((progress: number) => {
+    const depth = welcomeDepth(progress)
+    const el = welcomeRef.current
+    if (el) {
+      const scale = welcomeScale(progress, mobileRef.current)
+      // In quickly, so the first thing seen is the whole sentence; out over
+      // the back half of its trip, so it thins into the room rather than
+      // being switched off.
+      const appear = smoothstep(0, 0.14, progress)
+      const vanish = 1 - smoothstep(0.45, 1, depth)
+      el.style.transform = `scale(${scale.toFixed(4)})`
+      el.style.opacity = (appear * vanish).toFixed(3)
+    }
+    const dim = dimRef.current
+    if (dim) dim.style.opacity = (WELCOME_DIM * (1 - depth)).toFixed(3)
+  }, [])
+
   // The index is a fixed, non-scrolling surface — travel is the scroll here.
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -89,41 +163,15 @@ export default function Home() {
     }
   }, [])
 
-  /** The take the page sounds on arrival. See `music.houseClip`. */
-  const house = items.find((p) => p.slug === houseClip.slug)
-  const houseTrack = house?.tracks[0]
-  const houseHandle = useRef<HouseMusicHandle>(null)
-
   /**
    * Whether the sound question still has to be asked.
    *
-   * Asked once a visit, not once a page view: the index is where the site
-   * begins, and a visitor who has been to the work and come back has already
-   * answered. Read straight out of storage on the first render rather than in
-   * an effect, so the gate is either painted with the page or never painted at
-   * all — a panel that appears a frame after the index has is a flicker.
+   * Asked once a visit, not once a page view, and owned by the site's music
+   * rather than by this page — the recording plays under every page now, so
+   * whether the visitor has answered is a fact about the visit. See
+   * HouseMusicProvider.
    */
-  const [asking, setAsking] = useState(() => {
-    try {
-      return sessionStorage.getItem(GATE_KEY) !== '1'
-    } catch {
-      return true
-    }
-  })
-
-  const answer = useCallback((withSound: boolean) => {
-    try {
-      sessionStorage.setItem(GATE_KEY, '1')
-    } catch {
-      /* blocked storage: the question simply gets asked again next time */
-    }
-    // Before the state change, not after: this is still inside the click, and
-    // the click is the permission.
-    const player = houseHandle.current
-    if (withSound) player?.start()
-    else player?.silence()
-    setAsking(false)
-  }, [])
+  const { asking, answer } = useHouseMusic()
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-void">
@@ -131,8 +179,20 @@ export default function Home() {
         performances={items}
         onFocusChange={onFocusChange}
         onIntroDone={onIntroDone}
+        onIntroFrame={onIntroFrame}
         held={asking}
       />
+
+      {/* The wall held in the dark while the welcome is read, lifting as the
+          sentence goes back into it. Its opacity is written by
+          `onIntroFrame`; this is only where it starts. */}
+      {!arrived && (
+        <div
+          ref={dimRef}
+          className="pointer-events-none absolute inset-0 bg-void"
+          style={{ opacity: WELCOME_DIM }}
+        />
+      )}
 
       {/* ---------------- centre overlay ----------------
 
@@ -156,20 +216,28 @@ export default function Home() {
               // can be dragged through it. A field that cannot be clicked is not
               // a field, so editing takes the events back — and takes the drag
               // with them, which is the right trade while words are being typed.
-              className={`absolute max-w-4xl px-6 text-center ${
+              className={`absolute max-w-5xl px-6 text-center ${
                 editing ? 'pointer-events-auto' : ''
               }`}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14, filter: 'blur(8px)' }}
-              transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+              // Its whole trip is written by `onIntroFrame` onto the div
+              // inside. By the time this leaves, the sentence is already out of
+              // sight at the back of the room, so the exit only has to make sure
+              // nothing is left behind.
+              exit={{ opacity: 0, transition: { duration: 0.3 } }}
             >
               {/* One <p> a line, one word a token. The shape is in the copy
                   rather than in this markup, so a line can be rewritten,
                   lengthened or dropped from the panel without a deploy — and
                   `{name}` is a slot, so the sentence cannot disagree with the
                   wordmark above it. */}
-              <div className="flex flex-col gap-3">
+              <div
+                ref={welcomeRef}
+                className="flex flex-col gap-3 will-change-transform"
+                style={{
+                  opacity: 0,
+                  transform: `scale(${welcomeScale(0, isMobile).toFixed(4)})`,
+                }}
+              >
                 {ui.home.welcome.map((line, li) => (
                   <p
                     key={li}
@@ -192,9 +260,9 @@ export default function Home() {
                       return (
                         <span key={ti} className="inline-flex items-baseline gap-1">
                           {token.kind === 'big' ? (
-                            <Big>{field}</Big>
+                            <WelcomeBig>{field}</WelcomeBig>
                           ) : (
-                            <Small>{field}</Small>
+                            <WelcomeSmall>{field}</WelcomeSmall>
                           )}
                           <ItemControls
                             path={['ui', 'home', 'welcome', li]}
@@ -289,19 +357,17 @@ export default function Home() {
         ))}
       </div>
 
-      {/* ---------------- the room's own sound ---------------- */}
-      {house && houseTrack?.audioSrc && (
-        <HouseMusic
-          handle={houseHandle}
-          gated={asking}
-          src={houseTrack.audioSrc}
-          title={house.title}
-          from={houseClip.from}
-          to={houseClip.to ?? undefined}
-        />
+      {/* ---------------- the invitation, on the cursor ----------------
+
+          Only while a frame is being read, and never on a touch screen, where
+          nothing is ever hovered and there is no cursor to carry it. */}
+      {!isMobile && (
+        <CursorLabel text={ui.gallery.learnMore} visible={Boolean(focused)} />
       )}
 
-      {/* The question, over everything, until it has been answered once. */}
+      {/* The question, over everything, until it has been answered once. The
+          music it asks about is the site's, not this page's — it lives in
+          HouseMusicProvider, with the speaker that turns it on and off. */}
       <AnimatePresence>
         {asking && <SoundGate key="gate" onChoose={answer} />}
       </AnimatePresence>

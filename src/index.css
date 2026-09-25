@@ -73,6 +73,13 @@
 
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
   --font-poster: "Anton", "Arial Narrow", sans-serif;
+  /* The welcome sentence on the index, set the way the reference sets its
+     own: a flared, inscriptional capital — Zapf Humanist 601, which is
+     Bitstream's Optima. Optima ships with every Mac and iPhone, so most
+     visitors get the real design; Marcellus, loaded with the other faces, is
+     the closest open cut for everybody else. */
+  --font-welcome: "Optima", "Zapf Humanist 601", "Optima nova", "URW Classico",
+    "Marcellus", "Cormorant Garamond", serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
   /* The archive index sets every small label in this rather than Inter. A
      proportional sans with heavy tracking approximates a mono; it does not
@@ -142,6 +149,13 @@
 @utility tracked {
   font-family: var(--font-display);
   letter-spacing: 0.42em;
+  text-transform: uppercase;
+}
+
+/* The welcome sentence's face and spacing. See --font-welcome. */
+@utility tracked-welcome {
+  font-family: var(--font-welcome);
+  letter-spacing: 0.36em;
   text-transform: uppercase;
 }
 
@@ -326,12 +340,41 @@
   to { transform: translateX(320%); }
 }
 
-/* The caption on a hovered gallery frame. It is mounted at the moment it is
-   wanted, so it has no "before" to transition from — an entry animation is the
-   only thing that can fade it in rather than snapping it on. */
-@keyframes tile-caption {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+/* The speaker's two waves while the music is sounding: a slow swell outward,
+   the outer wave a beat behind the inner one, so it reads as sound carrying
+   rather than as a light blinking. */
+@keyframes speaker-wave {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.speaker-waves path {
+  animation: speaker-wave 1.8s ease-in-out infinite;
+}
+
+.speaker-waves path + path {
+  animation-delay: 0.3s;
+}
+
+/* The cursor's "learn more" on the index: a slow swell passing through the
+   word, each letter a beat behind the one before it (the delay is set per
+   letter in CursorLabel.tsx), so the lettering flows rather than sitting. */
+@keyframes letter-flow {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(-0.3em); opacity: 0.62; }
+}
+
+.letter-flow {
+  animation: letter-flow 1.9s ease-in-out infinite;
+}
+
+/* A portrait frame's cover arriving after first paint — see GalleryTile. It
+   is mounted when the still is ready, so it has no "before" to transition
+   from; an entry animation is the only thing that can fade it in rather than
+   cutting it in. */
+@keyframes tile-still {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* The record turning in a testimonial card.

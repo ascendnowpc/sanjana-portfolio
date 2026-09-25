@@ -63,6 +63,17 @@ export interface Performance {
   role?: string
   runtime?: string
   poster: string
+  /**
+   * A 9:16 cover for portrait footage, used only on the index wall.
+   *
+   * `poster` is cut to 16:9 because that is the shape every frame in the /work
+   * grid is given; the index wall hangs portrait footage upright, at its own
+   * ratio, and a 16:9 still cropped down to fill that is a sliver of its
+   * middle. Leave this empty and the wall takes a still from the footage's own
+   * hover loop instead — see lib/portraitStills.ts. Ignored for landscape
+   * footage, whose `poster` already fits.
+   */
+  posterPortrait?: string
   /** Full recording. Played by the detail page; too heavy for a hover preview. */
   videoSrc?: string
   /** Short silent loop used for the hover preview on the index wall. Falls
@@ -309,6 +320,13 @@ export interface UiCopy {
     /** What a screen reader is told the whole panel does. */
     enterLabel: string
     decline: string
+  }
+
+  /** The speaker in the corner of every page, which turns the music on and
+   *  off. It is an icon, so these are what a screen reader is told it does. */
+  sound: {
+    turnOn: string
+    turnOff: string
   }
 
   work: {

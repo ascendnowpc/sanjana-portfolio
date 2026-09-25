@@ -191,6 +191,20 @@ export function CopySection({
             onChange={field('soundGate', 'decline')}
           />
         </Row>
+        <Row>
+          <Text
+            label="Speaker — turn on (spoken)"
+            value={value.sound.turnOn}
+            onChange={field('sound', 'turnOn')}
+            hint="The speaker in the bottom-left corner of every page is an icon, so this is what a screen reader is told it does while the music is off."
+          />
+          <Text
+            label="Speaker — turn off (spoken)"
+            value={value.sound.turnOff}
+            onChange={field('sound', 'turnOff')}
+            hint="The same, while the music is on."
+          />
+        </Row>
       </Group>
 
       <Group title="Archive page">
@@ -689,7 +703,7 @@ export function CopySection({
           label="Gallery invitation"
           value={value.gallery.learnMore}
           onChange={field('gallery', 'learnMore')}
-          hint="The words on a lit frame on the front page."
+          hint="The words that follow the cursor while a frame on the front page is lit."
         />
         <div className="grid gap-4 md:grid-cols-2">
           <Text
