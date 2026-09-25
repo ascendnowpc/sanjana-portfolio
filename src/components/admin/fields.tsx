@@ -21,6 +21,25 @@ import type { MediaKind } from '@/lib/uploads'
 const CONTROL =
   'w-full rounded-sm border border-white/12 bg-black/35 px-3 py-2 text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-600 focus:border-white/45'
 
+/**
+ * The panel's buttons, in words rather than in letterspaced capitals.
+ *
+ * Small caps at 0.62rem read as decoration; a control that decides whether a
+ * row is deleted should read as a sentence. These three are the whole set —
+ * a quiet one, a dangerous one, and the dashed one that adds something.
+ */
+export const BTN =
+  'inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs ' +
+  'font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-30'
+
+export const GHOST_BTN = `${BTN} text-neutral-300 hover:bg-white/10 hover:text-white`
+
+export const DANGER_BTN = `${BTN} text-red-400 hover:bg-red-500/12 hover:text-red-300`
+
+export const ADD_BTN =
+  `${BTN} border border-dashed border-white/20 px-3 text-neutral-300 ` +
+  'hover:border-white/45 hover:text-white'
+
 function Label({
   htmlFor,
   children,
@@ -327,15 +346,28 @@ export function MediaField({
             placeholder="/media/posters/example.jpg"
             className={`${CONTROL} font-mono text-xs`}
           />
-          {upload && (
-            <button
-              type="button"
-              onClick={() => setPicking(true)}
-              className="mt-2 rounded-sm border border-white/15 px-3 py-1.5 text-[0.6rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
-            >
-              Upload a file
-            </button>
-          )}
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            {upload && (
+              <button
+                type="button"
+                onClick={() => setPicking(true)}
+                className={ADD_BTN}
+              >
+                {value ? 'Replace' : 'Upload'}
+              </button>
+            )}
+            {/* Clearing is a keystroke away in the box beside it, but only if
+                you know the box is the value. The button says so. */}
+            {value && (
+              <button
+                type="button"
+                onClick={() => onChange('')}
+                className={GHOST_BTN}
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -453,10 +485,15 @@ export function StringList({
           </div>
         ))}
       </div>
+      {!items.length && (
+        <p className="rounded-sm border border-dashed border-white/10 px-4 py-5 text-center text-xs text-neutral-600">
+          Nothing here yet.
+        </p>
+      )}
       <button
         type="button"
         onClick={() => onChange([...items, ''])}
-        className="mt-2 rounded-sm border border-white/15 px-3 py-1.5 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/40 hover:text-white"
+        className={`${ADD_BTN} mt-2`}
       >
         + {addLabel}
       </button>
@@ -464,30 +501,42 @@ export function StringList({
   )
 }
 
-/** Up / down / delete, in the one shape every list in the panel uses. */
+/**
+ * Up / down / copy / delete, in the one shape every list in the panel uses.
+ *
+ * `what` names the thing in the confirmation, because "Delete?" asked over a
+ * list of thirty-six is not a question anybody can answer. Passing nothing
+ * removes without asking, which is right for a single line of text and wrong
+ * for anything that took a minute to fill in.
+ */
 export function RowControls({
   onUp,
   onDown,
+  onCopy,
   onRemove,
   disableUp,
   disableDown,
+  what,
 }: {
   onUp: () => void
   onDown: () => void
+  onCopy?: () => void
   onRemove: () => void
   disableUp?: boolean
   disableDown?: boolean
+  what?: string
 }) {
-  const btn =
-    'h-7 w-7 shrink-0 rounded-sm border border-white/12 text-xs text-neutral-400 transition-colors hover:border-white/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-25'
+  const icon =
+    'h-7 w-7 shrink-0 cursor-pointer rounded-sm border border-white/12 text-xs text-neutral-400 transition-colors hover:border-white/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-25'
   return (
-    <div className="flex shrink-0 gap-1">
+    <div className="flex shrink-0 items-center gap-1">
       <button
         type="button"
         onClick={onUp}
         disabled={disableUp}
+        title="Move up"
         aria-label="Move up"
-        className={btn}
+        className={icon}
       >
         ↑
       </button>
@@ -495,29 +544,61 @@ export function RowControls({
         type="button"
         onClick={onDown}
         disabled={disableDown}
+        title="Move down"
         aria-label="Move down"
-        className={btn}
+        className={icon}
       >
         ↓
       </button>
+      {onCopy && (
+        <button
+          type="button"
+          onClick={onCopy}
+          title="Duplicate"
+          className={GHOST_BTN}
+        >
+          Copy
+        </button>
+      )}
       <button
         type="button"
-        onClick={onRemove}
-        aria-label="Remove"
-        className={`${btn} hover:border-red-500/60 hover:text-red-400`}
+        onClick={() => {
+          if (
+            !what ||
+            confirm(`Delete “${what}”? This cannot be undone once you save.`)
+          ) {
+            onRemove()
+          }
+        }}
+        title="Delete"
+        className={what ? DANGER_BTN : `${icon} hover:border-red-500/60 hover:text-red-400`}
       >
-        ×
+        {what ? 'Delete' : '×'}
       </button>
     </div>
   )
 }
 
 /**
- * A list of objects — credits, tracks, testimonials, performances.
+ * A list of objects — credits, tracks, testimonials, covers, the words of a
+ * sentence.
  *
- * The caller renders one item; this owns the add/remove/reorder around it, so
- * every repeating structure in the panel behaves the same way. `blank` is a
- * factory rather than a value, or every new row would share one object.
+ * The caller renders one item; this owns the add / copy / remove / reorder
+ * around it, so every repeating structure in the panel behaves the same way.
+ * `blank` is a factory rather than a value, or every new row would share one
+ * object.
+ *
+ * ### One row open at a time
+ *
+ * A list used to render every row's fields at once, which is readable at three
+ * rows and a wall at thirty. Each row is now a line — its title, and a count
+ * when it has a list of its own inside it — that opens on a click. Somebody
+ * editing a credit is editing *that* credit; the rest are context, and context
+ * belongs in a line each. The archive tab has worked this way for a while and
+ * it is the reason that tab is usable; this brings the rest of the panel to it.
+ *
+ * A list that holds exactly one row opens it, because a row that is the whole
+ * list is not hiding anything by being open.
  */
 export function Repeater<T>({
   label,
@@ -528,6 +609,8 @@ export function Repeater<T>({
   addLabel = 'Add',
   render,
   title,
+  count,
+  copy,
 }: {
   label?: string
   hint?: string
@@ -538,17 +621,52 @@ export function Repeater<T>({
   render: (item: T, set: (next: T) => void, index: number) => ReactNode
   /** The line shown at the top of each row. */
   title?: (item: T, index: number) => string
+  /** A short tally shown beside the title — "3 tracks", "2 stills". */
+  count?: (item: T, index: number) => string | null
+  /**
+   * How to duplicate a row. Given, the row grows a Copy button.
+   *
+   * A factory rather than a flag because a row that carries an id cannot be
+   * cloned as it stands — two cards with the same id is a worse outcome than
+   * no Copy button at all, so the section that has ids mints a new one here.
+   */
+  copy?: (item: T, index: number) => T
 }) {
+  /**
+   * Which row is open, by position.
+   *
+   * By position and not by identity because a row has no identity this
+   * component can see — the items are whatever the section keeps. Every
+   * reordering below moves this with the row it was following.
+   */
+  const [open, setOpen] = useState<number | null>(items.length === 1 ? 0 : null)
+
   const set = (i: number, v: T) =>
     onChange(items.map((item, j) => (j === i ? v : item)))
-  const remove = (i: number) => onChange(items.filter((_, j) => j !== i))
+
+  const remove = (i: number) => {
+    onChange(items.filter((_, j) => j !== i))
+    setOpen(null)
+  }
+
   const move = (i: number, delta: number) => {
     const j = i + delta
     if (j < 0 || j >= items.length) return
     const next = items.slice()
     ;[next[i], next[j]] = [next[j], next[i]]
     onChange(next)
+    setOpen((current) => (current === i ? j : current === j ? i : current))
   }
+
+  const duplicate = (i: number) => {
+    const next = items.slice()
+    next.splice(i + 1, 0, copy!(items[i], i))
+    onChange(next)
+    setOpen(i + 1)
+  }
+
+  const nameOf = (item: T, i: number) =>
+    (title ? title(item, i) : '').trim() || `${label ?? 'Item'} ${i + 1}`
 
   return (
     <div>
@@ -562,27 +680,58 @@ export function Repeater<T>({
           {hint}
         </p>
       )}
-      <div className="space-y-3">
-        {items.map((item, i) => (
-          <div
-            key={i}
-            className="rounded-sm border border-white/10 bg-white/[0.02] p-4"
-          >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="truncate text-[0.62rem] tracking-[0.18em] text-neutral-500 uppercase">
-                {title ? title(item, i) : `${label ?? 'Item'} ${i + 1}`}
-              </p>
-              <RowControls
-                onUp={() => move(i, -1)}
-                onDown={() => move(i, 1)}
-                onRemove={() => remove(i)}
-                disableUp={i === 0}
-                disableDown={i === items.length - 1}
-              />
+      <div className="space-y-2">
+        {items.map((item, i) => {
+          const expanded = open === i
+          const tally = count?.(item, i)
+          return (
+            <div
+              key={i}
+              className="overflow-hidden rounded-sm border border-white/10 bg-white/[0.02]"
+            >
+              <div className="flex items-center gap-1 px-2 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => setOpen(expanded ? null : i)}
+                  aria-expanded={expanded}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-1 py-1 text-left"
+                >
+                  <span
+                    aria-hidden
+                    className={`shrink-0 text-neutral-500 transition-transform ${
+                      expanded ? 'rotate-90' : ''
+                    }`}
+                  >
+                    ›
+                  </span>
+                  <span className="truncate text-sm text-neutral-100">
+                    {nameOf(item, i)}
+                  </span>
+                  {tally && (
+                    <span className="shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[0.68rem] text-neutral-400">
+                      {tally}
+                    </span>
+                  )}
+                </button>
+                <RowControls
+                  onUp={() => move(i, -1)}
+                  onDown={() => move(i, 1)}
+                  onCopy={copy ? () => duplicate(i) : undefined}
+                  onRemove={() => remove(i)}
+                  disableUp={i === 0}
+                  disableDown={i === items.length - 1}
+                  what={nameOf(item, i)}
+                />
+              </div>
+
+              {expanded && (
+                <div className="border-t border-white/10 bg-black/20 p-4">
+                  {render(item, (next) => set(i, next), i)}
+                </div>
+              )}
             </div>
-            {render(item, (next) => set(i, next), i)}
-          </div>
-        ))}
+          )
+        })}
         {!items.length && (
           <p className="rounded-sm border border-dashed border-white/10 px-4 py-6 text-center text-xs text-neutral-600">
             Nothing here yet.
@@ -591,8 +740,13 @@ export function Repeater<T>({
       </div>
       <button
         type="button"
-        onClick={() => onChange([...items, blank()])}
-        className="mt-3 rounded-sm border border-white/15 px-3 py-1.5 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/40 hover:text-white"
+        onClick={() => {
+          onChange([...items, blank()])
+          // Straight into the new row: adding one and then having to find it is
+          // the step everybody forgets to take.
+          setOpen(items.length)
+        }}
+        className={`${ADD_BTN} mt-3`}
       >
         + {addLabel}
       </button>

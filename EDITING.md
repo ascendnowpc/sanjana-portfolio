@@ -85,6 +85,37 @@ that loses one simply stops substituting, and nothing throws.
 
 ---
 
+## In the panel
+
+Seven sections down the left, all of them in view at once, and the one you are
+in named at the top of the form with a line saying what is in it. A section
+holding work you have typed but not saved wears a dot, so the thing you half
+did on another tab cannot be lost by forgetting it was there.
+
+**Lists open one row at a time.** A credit, a recording, a testimonial, a word
+of the welcome sentence — each is a line with its title on it, and a click opens
+its fields. The line carries a tally where there is one to carry (*3 recordings
+· 5 stills*), so a piece missing its audio is visible without opening it.
+Beside each line: move up, move down, **Copy** — which duplicates the row,
+minting a new id where the row has one — and **Delete**, which asks first and
+names what it is about to delete.
+
+**The bar at the foot goes with you.** Save, Discard and Publish sit at the
+bottom of the screen rather than at the top of it, so they are in reach from the
+middle of a long section, and the line beside them always says which of the
+three states above you are in. `⌘S` / `Ctrl-S` saves.
+
+**View page ↗** opens the page the section you are in comes out on — the About
+tab opens `/about`, the archive opens `/work`. **Edit on the page** goes to the
+same place with edit mode already on.
+
+The editing bar that floats over the site is not shown here. It answers "what
+state is what I am looking at in?" for a page that is only showing content; the
+panel answers it about its own form, in its own bar, and two bars in one corner
+each with a Save on it is a question rather than an answer.
+
+---
+
 ## Replacing a video
 
 This is the part that does real work, and it does it in your browser rather than

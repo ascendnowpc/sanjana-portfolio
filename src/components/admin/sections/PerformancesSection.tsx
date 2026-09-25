@@ -13,6 +13,7 @@ import {
   Num,
   Repeater,
   Row,
+  RowControls,
   Select,
   StringList,
   Text,
@@ -157,7 +158,7 @@ export function PerformancesSection({
           <button
             type="button"
             onClick={add}
-            className="h-[38px] rounded-sm border border-white/25 px-4 text-[0.62rem] tracking-[0.18em] text-white uppercase transition-colors hover:border-white hover:bg-white hover:text-black"
+            className="h-[38px] cursor-pointer rounded-sm border border-white/25 px-4 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10"
           >
             + Add performance
           </button>
@@ -194,31 +195,20 @@ export function PerformancesSection({
                       </span>
                     </span>
                   </button>
-                  <div className="flex shrink-0 gap-1">
-                    <SmallButton
-                      label="↑"
-                      title="Move up"
-                      onClick={() => moveAt(index, -1)}
-                      disabled={index === 0}
-                    />
-                    <SmallButton
-                      label="↓"
-                      title="Move down"
-                      onClick={() => moveAt(index, 1)}
-                      disabled={index === items.length - 1}
-                    />
-                    <SmallButton
-                      label="⧉"
-                      title="Duplicate"
-                      onClick={() => duplicateAt(index)}
-                    />
-                    <SmallButton
-                      label="×"
-                      title="Delete"
-                      danger
-                      onClick={() => removeAt(index)}
-                    />
-                  </div>
+                  {/* A tally of what is inside, so a piece missing its
+                      recordings is visible without opening it. */}
+                  <span className="hidden shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-[0.68rem] text-neutral-400 sm:inline">
+                    {tally(item)}
+                  </span>
+                  <RowControls
+                    onUp={() => moveAt(index, -1)}
+                    onDown={() => moveAt(index, 1)}
+                    onCopy={() => duplicateAt(index)}
+                    onRemove={() => removeAt(index)}
+                    disableUp={index === 0}
+                    disableDown={index === items.length - 1}
+                    what={item.title || item.slug || 'this piece'}
+                  />
                 </div>
 
                 {open && (
@@ -249,33 +239,16 @@ export function PerformancesSection({
   )
 }
 
-function SmallButton({
-  label,
-  title,
-  onClick,
-  disabled,
-  danger,
-}: {
-  label: string
-  title: string
-  onClick: () => void
-  disabled?: boolean
-  danger?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      className={`h-7 w-7 rounded-sm border border-white/12 text-xs text-neutral-400 transition-colors hover:border-white/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-25 ${
-        danger ? 'hover:border-red-500/60 hover:text-red-400' : ''
-      }`}
-    >
-      {label}
-    </button>
-  )
+/** "3 recordings · 5 stills", or nothing when a piece has neither yet. */
+function tally(item: Performance): string {
+  const parts: string[] = []
+  if (item.tracks.length) {
+    parts.push(`${item.tracks.length} recording${item.tracks.length === 1 ? '' : 's'}`)
+  }
+  if (item.gallery.length) {
+    parts.push(`${item.gallery.length} still${item.gallery.length === 1 ? '' : 's'}`)
+  }
+  return parts.join(' · ') || 'empty'
 }
 
 /** Every field of one piece. */
@@ -489,6 +462,7 @@ function PerformanceEditor({
         blank={(): Credit => ({ role: '', name: '' })}
         addLabel="Add credit"
         title={(item) => `${item.role}${item.name ? ` — ${item.name}` : ''}`}
+        copy={(item) => ({ ...item })}
         render={(item, setItem) => (
           <Row>
             <Text
@@ -517,6 +491,11 @@ function PerformanceEditor({
         })}
         addLabel="Add recording"
         title={(item) => item.title || item.id || 'Untitled recording'}
+        copy={(item) => ({
+          ...structuredClone(item),
+          id: `${item.id}-copy`,
+          title: `${item.title} (copy)`,
+        })}
         render={(item, setItem) => (
           <div className="space-y-4">
             <Row>
