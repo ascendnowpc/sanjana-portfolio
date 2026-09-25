@@ -5,6 +5,8 @@ import { useSiteContent } from '@/content/ContentProvider'
 import { useEdit } from '@/edit/EditProvider'
 import { publishedStamp } from '@/lib/contentStore'
 import { publishStatus, type PublishStatus } from '@/lib/publish'
+import { PILL, PILL_BTN } from '@/components/edit/chrome'
+import { ItemBar } from '@/components/edit/ItemBar'
 
 /**
  * The editor's own chrome: one bar, and a drawer behind it.
@@ -62,6 +64,7 @@ export default function EditLayer() {
   return (
     <>
       <EditBar />
+      <ItemBar />
       <EditDrawer />
     </>
   )
@@ -95,10 +98,12 @@ function EditBar() {
       <button
         type="button"
         onClick={() => setMinimised(false)}
-        className="edit-chrome fixed right-4 bottom-4 rounded-full border border-sky-300/60 bg-slate-950/90 px-4 py-2 text-[0.6rem] tracking-[0.2em] text-sky-100 uppercase shadow-xl backdrop-blur-md"
+        className={`edit-chrome fixed right-4 bottom-4 ${PILL} ${PILL_BTN} ${
+          editing ? 'bg-amber-400/95 text-slate-950' : 'text-white/85 hover:bg-white/15'
+        }`}
       >
         {editing ? 'Editing' : 'Admin'}
-        {dirty && <span className="ml-2 text-amber-300">•</span>}
+        {dirty && <span className="ml-1.5 text-amber-300">●</span>}
       </button>,
       document.body,
     )
@@ -106,20 +111,28 @@ function EditBar() {
 
   return createPortal(
     <div className="edit-chrome pointer-events-none fixed inset-x-0 bottom-0 flex justify-center p-3 sm:p-4">
-      <div className="pointer-events-auto w-full max-w-[1100px] rounded-sm border border-white/12 bg-neutral-950/95 px-3 py-2.5 shadow-2xl backdrop-blur-md sm:px-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className={`pointer-events-auto max-w-[calc(100vw-1.5rem)] px-2 py-1.5 ${PILL}`}>
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
+          <span className="px-2 text-[11px] font-semibold tracking-[0.14em] text-white/55 uppercase">
+            Sanjana admin
+          </span>
           {/* --------- the switch --------- */}
           <button
             type="button"
             onClick={() => setEditing(!editing)}
             aria-pressed={editing}
-            className={`shrink-0 rounded-sm border px-3 py-2 text-[0.6rem] tracking-[0.2em] uppercase transition-colors ${
+            className={`${PILL_BTN} flex shrink-0 items-center gap-2 ${
               editing
-                ? 'border-sky-400 bg-sky-400 text-slate-950'
-                : 'border-white/20 text-neutral-300 hover:border-white/50 hover:text-white'
+                ? 'bg-amber-400 text-slate-950'
+                : 'bg-white/10 text-white hover:bg-white/20'
             }`}
           >
-            {editing ? 'Editing on' : 'Edit this page'}
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                editing ? 'bg-slate-900' : 'bg-white/40'
+              }`}
+            />
+            {editing ? 'Editing' : 'Edit mode'}
           </button>
 
           {/* --------- where things stand --------- */}
@@ -158,10 +171,21 @@ function EditBar() {
           </div>
 
           {/* --------- what to do about it --------- */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Bar onClick={save} disabled={!dirty}>
-              Save
-            </Bar>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {/* Amber while there is something to save, so the one button that
+                has work waiting behind it is the one that catches the eye. */}
+            <button
+              type="button"
+              onClick={save}
+              disabled={!dirty}
+              className={`${PILL_BTN} ${
+                dirty
+                  ? 'bg-amber-400 text-slate-900 hover:bg-amber-300'
+                  : 'bg-white/10 text-white'
+              }`}
+            >
+              {dirty ? '● Save' : 'Save'}
+            </button>
             <Bar onClick={discard} disabled={!dirty} danger>
               Discard
             </Bar>
@@ -177,13 +201,13 @@ function EditBar() {
                     `Publishing needs ${status.missing.join(', ')} set on the deployment — see EDITING.md.`
                   : 'Commit these edits to the repository and rebuild the site'
               }
-              className="rounded-sm border border-white bg-white px-3 py-2 text-[0.6rem] tracking-[0.2em] text-black uppercase transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
+              className={`${PILL_BTN} bg-white text-slate-900 hover:bg-white/85`}
             >
               {publishing ? 'Publishing…' : 'Publish'}
             </button>
             <Link
               to="/admin"
-              className="rounded-sm border border-white/20 px-3 py-2 text-[0.6rem] tracking-[0.2em] text-neutral-300 uppercase transition-colors hover:border-white/50 hover:text-white"
+              className={`${PILL_BTN} bg-white/10 text-white hover:bg-white/20`}
             >
               Panel
             </Link>
@@ -193,7 +217,7 @@ function EditBar() {
               onClick={() => setMinimised(true)}
               aria-label="Minimise the editing bar"
               title="Minimise"
-              className="grid h-8 w-8 place-items-center rounded-sm border border-white/20 text-neutral-400 transition-colors hover:border-white/50 hover:text-white"
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-white/70 transition-colors hover:bg-white/15 hover:text-white"
             >
               —
             </button>
@@ -237,10 +261,10 @@ function Bar({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-sm border border-white/20 px-3 py-2 text-[0.6rem] tracking-[0.2em] uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
+      className={`${PILL_BTN} ${
         danger
-          ? 'text-neutral-300 hover:border-red-500/60 hover:text-red-400'
-          : 'text-neutral-300 hover:border-white/50 hover:text-white'
+          ? 'bg-white/10 text-white hover:bg-red-600 hover:text-white'
+          : 'bg-white/10 text-white hover:bg-white/20'
       }`}
     >
       {children}

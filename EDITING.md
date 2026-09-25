@@ -57,6 +57,12 @@ The session lasts until the browser is closed. Edit mode itself is a switch on
 the bar, and Escape turns it off — useful for looking at what you have just done
 without the dashed outlines over it.
 
+The bar sits at the foot of the screen: who you are, the switch, what state your
+edits are in, then Save, Discard, Publish, the panel and the way out. Save turns
+amber the moment there is something to save, so the one control with work
+waiting behind it is the one you see first. The `—` at its end folds it down to
+a chip in the corner when you want the page to yourself.
+
 ---
 
 ## Editing on the page
@@ -66,9 +72,13 @@ without the dashed outlines over it.
   does not bring its font with it.
 - **Paragraphs.** Same, and Enter inserts a line break instead of finishing.
 - **Lists** — the lines of the About statement, the words of the index sentence,
-  the portraits, the credits, the stills — get four small buttons: earlier,
-  later, add after, remove.
-- **Pictures, films and recordings.** Hover the frame and press Replace.
+  the portraits, the credits, the stills. Point at one and a toolbar appears
+  over it: which entry of how many (*Portrait 2/5*), then earlier, later,
+  **+ Add portrait**, **Delete**. One toolbar at a time, for the entry under
+  the pointer, so a page with a dozen editable entries is still a page.
+- **Pictures, films and recordings.** Each frame carries a **Change …** button
+  in its corner for as long as edit mode is on — you can see which media on a
+  page is replaceable without sweeping the pointer across it to find out.
 - **Everything else** has a small key marked with a `▸` that opens that part of
   the panel in a sheet beside the page, against the same live content, so the
   page keeps updating behind it.
