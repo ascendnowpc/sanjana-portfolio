@@ -57,6 +57,12 @@ The session lasts until the browser is closed. Edit mode itself is a switch on
 the bar, and Escape turns it off — useful for looking at what you have just done
 without the dashed outlines over it.
 
+The bar sits at the foot of the screen: who you are, the switch, what state your
+edits are in, then Save, Discard, Publish, the panel and the way out. Save turns
+amber the moment there is something to save, so the one control with work
+waiting behind it is the one you see first. The `—` at its end folds it down to
+a chip in the corner when you want the page to yourself.
+
 ---
 
 ## Editing on the page
@@ -66,9 +72,13 @@ without the dashed outlines over it.
   does not bring its font with it.
 - **Paragraphs.** Same, and Enter inserts a line break instead of finishing.
 - **Lists** — the lines of the About statement, the words of the index sentence,
-  the portraits, the credits, the stills — get four small buttons: earlier,
-  later, add after, remove.
-- **Pictures, films and recordings.** Hover the frame and press Replace.
+  the portraits, the credits, the stills. Point at one and a toolbar appears
+  over it: which entry of how many (*Portrait 2/5*), then earlier, later,
+  **+ Add portrait**, **Delete**. One toolbar at a time, for the entry under
+  the pointer, so a page with a dozen editable entries is still a page.
+- **Pictures, films and recordings.** Each frame carries a **Change …** button
+  in its corner for as long as edit mode is on — you can see which media on a
+  page is replaceable without sweeping the pointer across it to find out.
 - **Everything else** has a small key marked with a `▸` that opens that part of
   the panel in a sheet beside the page, against the same live content, so the
   page keeps updating behind it.
@@ -82,6 +92,37 @@ A word about slots: some values contain `{name}`, `{year}`, `{title}`,
 `{percent}`. Those are substituted when the page renders. Edit mode shows you the
 template rather than the filled-in string, so the slot can be kept — a template
 that loses one simply stops substituting, and nothing throws.
+
+---
+
+## In the panel
+
+Seven sections down the left, all of them in view at once, and the one you are
+in named at the top of the form with a line saying what is in it. A section
+holding work you have typed but not saved wears a dot, so the thing you half
+did on another tab cannot be lost by forgetting it was there.
+
+**Lists open one row at a time.** A credit, a recording, a testimonial, a word
+of the welcome sentence — each is a line with its title on it, and a click opens
+its fields. The line carries a tally where there is one to carry (*3 recordings
+· 5 stills*), so a piece missing its audio is visible without opening it.
+Beside each line: move up, move down, **Copy** — which duplicates the row,
+minting a new id where the row has one — and **Delete**, which asks first and
+names what it is about to delete.
+
+**The bar at the foot goes with you.** Save, Discard and Publish sit at the
+bottom of the screen rather than at the top of it, so they are in reach from the
+middle of a long section, and the line beside them always says which of the
+three states above you are in. `⌘S` / `Ctrl-S` saves.
+
+**View page ↗** opens the page the section you are in comes out on — the About
+tab opens `/about`, the archive opens `/work`. **Edit on the page** goes to the
+same place with edit mode already on.
+
+The editing bar that floats over the site is not shown here. It answers "what
+state is what I am looking at in?" for a page that is only showing content; the
+panel answers it about its own form, in its own bar, and two bars in one corner
+each with a Save on it is a question rather than an answer.
 
 ---
 

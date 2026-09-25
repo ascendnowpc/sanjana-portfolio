@@ -151,14 +151,14 @@ export function AccessSection({
           <button
             type="button"
             onClick={onExport}
-            className="rounded-sm border border-white/25 px-4 py-2 text-[0.62rem] tracking-[0.18em] text-white uppercase transition-colors hover:border-white hover:bg-white hover:text-black"
+            className="cursor-pointer rounded-sm border border-white/25 px-4 py-2 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10"
           >
             Export JSON
           </button>
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="rounded-sm border border-white/15 px-4 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
+            className="cursor-pointer rounded-sm border border-white/15 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-white/45 hover:text-white"
           >
             Import JSON
           </button>
@@ -195,14 +195,14 @@ export function AccessSection({
                 onReset()
                 setConfirming(false)
               }}
-              className="rounded-sm border border-red-500/60 px-4 py-2 text-[0.62rem] tracking-[0.18em] text-red-300 uppercase transition-colors hover:bg-red-500 hover:text-white"
+              className="cursor-pointer rounded-sm border border-red-500/60 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500 hover:text-white"
             >
               Yes, discard
             </button>
             <button
               type="button"
               onClick={() => setConfirming(false)}
-              className="rounded-sm border border-white/15 px-4 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45"
+              className="cursor-pointer rounded-sm border border-white/15 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-white/45 hover:text-white"
             >
               Cancel
             </button>
@@ -212,7 +212,7 @@ export function AccessSection({
             type="button"
             disabled={!hasLocalEdits}
             onClick={() => setConfirming(true)}
-            className="rounded-sm border border-white/15 px-4 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-white/15 disabled:hover:text-neutral-300"
+            className="cursor-pointer rounded-sm border border-white/15 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-red-500/60 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-white/15 disabled:hover:text-neutral-300"
           >
             Reset everything
           </button>

@@ -53,6 +53,11 @@ export function CoversSection({
             cover: '',
             duration: 0,
           })}
+          copy={(c) => ({
+            ...structuredClone(c),
+            id: `cover-${Date.now().toString(36)}`,
+            title: `${c.title} (copy)`,
+          })}
           render={(cover, set) => (
             <div className="space-y-5">
               <Row>

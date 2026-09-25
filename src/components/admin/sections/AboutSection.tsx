@@ -105,6 +105,7 @@ export function AboutSection({
           title={(item) =>
             `${item.heading} ${item.accent}`.trim() || 'Untitled beat'
           }
+          copy={(item) => structuredClone(item)}
           render={(item, setItem) => (
             <div className="space-y-4">
               <Row>
@@ -158,6 +159,7 @@ export function AboutSection({
           })}
           addLabel="Add card"
           title={(item) => item.source || 'Untitled card'}
+          copy={(item) => structuredClone(item)}
           render={(item, setItem) => (
             <div className="space-y-4">
               <Row>

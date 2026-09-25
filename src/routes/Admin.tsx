@@ -9,6 +9,7 @@ import {
   publishedStamp,
 } from '@/lib/contentStore'
 import { publishStatus, type PublishStatus } from '@/lib/publish'
+import { GHOST_BTN } from '@/components/admin/fields'
 import type { SiteContent } from '@/types/content'
 import { AboutSection } from '@/components/admin/sections/AboutSection'
 import { AccessSection } from '@/components/admin/sections/AccessSection'
@@ -43,14 +44,73 @@ import { ProfileSection } from '@/components/admin/sections/ProfileSection'
  * kept out of the sitemap, out of the navigation and out of the crawler's way.
  */
 
+/**
+ * The sections, in the order the site reads.
+ *
+ * Each one carries three things beyond its name. `blurb` says what is in it,
+ * at the head of the section rather than in a manual nobody opens. `preview`
+ * is the page these edits come out on, so "let me look at it" is one press
+ * from wherever you are. `watch` picks out exactly the content the section
+ * puts on screen, which is what lets the nav mark the sections holding unsaved
+ * work — a tab you have not opened should never be wearing a dot.
+ */
 const TABS = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'about', label: 'About page' },
-  { id: 'work', label: 'Performances' },
-  { id: 'covers', label: 'Musical covers' },
-  { id: 'categories', label: 'Disciplines' },
-  { id: 'copy', label: 'Site text' },
-  { id: 'access', label: 'Access & data' },
+  {
+    id: 'profile',
+    label: 'Profile',
+    blurb:
+      'Her name, the line under it, the portrait, and the links the site offers to reach her.',
+    preview: '/',
+    watch: (c: SiteContent) => [c.profile],
+  },
+  {
+    id: 'about',
+    label: 'About page',
+    blurb:
+      'The opening film and statement, the portrait column beside it, and the testimonial run at the foot.',
+    preview: '/about',
+    watch: (c: SiteContent) => [c.portrait, c.testimonials, c.ui.about],
+  },
+  {
+    id: 'work',
+    label: 'Performances',
+    blurb:
+      'The archive, in running order — every field of every piece, one at a time.',
+    preview: '/work',
+    watch: (c: SiteContent) => [c.performances],
+  },
+  {
+    id: 'covers',
+    label: 'Musical covers',
+    blurb:
+      'Songs she did not write. The key is hidden from visitors until there is one behind it.',
+    preview: '/about',
+    watch: (c: SiteContent) => [c.covers],
+  },
+  {
+    id: 'categories',
+    label: 'Disciplines',
+    blurb:
+      'The disciplines pieces are filed under, and the recording the index plays beneath itself.',
+    preview: '/work',
+    watch: (c: SiteContent) => [c.categories, c.music],
+  },
+  {
+    id: 'copy',
+    label: 'Site text',
+    blurb:
+      'Every word the site says that is not a performance — the navigation, the headings, the buttons, the browser tab.',
+    preview: '/',
+    watch: (c: SiteContent) => [c.ui],
+  },
+  {
+    id: 'access',
+    label: 'Access & data',
+    blurb:
+      'The panel password, what is published and what is only in this browser, and the way out to a JSON file.',
+    preview: '/',
+    watch: (c: SiteContent) => [c.admin],
+  },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -209,6 +269,13 @@ function Panel({ live }: { live: SiteContent }) {
   }
 
   const revert = () => {
+    if (
+      !confirm(
+        'Throw away every change typed into this form since the last save?',
+      )
+    ) {
+      return
+    }
     setDraft(structuredClone(live))
     setLocalDirty(false)
     setNote({ tone: 'ok', text: 'Unsaved changes discarded.' })
@@ -255,19 +322,57 @@ function Panel({ live }: { live: SiteContent }) {
     [draft.performances],
   )
 
+  /**
+   * Which sections are carrying unsaved work, so the nav can mark them.
+   *
+   * Compared against `live` rather than against a snapshot taken when the form
+   * opened, because `live` is what Save writes to and what editing on the page
+   * writes to as well. Two sections both showing `ui.about` both light up,
+   * which is the honest answer: the change really is on both screens.
+   */
+  const dirtyTabs = useMemo(() => {
+    if (!localDirty) return new Set<TabId>()
+    const out = new Set<TabId>()
+    for (const t of TABS) {
+      if (JSON.stringify(t.watch(draft)) !== JSON.stringify(t.watch(live))) {
+        out.add(t.id)
+      }
+    }
+    return out
+  }, [draft, live, localDirty])
+
+  const current = TABS.find((t) => t.id === tab)!
+
+  // ⌘S / Ctrl-S. A form this long is scrolled away from its own buttons most
+  // of the time, and the browser's own Save does nothing useful here anyway.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (localDirty) save()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   const shown = note ?? sessionNote
   const stamp = publishedStamp()
 
   return (
     <div className="min-h-screen bg-neutral-950 pb-40 text-neutral-200">
-      {/* ---------------- bar ---------------- */}
+      {/* ---------------- bar ----------------
+          Identity and the ways out. What *changes* the content — Save, Discard,
+          Publish — is at the foot of the screen instead, where it is in reach
+          from the middle of a long section rather than a scroll away at the
+          top. */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-neutral-950/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 md:px-8">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3.5 md:px-8">
           <div className="mr-auto">
-            <p className="text-[0.62rem] tracking-[0.3em] text-neutral-500 uppercase">
+            <p className="text-sm text-white">
               {draft.profile.name} — admin
             </p>
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-0.5 text-xs text-neutral-500">
               {localDirty
                 ? 'Unsaved changes in this form'
                 : dirty
@@ -276,112 +381,83 @@ function Panel({ live }: { live: SiteContent }) {
             </p>
           </div>
 
-          {shown && (
-            <p
-              role="status"
-              className={`max-w-md text-xs ${
-                shown.tone === 'ok'
-                  ? 'text-emerald-400'
-                  : shown.tone === 'bad'
-                    ? 'text-red-400'
-                    : 'text-sky-300'
-              }`}
+          <div className="flex flex-wrap items-center gap-1">
+            <Link
+              to={current.preview}
+              target="_blank"
+              className={`${GHOST_BTN} px-3 py-2`}
+              title={`Open ${current.preview} in a new tab`}
             >
-              {shown.text}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={revert}
-              disabled={!localDirty}
-              className="rounded-sm border border-white/15 px-3 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              Discard
-            </button>
-            <button
-              type="button"
-              onClick={save}
-              disabled={!localDirty}
-              className="rounded-sm border border-white/25 px-4 py-2 text-[0.62rem] tracking-[0.18em] text-white uppercase transition-colors hover:border-white disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void publishNow()
-              }}
-              disabled={
-                (!dirty && !localDirty) ||
-                publishing ||
-                (status ? !status.configured : false)
-              }
-              title={
-                status && !status.configured
-                  ? (status.unavailable ??
-                    `Publishing needs ${status.missing.join(', ')} set on the deployment — see EDITING.md.`)
-                  : 'Commit the content to the repository and rebuild the site'
-              }
-              className="rounded-sm border border-white bg-white px-4 py-2 text-[0.62rem] tracking-[0.18em] text-black uppercase transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              {publishing ? 'Publishing…' : 'Publish'}
-            </button>
+              View page ↗
+            </Link>
             <button
               type="button"
               onClick={() => {
                 // Straight into edit mode on the page, which is the other half
                 // of this screen rather than a different tool.
                 setEditing(true)
-                navigate('/')
+                navigate(current.preview)
               }}
-              className="rounded-sm border border-white/15 px-3 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
+              className={`${GHOST_BTN} px-3 py-2`}
             >
-              Edit on the site
+              Edit on the page
             </button>
-            <Link
-              to="/"
-              className="rounded-sm border border-white/15 px-3 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
-            >
-              View site
-            </Link>
             <button
               type="button"
               onClick={signOut}
-              className="rounded-sm border border-white/15 px-3 py-2 text-[0.62rem] tracking-[0.18em] text-neutral-300 uppercase transition-colors hover:border-white/45 hover:text-white"
+              className={`${GHOST_BTN} px-3 py-2`}
             >
-              Lock
+              Sign out
             </button>
           </div>
         </div>
-
-        {/* ---------------- tabs ---------------- */}
-        <nav className="mx-auto max-w-[1400px] px-5 md:px-8">
-          <div className="no-scrollbar -mb-px flex gap-1 overflow-x-auto">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id)}
-                aria-current={tab === t.id ? 'page' : undefined}
-                className={`shrink-0 border-b-2 px-4 py-3 text-[0.68rem] tracking-[0.16em] uppercase transition-colors ${
-                  tab === t.id
-                    ? 'border-white text-white'
-                    : 'border-transparent text-neutral-500 hover:text-neutral-300'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </nav>
       </header>
 
       {/* ---------------- body ----------------
           A div, not a <main>: the app already wraps every route in one, and a
           page may only have the one. */}
-      <div className="mx-auto max-w-[1400px] px-5 pt-8 md:px-8">
+      <div className="mx-auto grid max-w-[1400px] gap-8 px-5 pt-8 md:px-8 lg:grid-cols-[210px_minmax(0,1fr)]">
+        {/* The seven sections, all of them visible at once rather than
+            scrolling out of a strip, each marked when it is holding work that
+            has not been saved. */}
+        <nav className="lg:sticky lg:top-24 lg:self-start">
+          <ul className="flex flex-wrap gap-1 lg:flex-col">
+            {TABS.map((t) => {
+              const here = t.id === tab
+              return (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    onClick={() => setTab(t.id)}
+                    aria-current={here ? 'page' : undefined}
+                    className={`flex w-full cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-left text-sm transition-colors ${
+                      here
+                        ? 'bg-white/10 text-white'
+                        : 'text-neutral-400 hover:bg-white/5 hover:text-neutral-200'
+                    }`}
+                  >
+                    <span className="flex-1">{t.label}</span>
+                    {dirtyTabs.has(t.id) && (
+                      <span
+                        title="Unsaved changes"
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"
+                      />
+                    )}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+
+        <div className="min-w-0">
+          <div className="mb-6">
+            <h1 className="text-xl text-white">{current.label}</h1>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-neutral-500">
+              {current.blurb}
+            </p>
+          </div>
+
         {tab === 'profile' && (
           <ProfileSection value={draft.profile} onChange={put('profile')} />
         )}
@@ -448,20 +524,85 @@ function Panel({ live }: { live: SiteContent }) {
             }}
           />
         )}
-      </div>
 
-      {/* One quiet line at the foot, because it is the fact that decides what
-          somebody should do with their work when they are done here. */}
-      <p className="mx-auto mt-16 max-w-[1400px] px-5 text-xs leading-relaxed text-neutral-600 md:px-8">
-        <strong className="font-normal text-neutral-400">Save</strong> keeps your
-        work in this browser.{' '}
-        <strong className="font-normal text-neutral-400">Publish</strong> commits
-        it to the repository, which rebuilds the site for everybody — about a
-        minute.{' '}
-        {status && !status.configured
-          ? 'Publishing is not set up on this deployment yet; until it is, use Export JSON on the Access & data tab. EDITING.md has the setup.'
-          : 'Export JSON on the Access & data tab is still there as a way to hand the content to somebody else.'}
-      </p>
+          {/* ---------------- save bar ----------------
+              Sticks to the foot of the screen so it is reachable from the
+              middle of a section rather than only from the top of one, and so
+              the answer to "have I saved this?" is always on screen. */}
+          <div className="sticky bottom-4 z-20 mt-8 flex flex-wrap items-center gap-2 rounded-sm border border-white/12 bg-neutral-900/95 p-3 shadow-2xl backdrop-blur-md">
+            <button
+              type="button"
+              onClick={save}
+              disabled={!localDirty}
+              className="cursor-pointer rounded-sm bg-white px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Save changes
+            </button>
+            <button
+              type="button"
+              onClick={revert}
+              disabled={!localDirty}
+              className={`${GHOST_BTN} px-3 py-2`}
+            >
+              Discard
+            </button>
+
+            <span aria-hidden className="mx-1 h-5 w-px bg-white/10" />
+
+            <button
+              type="button"
+              onClick={() => {
+                void publishNow()
+              }}
+              disabled={
+                (!dirty && !localDirty) ||
+                publishing ||
+                (status ? !status.configured : false)
+              }
+              title={
+                status && !status.configured
+                  ? (status.unavailable ??
+                    `Publishing needs ${status.missing.join(', ')} set on the deployment — see EDITING.md.`)
+                  : 'Commit the content to the repository and rebuild the site'
+              }
+              className="cursor-pointer rounded-sm border border-white/25 px-4 py-2 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              {publishing ? 'Publishing…' : 'Publish'}
+            </button>
+
+            {/* The one line that says which of the three states an edit is in.
+                Announced, so it is not only a colour. */}
+            <p
+              role="status"
+              className={`ml-auto max-w-lg text-xs leading-relaxed ${
+                shown?.tone === 'bad'
+                  ? 'text-red-400'
+                  : shown?.tone === 'ok'
+                    ? 'text-emerald-400'
+                    : shown
+                      ? 'text-sky-300'
+                      : 'text-neutral-500'
+              }`}
+            >
+              {shown
+                ? shown.text
+                : localDirty
+                  ? 'Unsaved changes — Save keeps them in this browser, Publish puts them on the site.'
+                  : dirty
+                    ? 'Saved in this browser. Publish to put it on the site for everybody — about a minute.'
+                    : 'Everything here is published.'}
+            </p>
+          </div>
+
+          {status && !status.configured && (
+            <p className="mt-6 text-xs leading-relaxed text-neutral-600">
+              Publishing is not set up on this deployment yet; until it is, use
+              Export JSON on the Access &amp; data tab. EDITING.md has the
+              setup.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

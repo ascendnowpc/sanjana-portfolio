@@ -295,6 +295,21 @@ export function EditProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(t)
   }, [note])
 
+  /**
+   * One flag on the document, for the rules a component cannot write.
+   *
+   * The page's own end is the case that needs it: the bar is fixed over the
+   * foot of the screen, so while edit mode is on the last thing on a page
+   * needs somewhere to stop that is not underneath it. That is a rule about
+   * `body`, which no component here renders. See `html[data-editing]` in
+   * index.css.
+   */
+  useEffect(() => {
+    if (!(signedIn && editing)) return
+    document.documentElement.setAttribute('data-editing', '')
+    return () => document.documentElement.removeAttribute('data-editing')
+  }, [signedIn, editing])
+
   // Edit mode paints outlines over everything, which is exactly wrong for a
   // screenshot or a look at the real thing. Escape is the way out that needs no
   // aiming, and it closes the drawer first so it never does two things at once.

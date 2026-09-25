@@ -408,14 +408,19 @@
     cursor: text;
     transition: outline-color 200ms ease, background-color 200ms ease;
   }
-  .edit-field:hover {
-    outline-color: color-mix(in srgb, #38bdf8 85%, transparent);
+  /* Under the pointer the outline firms from a dashed hairline to a solid
+     rule and the field takes a tint. Shifting the dash's opacity, which is
+     what this used to do, is a change you have to be looking for; this one
+     tells you across the width of a page which field you are about to type
+     into. It is the MCIL editor's behaviour and it is the right one. */
+  .edit-field:hover,
+  .edit-field:focus {
+    outline: 2px solid #38bdf8;
+    outline-offset: 3px;
     background-color: color-mix(in srgb, #38bdf8 10%, transparent);
   }
   .edit-field:focus {
-    outline: 2px solid #38bdf8;
-    outline-offset: 2px;
-    background-color: color-mix(in srgb, #38bdf8 12%, transparent);
+    background-color: color-mix(in srgb, #38bdf8 14%, transparent);
   }
   /* An empty field has nothing to click on, so it is given a body. */
   .edit-field:empty::before {
@@ -430,19 +435,26 @@
     outline: 1px dashed color-mix(in srgb, #38bdf8 28%, transparent);
     outline-offset: 6px;
     border-radius: 2px;
+    transition: outline-color 200ms ease;
+  }
+  /* The region the toolbar under the pointer is acting on. A list entry and
+     the words inside it are two different things to edit, and hovering has to
+     say which one is about to take the click. */
+  .edit-region:hover {
+    outline-color: color-mix(in srgb, #38bdf8 60%, transparent);
+  }
+  /* A region nested in another — a track inside a piece — sits closer in, so
+     the two outlines do not draw on top of each other. */
+  .edit-region .edit-region {
+    outline-offset: 3px;
   }
 
-  /* The affordance over a picture or a film. Hidden until the pointer is on
-     the frame: the still underneath is the thing being judged. */
-  .edit-media-overlay {
-    opacity: 0;
-    transition: opacity 220ms ease;
-    background: color-mix(in srgb, #020617 62%, transparent);
-  }
-  .edit-media-overlay:hover,
-  .edit-media-overlay:focus-visible,
-  .edit-media-overlay:focus-within {
-    opacity: 1;
+  /* A frame that holds replaceable media. The chip in its corner says so in
+     words; this says where the chip's frame ends, which a chip floating over
+     a full-bleed photograph cannot. */
+  .edit-media-frame {
+    outline: 1px dashed color-mix(in srgb, #38bdf8 32%, transparent);
+    outline-offset: -1px;
   }
 
   /* The bar, the drawer and the dialog are the only editing chrome that sits
@@ -450,5 +462,14 @@
      z-40, and the preloader. */
   .edit-chrome {
     z-index: 90;
+  }
+}
+
+/* The bar sits over the foot of the page, so while it is there the page is
+   given somewhere to end that is not underneath it. `data-editing` is set on
+   the document by the edit session (see edit/EditProvider.tsx). */
+@layer base {
+  html[data-editing] body {
+    padding-bottom: 5rem;
   }
 }

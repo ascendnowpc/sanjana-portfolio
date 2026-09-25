@@ -104,9 +104,13 @@ function Shell() {
 
       {!isHome && !isAdmin && <Footer />}
 
-      {/* Over every page, the panel included: signing in at /admin and pressing
-          "View site" has to leave the bar where it was. */}
-      <EditChrome />
+      {/* Over every page except the panel.
+          The bar exists to answer "what is the state of what I am looking at?"
+          for a page that is only showing content. The panel answers it about
+          its own form, in its own bar at the foot of the screen — and two bars
+          in the same corner, each with a Save and a Publish on it, is a
+          question rather than an answer. */}
+      {!isAdmin && <EditChrome />}
     </>
   )
 }

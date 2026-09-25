@@ -153,6 +153,7 @@ export function CopySection({
           blank={() => ({ word: '', size: 0.9, drop: 0 })}
           addLabel="Add word"
           title={(item) => item.word || 'Word'}
+          copy={(item) => ({ ...item })}
           render={(item, setItem) => (
             <div className="grid gap-4 md:grid-cols-3">
               <Text
@@ -736,6 +737,7 @@ function LinkList({
       blank={() => ({ to: '/', label: '' })}
       addLabel="Add link"
       title={(item) => item.label || item.to}
+      copy={(item) => ({ ...item })}
       render={(item, setItem) => (
         <Row>
           <Text
@@ -779,6 +781,8 @@ function WelcomeEditor({
       blank={() => [{ kind: 'small' as const, text: '' }]}
       addLabel="Add line"
       title={(line, i) => `Line ${i + 1} — ${line.map((t) => t.text).join(' ')}`}
+      count={(line) => `${line.length} word${line.length === 1 ? '' : 's'}`}
+      copy={(line) => structuredClone(line)}
       render={(line, setLine) => (
         <Repeater
           items={line}
@@ -786,6 +790,7 @@ function WelcomeEditor({
           blank={() => ({ kind: 'small' as const, text: '' })}
           addLabel="Add word"
           title={(token) => token.text || 'Word'}
+          copy={(token) => ({ ...token })}
           render={(token, setToken) => (
             <Row>
               <Text
@@ -827,6 +832,8 @@ function HomeNavEditor({
       blank={() => [{ kind: 'small' as const, text: '' }]}
       addLabel="Add line"
       title={(line, i) => `Line ${i + 1} — ${line.map((t) => t.text).join(' ')}`}
+      count={(line) => `${line.length} word${line.length === 1 ? '' : 's'}`}
+      copy={(line) => structuredClone(line)}
       render={(line, setLine) => (
         <Repeater
           items={line}
@@ -834,6 +841,7 @@ function HomeNavEditor({
           blank={() => ({ kind: 'small' as const, text: '' })}
           addLabel="Add word"
           title={(token) => token.text || 'Word'}
+          copy={(token) => ({ ...token })}
           render={(token, setToken) => (
             <div className="space-y-4">
               <Row>
