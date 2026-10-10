@@ -86,30 +86,34 @@ export const PROFILE: SiteProfile = {
  * out by the page: split in the copy rather than found by a regex over the
  * string, so the emphasis falls on the word carrying the fact — `grade`,
  * `Belle`, `songs` — and never on a preposition that happened to end the line.
+ *
+ * Inside the lead and the bodies, `*a phrase*` is set in brass as the prose is
+ * read in (see ScrollWords). Two or three a paragraph at most, on the words a
+ * skimmer should leave with; brass on every other phrase is no emphasis at all.
  */
 export const PORTRAIT: PortraitCopy = {
-  lead: 'Singing has been the one constant in my life, woven into practically everything I do. My work spans solo concert repertoire, musical theatre, Western classical, Hindi classical, and honor choir. Being on stage lets me be completely consumed by it, nothing else on my mind.',
+  lead: 'Singing has been the *one constant* in my life, woven into practically everything I do. My work spans solo concert repertoire, musical theatre, Western classical, Hindi classical, and honor choir. Being on stage lets me be *completely consumed* by it, nothing else on my mind.',
 
   beats: [
     {
       heading: 'A discipline I met in eighth',
       accent: 'grade',
-      body: "In eighth grade, I began studying Hindustani classical, an entirely different vocal discipline from the one I'd trained in, and it connected me to my culture in a way nothing else had. It was also among the most demanding periods of my singing life, and I fell in love with it regardless. Raagas are where I feel most at home as a vocalist. I'd grown up surrounded by that music, so learning to sing it myself felt natural, almost inevitable.",
+      body: "In eighth grade, I began studying Hindustani classical, an entirely different vocal discipline from the one I'd trained in, and it *connected me to my culture* in a way nothing else had. It was also among the most demanding periods of my singing life, and I fell in love with it regardless. Raagas are where I feel *most at home* as a vocalist. I'd grown up surrounded by that music, so learning to sing it myself felt natural, almost inevitable.",
     },
     {
       heading: 'The first time I was cast as',
       accent: 'Belle',
-      body: 'In seventh grade, I fell headlong into musical theater: I was cast as Belle in Beauty and the Beast, my first substantial production, and it changed everything for me. It was the first time I understood performing as something beyond vocal technique alone, something I could pour my whole self into. Acting and dancing in tandem with singing is what made me fall irreversibly in love with the stage.',
+      body: 'In seventh grade, I fell headlong into musical theater: I was cast as Belle in Beauty and the Beast, my first substantial production, and it *changed everything* for me. It was the first time I understood performing as something beyond vocal technique alone, something I could pour *my whole self* into. Acting and dancing in tandem with singing is what made me fall *irreversibly in love* with the stage.',
     },
     {
       heading: 'A voice that serves something',
       accent: 'larger',
-      body: "In tenth and eleventh grade, I sang in honor choir, which taught me something solo performance never had: how to blend, how to let my voice serve something larger than itself rather than stand at its center. There's a distinct kind of connection that emerges when a group of people are working toward a single, unified sound. It deepened my appreciation for music considerably, and it fostered friendships that, I suspect, could only have formed that way.",
+      body: "In tenth and eleventh grade, I sang in honor choir, which taught me something solo performance never had: how to blend, how to let my voice *serve something larger* than itself rather than stand at its center. There's a distinct kind of connection that emerges when a group of people are working toward a *single, unified sound*. It deepened my appreciation for music considerably, and it fostered friendships that, I suspect, could only have formed that way.",
     },
     {
       heading: 'Ninety minutes, eleven',
       accent: 'songs',
-      body: "In tenth grade, I was cast as Missy in The Marvelous Wonderettes, my first time carrying a role of this weight: ninety uninterrupted minutes on stage, eleven songs, three of them solos. It proved to be one of the most liberating experiences of my life, despite embodying someone else's character entirely. I loved every second of it, being on stage, singing, doing what I love.",
+      body: "In tenth grade, I was cast as Missy in The Marvelous Wonderettes, my first time carrying a role of this weight: ninety uninterrupted minutes on stage, eleven songs, three of them solos. It proved to be one of the *most liberating* experiences of my life, despite embodying someone else's character entirely. I *loved every second* of it, being on stage, singing, doing what I love.",
     },
   ],
 }
