@@ -53,6 +53,11 @@ interface Saved {
   version: number
   /** When these edits were written, so a later publish can supersede them. */
   savedAt?: number
+  /**
+   * Set on drafts that hold only the edits (see `prune`). One without it is
+   * an older whole-site snapshot.
+   */
+  pruned?: true
   content: DeepPartial<SiteContent>
 }
 
@@ -152,6 +157,52 @@ const publishedAt = published.publishedAt
   ? Date.parse(published.publishedAt) || 0
   : 0
 
+/** Plain objects only: arrays and nulls are values, not things to recurse into. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Whether two pieces of content say the same thing. `loose` compares strings
+ * with the emphasis markup taken out, for drafts written before it existed.
+ */
+function same(a: unknown, b: unknown, loose: boolean): boolean {
+  if (typeof a === 'string' && typeof b === 'string') {
+    return loose ? a.replace(/\*/g, '') === b.replace(/\*/g, '') : a === b
+  }
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((v, i) => same(v, b[i], loose))
+  }
+  if (isRecord(a) && isRecord(b)) {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+    for (const k of keys) if (!same(a[k], b[k], loose)) return false
+    return true
+  }
+  return Object.is(a, b)
+}
+
+/**
+ * The part of a draft that actually differs from `base`, or `undefined` if
+ * none of it does.
+ *
+ * The editor works on the whole site, so a draft written as-is is a snapshot
+ * of every string on it — and a snapshot outranks the code. Before this, one
+ * edit to a caption was enough to pin the bio, the testimonials and every
+ * other line to whatever the code said on that day, in that browser, until
+ * the next publish; a change to the copy shipped in a deploy simply never
+ * appeared there. Keeping only what differs keeps the draft to the edits.
+ */
+function prune(draft: unknown, base: unknown, loose = false): unknown {
+  if (same(draft, base, loose)) return undefined
+  if (!isRecord(draft) || !isRecord(base)) return draft
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(draft)) {
+    const kept = prune(v, base[k], loose)
+    if (kept !== undefined) out[k] = kept
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
 /**
  * Layer 4, unless the deploy has already caught up with it.
  *
@@ -171,7 +222,12 @@ function readSaved(): DeepPartial<SiteContent> | null {
       localStorage.removeItem(KEY)
       return null
     }
-    return parsed.content
+    // An older draft is a whole-site snapshot, so it is pruned here too —
+    // which is what lets copy shipped since it was written show through it.
+    // It is compared loosely, ignoring the `*marked phrases*` markup: a
+    // snapshot can predate the markup, but it cannot have meant to remove it.
+    const edits = prune(parsed.content, DEFAULT_CONTENT, !parsed.pruned)
+    return (edits as DeepPartial<SiteContent> | undefined) ?? null
   } catch {
     // Private mode, a blocked origin, or a half-written blob. The site is
     // supposed to work without this, so a failure here is not worth a warning
@@ -258,12 +314,21 @@ export function applyDraft(next: SiteContent) {
 export function persistDraft(): { ok: boolean; error?: string } {
   if (!overrides) return { ok: true }
   try {
+    const edits = prune(overrides, DEFAULT_CONTENT) as
+      | DeepPartial<SiteContent>
+      | undefined
+    if (!edits) {
+      // Edited back to exactly what the deploy says: nothing left to keep.
+      localStorage.removeItem(KEY)
+      return { ok: true }
+    }
     localStorage.setItem(
       KEY,
       JSON.stringify({
         version: VERSION,
         savedAt: Date.now(),
-        content: overrides,
+        pruned: true,
+        content: edits,
       } satisfies Saved),
     )
     return { ok: true }
