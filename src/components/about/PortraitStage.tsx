@@ -8,6 +8,7 @@ import {
 import { useEdit } from '@/edit/EditProvider'
 import { fill } from '@/lib/copy'
 import { Reveal } from '@/components/ui/Reveal'
+import { ScrollWords } from '@/components/ui/ScrollWords'
 import { useMediaQuery, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 import { mediaUrl } from '@/lib/media'
 import { EditableText } from '@/components/edit/Editable'
@@ -116,6 +117,16 @@ const EDGE_FADE = 'linear-gradient(to bottom, #000 80%, transparent 99%)'
 const STILL = 0.42
 
 type Stage = 'idle' | 'loading' | 'ready' | 'failed'
+
+/*
+ * The bio's type. Lit full to chalk rather than the mist the column was set
+ * in: the prose is read in off the scroll from a dim start (see ScrollWords),
+ * and mist at full is too close to mist dimmed for the lit edge to be seen
+ * travelling. Kept here so the editing view, which shows the plain field,
+ * sets exactly the same lines.
+ */
+const LEAD = 'max-w-[46ch] text-lg leading-[1.7] font-light text-chalk'
+const BODY = 'max-w-[46ch] leading-[1.75] font-light text-chalk'
 
 /**
  * The portrait section: the piece on one side, the bio down the other.
@@ -459,7 +470,9 @@ export function PortraitStage() {
               {/* No display headline here any more. The section used to open
                   on one, and the lead now carries the section by itself —
                   first person, and the first thing read on the page. */}
-              <p className="mt-8 max-w-[46ch] text-lg leading-[1.7] font-light text-mist">
+            </Reveal>
+            {editing ? (
+              <p className={`mt-8 ${LEAD}`}>
                 <EditableText
                   path={['portrait', 'lead']}
                   value={portrait.lead}
@@ -467,44 +480,52 @@ export function PortraitStage() {
                   multiline
                 />
               </p>
-            </Reveal>
+            ) : (
+              <ScrollWords text={portrait.lead} className={`mt-8 ${LEAD}`} />
+            )}
 
             <div className="mt-24 space-y-20 md:mt-32 md:space-y-[20vh]">
               {portrait.beats.map((beat, bi) => (
-                <Reveal key={`${beat.accent}-${bi}`}>
-                  <h3 className="mono-label text-xs text-chalk">
-                    <EditableText
-                      path={['portrait', 'beats', bi, 'heading']}
-                      value={beat.heading}
-                      placeholder="Heading"
-                    />{' '}
-                    {/* Reversed out rather than coloured in. The reference
-                        does this with a highlighter; there is no second
-                        colour on this site to do it with, and white on the
-                        black ground is the same gesture at full strength. */}
-                    <span className="bg-bloom px-1.5 py-0.5 text-void">
+                <div key={`${beat.accent}-${bi}`}>
+                  <Reveal>
+                    <h3 className="mono-label text-xs text-chalk">
                       <EditableText
-                        path={['portrait', 'beats', bi, 'accent']}
-                        value={beat.accent}
-                        placeholder="word"
+                        path={['portrait', 'beats', bi, 'heading']}
+                        value={beat.heading}
+                        placeholder="Heading"
+                      />{' '}
+                      {/* Reversed out rather than coloured in. The reference
+                          does this with a highlighter; there is no second
+                          colour on this site to do it with, and white on the
+                          black ground is the same gesture at full strength. */}
+                      <span className="bg-bloom px-1.5 py-0.5 text-void">
+                        <EditableText
+                          path={['portrait', 'beats', bi, 'accent']}
+                          value={beat.accent}
+                          placeholder="word"
+                        />
+                      </span>
+                      <ItemControls
+                        path={['portrait', 'beats']}
+                        index={bi}
+                        className="ml-3 align-middle"
+                        blank={blankBeat}
                       />
-                    </span>
-                    <ItemControls
-                      path={['portrait', 'beats']}
-                      index={bi}
-                      className="ml-3 align-middle"
-                      blank={blankBeat}
-                    />
-                  </h3>
-                  <p className="mt-6 max-w-[46ch] leading-[1.75] font-light text-mist">
-                    <EditableText
-                      path={['portrait', 'beats', bi, 'body']}
-                      value={beat.body}
-                      placeholder="What this beat says"
-                      multiline
-                    />
-                  </p>
-                </Reveal>
+                    </h3>
+                  </Reveal>
+                  {editing ? (
+                    <p className={`mt-6 ${BODY}`}>
+                      <EditableText
+                        path={['portrait', 'beats', bi, 'body']}
+                        value={beat.body}
+                        placeholder="What this beat says"
+                        multiline
+                      />
+                    </p>
+                  ) : (
+                    <ScrollWords text={beat.body} className={`mt-6 ${BODY}`} />
+                  )}
+                </div>
               ))}
 
               {editing && (

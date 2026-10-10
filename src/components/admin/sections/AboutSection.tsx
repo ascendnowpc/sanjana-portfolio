@@ -88,7 +88,7 @@ export function AboutSection({
 
       <Group
         title="Portrait column"
-        description="The words beside the microphone. The lead paragraph carries the section; each beat below it is a heading whose final word the page reverses out."
+        description="The words beside the microphone. The lead paragraph carries the section; each beat below it is a heading whose final word the page reverses out. In the lead and the bodies, wrap a phrase in asterisks — *like this* — to set it in brass."
       >
         <TextArea
           label="Lead paragraph"
