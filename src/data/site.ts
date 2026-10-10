@@ -113,7 +113,7 @@ export const PORTRAIT: PortraitCopy = {
     {
       heading: 'Ninety minutes, eleven',
       accent: 'songs',
-      body: "In tenth grade, I was cast as Missy in The Marvelous Wonderettes, my first time carrying a role of this weight: ninety uninterrupted minutes on stage, eleven songs, three of them solos. It proved to be one of the *most liberating* experiences of my life, despite embodying someone else's character entirely. I *loved every second* of it, being on stage, singing, doing what I love.",
+      body: "In tenth grade, I was cast as Missy in The Marvelous Wonderettes, my first time carrying a role of this weight: ninety uninterrupted minutes on stage, eleven songs, three of them solos. It proved to be one of the most liberating experiences of my life, despite embodying someone else's character entirely. I *loved every second* of it, being on stage, singing, doing what I love.",
     },
   ],
 }
