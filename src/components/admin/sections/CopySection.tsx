@@ -6,7 +6,6 @@ import type {
 } from '@/types/content'
 import {
   Group,
-  Num,
   Repeater,
   Row,
   Select,
@@ -18,8 +17,7 @@ import {
  * Every fixed word on the site that is not somebody's name or a piece of work.
  *
  * Headings, buttons, filter keys, form labels, the sentence the index opens
- * on, the seven words of the sound question, and the labels a screen reader
- * reads instead of an icon. If it is on the page and it is not content, it is
+ * on, and the labels a screen reader reads instead of an icon. If it is on the page and it is not content, it is
  * here.
  *
  * Grouped by where it is read rather than by what it is, because that is how
@@ -137,71 +135,6 @@ export function CopySection({
             value={value.home.srHeading}
             onChange={field('home', 'srHeading')}
             hint="Heads the plain list of every piece that only a screen reader meets."
-          />
-        </Row>
-      </Group>
-
-      <Group
-        title="The sound question"
-        description="Asked once a visit, before anything has started. Each word carries its own size and its own fall, which is what lays the sentence diagonally across the screen instead of stacking it."
-      >
-        <Repeater
-          label="Words"
-          items={value.soundGate.words}
-          onChange={(v) => put('soundGate', { ...value.soundGate, words: v })}
-          blank={() => ({ word: '', size: 0.9, drop: 0 })}
-          addLabel="Add word"
-          title={(item) => item.word || 'Word'}
-          copy={(item) => ({ ...item })}
-          render={(item, setItem) => (
-            <div className="grid gap-4 md:grid-cols-3">
-              <Text
-                label="Word"
-                value={item.word}
-                onChange={(v) => setItem({ ...item, word: v })}
-              />
-              <Num
-                label="Size"
-                step={0.01}
-                value={item.size}
-                onChange={(v) => setItem({ ...item, size: v })}
-                hint="A multiple of the run’s own size."
-              />
-              <Num
-                label="Drop"
-                step={0.05}
-                value={item.drop}
-                onChange={(v) => setItem({ ...item, drop: v })}
-                hint="How far below the first word it sits, in lines."
-              />
-            </div>
-          )}
-        />
-        <Row>
-          <Text
-            label="Accept (spoken)"
-            value={value.soundGate.enterLabel}
-            onChange={field('soundGate', 'enterLabel')}
-            hint="The whole panel is the yes, so this is what a screen reader is told it does."
-          />
-          <Text
-            label="Decline"
-            value={value.soundGate.decline}
-            onChange={field('soundGate', 'decline')}
-          />
-        </Row>
-        <Row>
-          <Text
-            label="Speaker — turn on (spoken)"
-            value={value.sound.turnOn}
-            onChange={field('sound', 'turnOn')}
-            hint="The speaker in the bottom-left corner of every page is an icon, so this is what a screen reader is told it does while the music is off."
-          />
-          <Text
-            label="Speaker — turn off (spoken)"
-            value={value.sound.turnOff}
-            onChange={field('sound', 'turnOff')}
-            hint="The same, while the music is on."
           />
         </Row>
       </Group>

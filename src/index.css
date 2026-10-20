@@ -302,22 +302,6 @@
   to { transform: translateX(320%); }
 }
 
-/* The speaker's two waves while the music is sounding: a slow swell outward,
-   the outer wave a beat behind the inner one, so it reads as sound carrying
-   rather than as a light blinking. */
-@keyframes speaker-wave {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
-}
-
-.speaker-waves path {
-  animation: speaker-wave 1.8s ease-in-out infinite;
-}
-
-.speaker-waves path + path {
-  animation-delay: 0.3s;
-}
-
 /* The cursor's "learn more" on the index: a slow swell passing through the
    word, each letter a beat behind the one before it (the delay is set per
    letter in CursorLabel.tsx), so the lettering flows rather than sitting. */
