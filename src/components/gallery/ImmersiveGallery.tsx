@@ -379,20 +379,9 @@ interface Props {
    *
    * The index uses it to send its welcome sentence back into the room and to
    * lift the dimming off the wall behind it, on the same clock as the pull —
-   * so the words and the room move as one shot, and both wait together while
-   * the sound gate holds the clock.
+   * so the words and the room move as one shot.
    */
   onIntroFrame?: (progress: number) => void
-  /**
-   * Hold the opening pull at its widest, without starting it.
-   *
-   * The arrival is the first thing a visitor sees, and it is over in three
-   * seconds — so anything covering the page at load (the sound gate) would
-   * otherwise let it play out behind a black panel and uncover a room that
-   * had already arrived. Held, the clock does not advance at all: the shot
-   * waits, wide, and the pull begins the moment the cover goes.
-   */
-  held?: boolean
 }
 
 /**
@@ -422,7 +411,6 @@ export function ImmersiveGallery({
   onFocusChange,
   onIntroDone,
   onIntroFrame,
-  held = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const worldRef = useRef<HTMLDivElement>(null)
@@ -450,12 +438,9 @@ export function ImmersiveGallery({
   onIntroDoneRef.current = onIntroDone
   const onIntroFrameRef = useRef(onIntroFrame)
   onIntroFrameRef.current = onIntroFrame
-  /** The last progress handed to `onIntroFrame`, so a finished or held intro
-   *  stops calling it with the same number every frame. */
+  /** The last progress handed to `onIntroFrame`, so a finished intro stops
+   *  calling it with the same number every frame. */
   const lastWelcome = useRef(-1)
-  // Read inside the loop, which is started once and never re-created.
-  const heldRef = useRef(held)
-  heldRef.current = held
 
   /** False until the posters have settled — see WARMUP_MS. */
   const [warm, setWarm] = useState(false)
@@ -853,7 +838,7 @@ export function ImmersiveGallery({
       const focus = hoveredRef.current
 
       /* ---- the opening pull ---- */
-      if (!heldRef.current) introClock.current += dt
+      introClock.current += dt
       const introT = reduced
         ? 1
         : clamp((introClock.current - INTRO_HOLD_MS) / INTRO_MS, 0, 1)

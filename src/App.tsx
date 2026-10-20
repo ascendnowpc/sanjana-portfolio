@@ -7,7 +7,6 @@ import { Ambience } from '@/components/layout/Ambience'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { TransitionProvider } from '@/components/layout/TransitionProvider'
 import { Preloader } from '@/components/layout/Preloader'
-import { HouseMusicProvider } from '@/components/audio/HouseMusic'
 import { ContentProvider, useUi } from '@/content/ContentProvider'
 import { EditProvider, useEdit } from '@/edit/EditProvider'
 
@@ -126,13 +125,9 @@ export default function App() {
         <EditProvider>
           <DocumentHead />
           <TransitionProvider>
-            {/* Above the pages, so the music carries from one to the next
-                instead of stopping every time the route changes. */}
-            <HouseMusicProvider>
-              <Preloader />
-              <Ambience />
-              <Shell />
-            </HouseMusicProvider>
+            <Preloader />
+            <Ambience />
+            <Shell />
           </TransitionProvider>
         </EditProvider>
       </BrowserRouter>

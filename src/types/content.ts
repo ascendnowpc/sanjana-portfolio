@@ -139,23 +139,9 @@ export interface PortraitCopy {
   beats: PortraitBeat[]
 }
 
-/**
- * The recording the index plays under itself.
- *
- * Named by slug rather than by path so it stays pinned to a real performance
- * in the archive; `from`/`to` cut an excerpt out of the take.
- */
-export interface HouseClip {
-  slug: string
-  from: number
-  /** Seconds, or null to play to the end of the file. */
-  to: number | null
-}
-
 export interface MusicCopy {
   /** Cover art per category, keyed the same way `CATEGORIES` is. */
   covers: Partial<Record<CategoryId, string>>
-  houseClip: HouseClip
 }
 
 /**
@@ -217,19 +203,6 @@ export interface HomeNavToken {
 }
 
 /**
- * One word of the sound gate's diagonal.
- *
- * `size` is a multiple of the run's own font size and `drop` is how far the
- * word falls below the first one, in ems of its line — together they are what
- * lays the sentence across the screen on a slant instead of stacking it.
- */
-export interface GateWord {
-  word: string
-  size: number
-  drop: number
-}
-
-/**
  * Every fixed string on the site.
  *
  * Grouped by where it is read rather than by what it is, because that is how
@@ -265,20 +238,6 @@ export interface UiCopy {
     driftHint: string
     /** Heading over the screen-reader-only index of every piece. */
     srHeading: string
-  }
-
-  soundGate: {
-    words: GateWord[]
-    /** What a screen reader is told the whole panel does. */
-    enterLabel: string
-    decline: string
-  }
-
-  /** The speaker in the corner of every page, which turns the music on and
-   *  off. It is an icon, so these are what a screen reader is told it does. */
-  sound: {
-    turnOn: string
-    turnOff: string
   }
 
   work: {

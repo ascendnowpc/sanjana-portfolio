@@ -140,15 +140,9 @@ the bars near the playhead reacting to a live `AnalyserNode`.
 
 Drop real files in and the same component switches to `file` mode untouched.
 
-**The site's own music** (`HouseMusicProvider` in
-`src/components/audio/HouseMusic.tsx`) is one recording — `music.houseClip` —
-mounted above the router, so it keeps playing from page to page and loops
-rather than ending. A speaker in the bottom-left corner of every page turns it
-on and off, and the visit remembers the choice. The index asks the sound
-question once a visit before it uncovers the room, because a browser will not
-play audio until something has been pressed. The music fades out whenever any
-other film or recording on the page is sounding — a performance's video, a
-track on the About shelf — and comes back when it stops.
+The site plays nothing by itself: there is no background music and no sound
+question on arrival. Sound starts only when a visitor plays a film or a
+recording.
 
 ## Editing the site
 
@@ -174,7 +168,7 @@ job is twelve entries rather than one word. Seven tabs:
 | Performances | All 35 archive entries — every field, plus their tracks, credits and stills |
 | Musical covers | The second key of the About page's shelf: songs she did not write |
 | Disciplines | The five categories, their accents and cover art, and the recording the index opens on |
-| Site text | Every other word on the site: headings, buttons, filter keys, form labels, the welcome sentence, the sound question, the 404 page, and the labels a screen reader hears instead of an icon |
+| Site text | Every other word on the site: headings, buttons, filter keys, form labels, the welcome sentence, the 404 page, and the labels a screen reader hears instead of an icon |
 | Access & data | The password, publishing, and export / import / reset |
 
 **Then Publish**, which commits the content to this repository as
@@ -249,7 +243,7 @@ video appears — in the tile on hover, and as the hero player on the page.
 **Copy.** Either edit `/admin` and export, or edit the defaults directly:
 `src/data/performances.ts` (the catalogue), `src/data/site.ts` (bio, links,
 press), `src/data/categories.ts` (the five sections and their
-accents), `src/data/music.ts` (cover art, the index's own recording) and
+accents), `src/data/music.ts` (cover art) and
 `src/data/ui.ts` (every other word on the site).
 
 **Placeholder artwork.** The stage stills are generated, not photographed:

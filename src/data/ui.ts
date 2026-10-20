@@ -4,8 +4,7 @@ import type { UiCopy } from '@/types/content'
  * Every fixed string on the site, in one place.
  *
  * These used to live where they were rendered — `'Grid View'` inside Work.tsx,
- * `'Reach out'` inside Contact.tsx, the seven words of the sound gate inside
- * SoundGate.tsx. That is the right place for a string nobody but a developer
+ * `'Reach out'` inside Contact.tsx. That is the right place for a string nobody but a developer
  * will ever change, and the wrong place for a site whose owner should be able
  * to change all of it.
  *
@@ -70,25 +69,6 @@ export const UI: UiCopy = {
     ],
     driftHint: 'Move your cursor to look around',
     srHeading: 'All work',
-  },
-
-  soundGate: {
-    words: [
-      { word: 'Click', size: 1, drop: 0 },
-      { word: 'anywhere', size: 0.92, drop: 1.3 },
-      { word: 'to', size: 0.8, drop: 2.65 },
-      { word: 'turn', size: 0.86, drop: 3.15 },
-      { word: 'on', size: 0.76, drop: 3.85 },
-      { word: 'your', size: 0.9, drop: 5.15 },
-      { word: 'sound', size: 0.95, drop: 6.4 },
-    ],
-    enterLabel: 'Enter with sound',
-    decline: 'Enter without sound',
-  },
-
-  sound: {
-    turnOn: 'Turn the music on',
-    turnOff: 'Turn the music off',
   },
 
   work: {

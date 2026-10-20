@@ -9,8 +9,6 @@ import {
 import { CursorLabel } from '@/components/gallery/CursorLabel'
 import { MagneticLink } from '@/components/ui/MagneticLink'
 import { SplitText } from '@/components/ui/SplitText'
-import { useHouseMusic } from '@/components/audio/HouseMusic'
-import { SoundGate } from '@/components/audio/SoundGate'
 import {
   useCategoryMap,
   usePerformances,
@@ -163,16 +161,6 @@ export default function Home() {
     }
   }, [])
 
-  /**
-   * Whether the sound question still has to be asked.
-   *
-   * Asked once a visit, not once a page view, and owned by the site's music
-   * rather than by this page — the recording plays under every page now, so
-   * whether the visitor has answered is a fact about the visit. See
-   * HouseMusicProvider.
-   */
-  const { asking, answer } = useHouseMusic()
-
   return (
     <div className="fixed inset-0 overflow-hidden bg-void">
       <ImmersiveGallery
@@ -180,7 +168,6 @@ export default function Home() {
         onFocusChange={onFocusChange}
         onIntroDone={onIntroDone}
         onIntroFrame={onIntroFrame}
-        held={asking}
       />
 
       {/* The wall held in the dark while the welcome is read, lifting as the
@@ -278,7 +265,7 @@ export default function Home() {
 
               {editing && (
                 <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                  <RegionEdit drawer="copy" label="Index copy & the sound question" />
+                  <RegionEdit drawer="copy" label="Index copy" />
                   <RegionEdit drawer="categories" label="What plays under the index" />
                 </div>
               )}
@@ -364,13 +351,6 @@ export default function Home() {
       {!isMobile && (
         <CursorLabel text={ui.gallery.learnMore} visible={Boolean(focused)} />
       )}
-
-      {/* The question, over everything, until it has been answered once. The
-          music it asks about is the site's, not this page's — it lives in
-          HouseMusicProvider, with the speaker that turns it on and off. */}
-      <AnimatePresence>
-        {asking && <SoundGate key="gate" onChoose={answer} />}
-      </AnimatePresence>
 
       {/* ---------------- drift hint ---------------- */}
       <motion.div

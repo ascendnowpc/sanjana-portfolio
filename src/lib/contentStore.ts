@@ -6,7 +6,7 @@ import type {
 import { PERFORMANCES } from '@/data/performances'
 import { CATEGORIES } from '@/data/categories'
 import { COVERS } from '@/data/covers'
-import { MUSIC_COVERS, HOUSE_CLIP } from '@/data/music'
+import { MUSIC_COVERS } from '@/data/music'
 import { PORTRAIT, PROFILE } from '@/data/site'
 import { UI } from '@/data/ui'
 import { getPerformances, getProfile } from './content'
@@ -91,7 +91,6 @@ const BUNDLED: SiteContent = {
   covers: COVERS,
   music: {
     covers: MUSIC_COVERS,
-    houseClip: { ...HOUSE_CLIP, to: HOUSE_CLIP.to ?? null },
   },
   ui: UI,
   /**
@@ -293,9 +292,8 @@ function readSaved(): DeepPartial<SiteContent> | null {
  *
  * `null` overrides mean "no edits saved", which is not the same thing as a
  * patch whose value is null — `merge` reads that second one as "set this field
- * to null", and `houseClip.to` genuinely is nullable. So the no-edits case is
- * answered here rather than inside `merge`, where it would collide with a
- * legitimate null and blank the whole object.
+ * to null". So the no-edits case is answered here rather than inside `merge`,
+ * where it would collide with a legitimate null and blank the whole object.
  */
 function compose(): SiteContent {
   return overrides ? merge(base, overrides) : base
