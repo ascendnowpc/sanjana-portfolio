@@ -343,18 +343,6 @@
   animation-delay: 0.3s;
 }
 
-/* The cursor's "learn more" on the index: a slow swell passing through the
-   word, each letter a beat behind the one before it (the delay is set per
-   letter in CursorLabel.tsx), so the lettering flows rather than sitting. */
-@keyframes letter-flow {
-  0%, 100% { transform: translateY(0); opacity: 1; }
-  50% { transform: translateY(-0.3em); opacity: 0.62; }
-}
-
-.letter-flow {
-  animation: letter-flow 1.9s ease-in-out infinite;
-}
-
 /* The index's lettering arriving — see Flicker.tsx. Each letter runs this on
    its own delay and length. It steps rather than fades: a light catching is
    on or off, and easing between the two turns the flicker into a dissolve.

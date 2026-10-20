@@ -95,21 +95,51 @@ const PITCH_LIMIT = 0.38
  * resting near the centre from nudging the room.
  */
 const STEER_DEAD = 0.1
-/** Radians per second of yaw at full deflection — a full turn in about four
- *  and a half seconds with the cursor pinned to the edge. */
-const STEER_YAW = 1.45
 /**
- * Radians per second of pitch at full deflection.
+ * Radians per second of yaw at full deflection.
  *
- * Was 0.4, which is the other half of "hard to move vertically": crossing the
- * band took the better part of three seconds of holding the cursor against the
- * top of the screen, and nobody holds a cursor still for three seconds to find
- * out whether anything is happening.
+ * Small, because holding still is not what moves the reference. Measured off
+ * a recording of it, a pointer parked at 0.8 of the way to the edge turns its
+ * room at about a tenth of a screen-width a second — a slow carry, there so
+ * that the room is never quite stuck — and everything quick comes from
+ * *moving* the pointer, which is the lean below. This was 1.45: a room that
+ * raced away under a hand that had stopped, and barely answered one that
+ * moved.
  */
-const STEER_PITCH = 1.0
-/** Parallax lean, in radians at full deflection. */
-const LOOK_YAW = 0.3
-const LOOK_PITCH = 0.2
+const STEER_YAW = 0.35
+/** Radians per second of pitch at full deflection. See STEER_YAW. */
+const STEER_PITCH = 0.25
+/**
+ * The lean: how far the view turns with where the pointer is, in radians at
+ * full deflection.
+ *
+ * This is what makes the reference fast. Moving its pointer swings the room
+ * the other way by more than the pointer moved — about one and a half times,
+ * horizontally, measured by phase correlation across the recording — peaking
+ * at two to three and a half screen-widths a second within a tenth of a
+ * second of the move and coasting to rest over the next three tenths (that
+ * coast is the pointer's own smoothing, usePointer(0.13)). Averaged over the
+ * recording's sweeps the room travels about 1.8 times as far as the pointer
+ * sideways and 1.35 times vertically, and with this lens a lean of L moves it
+ * 1.08·L times sideways and 1.9·L times vertically — so 1.65 and 0.6. These
+ * were 0.3 and 0.2, about a third of a screen's swing for a full sweep of the
+ * hand: a room that leaned politely where the reference's turns.
+ */
+const LOOK_YAW = 1.65
+const LOOK_PITCH = 0.6
+/**
+ * The lean on a touch screen, as a share of the above.
+ *
+ * A finger has no hover: the pointer jumps to wherever it lands, and at the
+ * full lean a tap near the edge of a phone would throw the room half a turn.
+ * Dragging is how a phone turns the room; this keeps only a hint of lean.
+ */
+const LOOK_TOUCH = 0.2
+/**
+ * Furthest the view may tip, lean and all. Past this the band of frames is
+ * leaving the screen and the top or bottom of it is an empty sky.
+ */
+const VIEW_PITCH_LIMIT = 0.6
 
 /**
  * Deadzoned response for one steering axis.
@@ -128,8 +158,10 @@ function steerAxis(v: number) {
   return Math.sign(v) * t * t * (3 - 2 * t)
 }
 
-/** Ambient yaw, radians per 60fps frame — the room turning gently on its own. */
-const DRIFT = 0.00042
+/** Ambient yaw, radians per 60fps frame — the room turning gently on its own,
+ *  at about the few hundredths of a screen-width a second the reference
+ *  carries when nobody is touching it. */
+const DRIFT = 0.0009
 /**
  * Seconds the ambient turn takes to reach full speed on arrival.
  *
@@ -289,8 +321,20 @@ const FOCUS_KEEP_SPEED = 460
  * to say all of it bar a margin — against the 490×280 keyhole that hover used
  * to be confined to.
  */
-const FOCUS_TAKE_DEFLECT = 0.62
-const FOCUS_KEEP_DEFLECT = 0.74
+const FOCUS_TAKE_DEFLECT = 0.8
+const FOCUS_KEEP_DEFLECT = 0.9
+
+/**
+ * How far, in radians, the room may still have to swing before a frame can be
+ * read.
+ *
+ * With the lean as strong as it is, the room goes on moving for a few tenths
+ * of a second after the hand has stopped — it is catching up. Taking focus in
+ * that window froze it mid-swing, a jolt where the reference coasts to rest.
+ * So focus waits until the room has all but arrived where the pointer is
+ * sending it.
+ */
+const FOCUS_SETTLE = 0.02
 
 /**
  * Stacking order for the frame being read: above every other tile, which are
@@ -1018,11 +1062,12 @@ export function ImmersiveGallery({
       // frame does not slide it out from under the cursor reading it.
       const lookX = pt.x + (holdX - pt.x) * focusFade
       const lookY = pt.y + (holdY - pt.y) * focusFade
-      const viewYaw = yaw.current + lookX * LOOK_YAW
+      const lean = isMobile ? LOOK_TOUCH : 1
+      const viewYaw = yaw.current + lookX * LOOK_YAW * lean
       const viewPitch = clamp(
-        pitch.current - lookY * LOOK_PITCH,
-        -PITCH_LIMIT - LOOK_PITCH,
-        PITCH_LIMIT + LOOK_PITCH,
+        pitch.current - lookY * LOOK_PITCH * lean,
+        -VIEW_PITCH_LIMIT,
+        VIEW_PITCH_LIMIT,
       )
 
       /** Per-frame rate for each tile's own lighting ease — see `lit` below. */
@@ -1222,12 +1267,18 @@ export function ImmersiveGallery({
       // finger has no resting state, so a lifted one would leave the last
       // frame it passed lit for good.
       const deflect = Math.max(Math.abs(pt.x), Math.abs(pt.y))
+      const aim = pointer.target.current
+      const swingLeft = Math.max(
+        Math.abs(aim.x - pt.x) * LOOK_YAW,
+        Math.abs(aim.y - pt.y) * LOOK_PITCH,
+      )
       if (
         !settled ||
         suppressFocusRef.current ||
         isMobile ||
         speed > (focus ? FOCUS_KEEP_SPEED : FOCUS_TAKE_SPEED) ||
-        deflect > (focus ? FOCUS_KEEP_DEFLECT : FOCUS_TAKE_DEFLECT)
+        deflect > (focus ? FOCUS_KEEP_DEFLECT : FOCUS_TAKE_DEFLECT) ||
+        (!focus && swingLeft > FOCUS_SETTLE)
       ) {
         setFocus(null)
       } else {
