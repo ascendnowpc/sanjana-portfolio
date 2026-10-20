@@ -197,8 +197,8 @@ export const UI: UiCopy = {
     submit: 'Send enquiry',
     sending: 'Sending…',
     sent: 'Received — thank you',
-    demoNote:
-      'This form is a front-end demo — nothing was sent. Wire it to Supabase or an email service before going live.',
+    sentNote: 'Thank you — your message has been sent. I’ll reply to the address you gave.',
+    failedNote: 'Your message could not be sent. Please email me at {email} instead.',
     generalLabel: 'General',
     elsewhereLabel: 'Elsewhere',
     basedLabel: 'Based in',
