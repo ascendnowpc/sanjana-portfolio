@@ -83,10 +83,9 @@ a chip in the corner when you want the page to yourself.
   the panel in a sheet beside the page, against the same live content, so the
   page keeps updating behind it.
 
-Two places deliberately look different while you are editing. The testimonial
-run becomes a grid, because its three screens of scroll-driven horizontal
-movement are unusable with a caret in them. Titles that normally animate one
-letter at a time become plain text, for the same reason.
+One thing deliberately looks different while you are editing: titles that
+normally animate one letter at a time become plain text, because an animation
+of one span per character is unusable with a caret in it.
 
 A word about slots: some values contain `{name}`, `{year}`, `{title}`,
 `{percent}`. Those are substituted when the page renders. Edit mode shows you the
@@ -102,7 +101,7 @@ in named at the top of the form with a line saying what is in it. A section
 holding work you have typed but not saved wears a dot, so the thing you half
 did on another tab cannot be lost by forgetting it was there.
 
-**Lists open one row at a time.** A credit, a recording, a testimonial, a word
+**Lists open one row at a time.** A credit, a recording, a cover, a word
 of the welcome sentence — each is a line with its title on it, and a click opens
 its fields. The line carries a tally where there is one to carry (*3 recordings
 · 5 stills*), so a piece missing its audio is visible without opening it.

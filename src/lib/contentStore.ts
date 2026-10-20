@@ -7,7 +7,7 @@ import { PERFORMANCES } from '@/data/performances'
 import { CATEGORIES } from '@/data/categories'
 import { COVERS } from '@/data/covers'
 import { MUSIC_COVERS, HOUSE_CLIP } from '@/data/music'
-import { PORTRAIT, PROFILE, TESTIMONIALS } from '@/data/site'
+import { PORTRAIT, PROFILE } from '@/data/site'
 import { UI } from '@/data/ui'
 import { getPerformances, getProfile } from './content'
 import { isSupabaseConfigured } from './supabase'
@@ -79,7 +79,6 @@ type DeepPartial<T> = T extends readonly unknown[]
 const BUNDLED: SiteContent = {
   profile: PROFILE,
   portrait: PORTRAIT,
-  testimonials: TESTIMONIALS,
   categories: CATEGORIES,
   performances: PERFORMANCES,
   covers: COVERS,
@@ -187,7 +186,7 @@ function same(a: unknown, b: unknown, loose: boolean): boolean {
  *
  * The editor works on the whole site, so a draft written as-is is a snapshot
  * of every string on it — and a snapshot outranks the code. Before this, one
- * edit to a caption was enough to pin the bio, the testimonials and every
+ * edit to a caption was enough to pin the bio, the covers and every
  * other line to whatever the code said on that day, in that browser, until
  * the next publish; a change to the copy shipped in a deploy simply never
  * appeared there. Keeping only what differs keeps the draft to the edits.

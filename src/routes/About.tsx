@@ -6,7 +6,6 @@ import { fill } from '@/lib/copy'
 import { Overture } from '@/components/ui/Overture'
 import { Shelf } from '@/components/about/Shelf'
 import { PortraitStage } from '@/components/about/PortraitStage'
-import { Testimonials } from '@/components/about/Testimonials'
 import { Starfield } from '@/components/layout/Starfield'
 import { mediaUrl } from '@/lib/media'
 import { EditableText } from '@/components/edit/Editable'
@@ -63,20 +62,16 @@ export default function About() {
       {/* The field the whole page sits on. It is a sibling of the content
           rather than a layer over it, and the content is lifted above it,
           because points drawn on top of a face read as dirt on the lens. Any
-          section that wants to hide them only has to paint its own ground.
-          The testimonial run deliberately does not: it pins for three screens
-          while the field, which is fixed to the viewport too, holds exactly as
-          still as the word behind the cards does. Painting a ground there
-          would have swapped a sky the cards travel across for a hole in the
-          page three screens deep. */}
+          section that wants to hide them only has to paint its own ground. */}
       <Starfield />
 
       <div className="relative z-10">
         {/* ---------------- 1. the room opens ---------------- */}
         <Overture src={ui.about.film} poster={ui.about.filmPoster}>
-          {/* Two deliberate lines, not a wrap: at this weight the break is part
-              of the composition, and letting the viewport choose it strands a
-              single word on line two on half the screens it renders at.
+          {/* One line per entry, not a wrap: at this weight a break is part of
+              the composition, and letting the viewport choose it strands a
+              single word on the last line on half the screens it renders at.
+              "From the first note" holds one line at the size below.
 
               Leading is above 1, not the sub-1 a display line usually wants.
               Anton's cap height is 0.86em — unusually tall in its em box — so a
@@ -86,15 +81,14 @@ export default function About() {
               related reason: the face is already condensed, and pulling it
               tighter fuses the verticals into a picket fence.
 
-              The two lines are also chosen so the second sits *inside* the
-              first, the way the reference does it — 6.10em of advance against
-              7.03em, so line two lands at about 87% of line one and the block
-              tapers instead of squaring off. Both lines being the same length is
-              what made the earlier wording read as a slab.
+              When there are two lines, the second should sit *inside* the
+              first, the way the reference does it, so the block tapers instead
+              of squaring off. Two lines of the same length read as a slab.
 
-              The size is set off line one's real advance in Anton (7.03em, plus
-              tracking), so it lands at roughly three quarters of the viewport
-              rather than being tuned by eye per screen. */}
+              The size was set off the earlier first line's real advance in
+              Anton (7.03em, plus tracking), so a line of that length lands at
+              roughly three quarters of the viewport rather than being tuned by
+              eye per screen. */}
           <h1
             className="font-[family-name:var(--font-poster)] leading-[1.06] tracking-[0.012em] text-white uppercase"
             style={{ fontSize: 'clamp(2.3rem, 10.6vw, 16rem)' }}
@@ -260,9 +254,6 @@ export default function About() {
             )}
           </div>
         </div>
-
-        {/* ---------------- 5. testimonials ---------------- */}
-        <Testimonials />
       </div>
     </div>
   )

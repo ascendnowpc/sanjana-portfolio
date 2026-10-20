@@ -10,7 +10,6 @@ import {
   Repeater,
   Row,
   Select,
-  StringList,
   Text,
   TextArea,
 } from '@/components/admin/fields'
@@ -561,17 +560,6 @@ export function CopySection({
             onChange={field('contact', 'heading')}
           />
         </Row>
-        <Text
-          label="Enquiry type legend"
-          value={value.contact.enquiryLegend}
-          onChange={field('contact', 'enquiryLegend')}
-        />
-        <StringList
-          label="Enquiry types"
-          items={value.contact.enquiryTypes}
-          addLabel="Add type"
-          onChange={(v) => put('contact', { ...value.contact, enquiryTypes: v })}
-        />
         <div className="grid gap-4 md:grid-cols-2">
           {(
             [
@@ -618,10 +606,9 @@ export function CopySection({
           onChange={field('contact', 'demoNote')}
           hint="The form has no back end yet — this is what it says so. Rewrite it when one is wired up."
         />
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           {(
             [
-              ['bookingLabel', 'Booking'],
               ['generalLabel', 'General'],
               ['elsewhereLabel', 'Elsewhere'],
               ['basedLabel', 'Based in'],

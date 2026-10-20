@@ -110,7 +110,7 @@ export function ProfileSection({
 
       <Group
         title="Press"
-        description="Short notices. These are separate from the testimonial cards on the About page — see the Testimonials tab — because a press list is three lines of type and a card has to hold a screen on its own."
+        description="Short notices: a quotation and who said it."
       >
         <Repeater
           items={value.press}
@@ -165,24 +165,15 @@ export function ProfileSection({
 
       <Group
         title="Contact & links"
-        description="Both addresses are written as mailto links. The three profiles open in a new tab."
+        description="The address is written as a mailto link. The three profiles open in a new tab."
       >
-        <Row>
-          <Text
-            label="General email"
-            value={value.contact.email}
-            onChange={(v) =>
-              set('contact', { ...value.contact, email: v })
-            }
-          />
-          <Text
-            label="Booking email"
-            value={value.contact.booking}
-            onChange={(v) =>
-              set('contact', { ...value.contact, booking: v })
-            }
-          />
-        </Row>
+        <Text
+          label="General email"
+          value={value.contact.email}
+          onChange={(v) =>
+            set('contact', { ...value.contact, email: v })
+          }
+        />
         <Row>
           <Text
             label="Instagram URL"

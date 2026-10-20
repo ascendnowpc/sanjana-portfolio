@@ -107,8 +107,8 @@ export function IndexRow({
  * is the same shape the reference sets as upright-then-italic. Splitting on
  * the punctuation that is already there beats adding a second title field
  * nobody would keep in sync. A comma is accepted as a fallback separator
- * because a third of the entries use one for the same job ("Salon Room, Navy
- * Gown"); the dashes are tried first so a title carrying both splits at the
+ * because some of the entries use one for the same job ("Trio, Red
+ * Curtain"); the dashes are tried first so a title carrying both splits at the
  * dash.
  */
 export function splitTitle(title: string): { lead: string; tail?: string } {

@@ -96,12 +96,12 @@ export function Footer() {
               </a>
             ))}
             <a
-              href={`mailto:${profile.contact.booking}`}
+              href={`mailto:${profile.contact.email}`}
               className="mt-4 w-fit text-sm font-light text-bloom"
             >
               <EditableText
-                path={['profile', 'contact', 'booking']}
-                value={profile.contact.booking}
+                path={['profile', 'contact', 'email']}
+                value={profile.contact.email}
               />
             </a>
           </div>

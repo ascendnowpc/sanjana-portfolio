@@ -14,12 +14,6 @@ export const CATEGORIES: Category[] = [
     accent: '#cfcfcf',
   },
   {
-    id: 'classical-repertoire',
-    label: 'Classical Repertoire',
-    blurb: 'Art song, aria and the trained-voice repertoire.',
-    accent: '#b8b8b8',
-  },
-  {
     id: 'hindi-singing',
     label: 'Hindi Singing',
     blurb: 'Playback, ghazal and film repertoire.',

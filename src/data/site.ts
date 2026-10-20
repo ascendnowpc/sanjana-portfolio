@@ -1,4 +1,4 @@
-import type { PortraitCopy, SiteProfile, Testimonial } from '@/types/content'
+import type { PortraitCopy, SiteProfile } from '@/types/content'
 
 /** PLACEHOLDER COPY — swap for Sanjana's real bio, links and portraits. */
 export const PROFILE: SiteProfile = {
@@ -12,7 +12,7 @@ export const PROFILE: SiteProfile = {
     'Trained classically before moving into theatre, she was cast as Éponine out of an open call three weeks before opening — a run that led to Sally Bowles, Roxie Hart and Persephone across the following four seasons. Alongside the stage work she writes and records her own material, most of it tracked live with no comping.',
     'Recent work includes the Midnight Bloom arena run, a one-night orchestral commission rescoring six original songs for fifty-two players, and the debut EP Neon Hymns — cut over eleven nights with every vocal kept as a single continuous take.',
   ],
-  basedIn: 'Mumbai, India — touring internationally',
+  basedIn: 'Antwerp, Belgium',
   vocalRange: 'Mezzo-soprano · F3 – E6',
   training: [
     'Hindustani classical — 9 years',
@@ -51,8 +51,7 @@ export const PROFILE: SiteProfile = {
     { value: '9k', label: 'Largest room' },
   ],
   contact: {
-    email: 'hello@sanjana.example',
-    booking: 'booking@sanjana.example',
+    email: 'sanjana.j30nov@gmail.com',
     instagram: 'https://instagram.com/',
     youtube: 'https://youtube.com/',
     spotify: 'https://open.spotify.com/',
@@ -117,81 +116,3 @@ export const PORTRAIT: PortraitCopy = {
     },
   ],
 }
-
-/**
- * The About page's testimonial run.
- *
- * PLACEHOLDER COPY — every name, notice and credit below is invented, and the
- * two that are attributed to people rather than publications are the most
- * invented things on the site. Swap them for real ones before this page is
- * shown to anybody; a fabricated quotation with a full name attached to it is
- * a different kind of placeholder from a fabricated venue.
- *
- * The first three are `PROFILE.press` word for word — the same three notices,
- * given the extra lines a card needs. They are duplicated rather than read off
- * the profile because the shape is different (see `Testimonial`) and because
- * the profile's `press` is a database column: the About page should not go
- * dark because a jsonb field came back empty. The two after them are the other
- * half of a testimonial section, which press quotes alone cannot be — a
- * reviewer says how it sounded from the room, and the people who conducted it
- * and recorded it say how it went in the room.
- *
- * Five, not three, because the section is a horizontal run: three cards are
- * over before the reader has understood that scrolling is what moves them.
- * They are ordered loudest room first, quietest last, which is also the order
- * that walks the reader from the arena to the vocal booth.
- *
- * The accents are the reference's four card hues — amber, red, violet, green —
- * plus a blue to carry the fifth card, kept in that order so no two
- * neighbours share a corner of the wheel. Each is used for one thing: the
- * two-pixel rim on the outside of that card. Nothing inside the card is
- * coloured by it, so a hue swapped here cannot land anywhere but its own
- * edge.
- */
-export const TESTIMONIALS: Testimonial[] = [
-  {
-    source: 'The Evening Review',
-    role: 'Notice — the Midnight Bloom arena run',
-    context: 'Midnight Bloom · arena',
-    quote:
-      'She sings the way a room sounds after everyone has stopped talking — you lean in without deciding to.',
-    portrait: '/media/portraits/portrait-1.jpg',
-    accent: '#f2b13c',
-  },
-  {
-    source: 'Stage & Signal',
-    role: 'Second-night notice — Cabaret',
-    context: 'Cabaret · Sally Bowles',
-    quote:
-      'The most disciplined Sally Bowles this city has seen in a decade, and by some distance the saddest.',
-    portrait: '/media/portraits/portrait-2.jpg',
-    accent: '#ee5a35',
-  },
-  {
-    source: 'Long Player Quarterly',
-    role: 'Review — Neon Hymns',
-    context: 'Neon Hymns · debut EP',
-    quote:
-      'Neon Hymns is a debut with nothing hidden behind the mix. Rare, and slightly terrifying.',
-    portrait: '/media/portraits/portrait-3.jpg',
-    accent: '#8a6cf0',
-  },
-  {
-    source: 'Ilya Verhoeven',
-    role: 'Conductor — the orchestral commission',
-    context: 'Six songs · fifty-two players',
-    quote:
-      'Fifty-two players and one voice, and it was the voice that set the tempo. She never once asked to be louder.',
-    portrait: '/media/portraits/portrait-4.jpg',
-    accent: '#3ec489',
-  },
-  {
-    source: 'Marisol Tan',
-    role: 'Engineer — eleven nights at Rookery',
-    context: 'Eleven nights · no comping',
-    quote:
-      'Nothing comped, nothing tuned, every vocal a single pass. Twenty years of records and I have never taken so little out of one.',
-    portrait: '/media/portraits/portrait-5.jpg',
-    accent: '#3f9fef',
-  },
-]
