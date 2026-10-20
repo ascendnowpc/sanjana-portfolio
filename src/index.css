@@ -10,20 +10,12 @@
    black, white and grey, and the colour on it is whatever is inside the
    frames.
 
-   `gilt` is one of two exceptions: the listening shelf's brass. That shelf
+   `gilt` is the one exception: the listening shelf's brass. That shelf
    is the one place on the site where a *state* has to be found rather than
-   read — which of six cards is making sound — and a neutral cannot say it,
+   read — which of five cards is making sound — and a neutral cannot say it,
    because every value near enough to `chalk` to read as lit is also near
    enough to read as not lit. It was flattened to a light grey in the
    greyscale pass and the cards lost their playing state with it.
-
-   The other is the About page's testimonial rims, and it is a different kind
-   of exception: not a state, but the reference's own card treatment, matched
-   as it is. Those five hues live in the data rather than here, because they
-   belong to five cards and to nothing else — two pixels on the outside edge
-   of a white panel, carrying no meaning and claiming no ground. Everything
-   inside the card is still neutral, and the rule the rest of this file keeps
-   is unchanged: the colour on the page is whatever is inside the frames.
 
    The old names are kept — `bloom`, `chalk`, `mist`, `dust` are spread
    across three dozen files — and pointed at neutrals instead. Renaming
@@ -287,31 +279,6 @@
   box-shadow: -26px 30px 66px -30px rgba(0, 0, 0, 0.95);
 }
 
-/* ------------------------------------------------------------------
-   Testimonial cards — the tilt on the About page's horizontal run.
-
-   The angle is a variable rather than five classes because it is per card and
-   set in the data's order; the transition lives here rather than on the node
-   so that the reduced-motion block at the foot of this file can take the whole
-   gesture away in one place, the way it does for the sleeves.
-
-   Straightening on hover rather than tilting further: the tilt is the resting
-   state of a card lying on a table, and picking one up squares it to the
-   reader. Lifting it at the same time is what makes the two read as one
-   gesture rather than as a wobble.
-------------------------------------------------------------------- */
-.testimonial-card {
-  transform: rotate(var(--tilt, 0deg));
-  transition:
-    transform 700ms var(--ease-out-expo),
-    box-shadow 700ms var(--ease-out-expo);
-}
-
-.testimonial-card:hover,
-.testimonial-card:focus-within {
-  transform: rotate(0deg) translateY(-8px);
-}
-
 @keyframes grain-shift {
   0% { transform: translate(0, 0); }
   25% { transform: translate(-3%, 2%); }
@@ -323,11 +290,6 @@
 @keyframes breathe {
   0%, 100% { opacity: 0.35; transform: scale(1); }
   50% { opacity: 0.75; transform: scale(1.06); }
-}
-
-@keyframes disc-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 @keyframes bar-pulse {
@@ -377,18 +339,6 @@
   to { opacity: 1; }
 }
 
-/* The record turning in a testimonial card.
- *
- * Twenty-two seconds a revolution, which is nothing like 33⅓ and is not
- * meant to be: at record speed this is a strobe, and the point of the move is
- * that a reader notices the label has moved rather than watching it spin.
- * Linear, because a record turning at anything but a constant rate is a
- * record that is broken. */
-.disc-spin {
-  animation: disc-spin 22s linear infinite;
-  will-change: transform;
-}
-
 .breathe {
   animation: breathe 7s var(--ease-in-out-soft) infinite;
 }
@@ -396,8 +346,7 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .grain::after,
-  .breathe,
-  .disc-spin {
+  .breathe {
     animation: none !important;
   }
   /* Dropped outright rather than shortened: the global duration override
@@ -405,14 +354,6 @@
      motion sensitivity actually objects to. */
   .sleeve-frame:hover .sleeve,
   .sleeve-frame:focus-visible .sleeve {
-    transform: none;
-  }
-  /* Same argument, and one more on top of it: a reader who has asked for no
-     motion is reading the testimonials as a grid, and a grid of cards each
-     sitting at its own angle is a layout rather than a gesture. */
-  .testimonial-card,
-  .testimonial-card:hover,
-  .testimonial-card:focus-within {
     transform: none;
   }
   *,

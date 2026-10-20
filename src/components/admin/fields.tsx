@@ -580,7 +580,7 @@ export function RowControls({
 }
 
 /**
- * A list of objects — credits, tracks, testimonials, covers, the words of a
+ * A list of objects — credits, tracks, covers, the words of a
  * sentence.
  *
  * The caller renders one item; this owns the add / copy / remove / reorder

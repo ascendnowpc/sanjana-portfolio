@@ -8,8 +8,9 @@ import type { Performance } from '@/types/content'
  * within each category, and the video, preview and poster files all share the
  * slug — so renaming an entry means renaming three files plus the key here.
  *
- * `title`, `subtitle` and `blurb` were written from a frame sampled out of
- * each clip: they describe what is visibly on screen and nothing more.
+ * The Solo Concert titles are the songs, as Sanjana named them. Everywhere
+ * else `title`, `subtitle` and `blurb` were written from a frame sampled out
+ * of each clip: they describe what is visibly on screen and nothing more.
  * `description`, `venue`, `city` and `credits` are deliberately left empty
  * rather than guessed — the detail page drops each of those sections when it
  * is empty, so filling them in is purely additive.
@@ -25,7 +26,7 @@ import type { Performance } from '@/types/content'
  * corrected by hand, so anything showing these as a sequence (the music shelf)
  * reads this array top to bottom rather than sorting on `year`.
  *
- * TODO(sanjana): replace the descriptive titles with the real programme names,
+ * TODO(sanjana): replace the remaining descriptive titles with the real names,
  * add venue / city / repertoire per entry, and correct `year` to the real
  * performance dates — at which point the order and the years agree again.
  */
@@ -55,35 +56,6 @@ const preview = (slug: string) => `/media/preview/${slug}-480.mp4`
 const poster = (slug: string) => `/media/posters/${slug}-v2.jpg`
 
 export const PERFORMANCES: Performance[] = [
-
-  /* ---------------- Classical Repertoire ---------------- */
-  {
-    slug: 'classical-repertoire-2023-01',
-    title: 'Classical Set, Blue Backdrop',
-    subtitle: 'Classical Repertoire — 2023',
-    category: 'classical-repertoire',
-    year: 2023,
-    venue: '',
-    city: '',
-    blurb: 'The longest single take in the archive — a classical set sung against a plain blue backdrop.',
-    description: '',
-    poster: poster('classical-repertoire-2023-01'),
-    videoSrc: video('classical-repertoire-2023-01'),
-    previewSrc: preview('classical-repertoire-2023-01'),
-    aspect: 0.566,
-    gallery: [poster('classical-repertoire-2023-01')],
-    runtime: '6:21',
-    featured: true,
-    credits: [],
-    tracks: [
-      {
-        id: 'classical-repertoire-2023-01-1',
-        title: 'Classical Set, Blue Backdrop',
-        duration: 381,
-        audioSrc: audio('classical-repertoire-2023-01'),
-      },
-    ],
-  },
 
   /* ---------------- Duet/Group Performances ----------------
 
@@ -723,7 +695,7 @@ export const PERFORMANCES: Performance[] = [
      NOTE: source date is an export stamp, not the recording date. */
   {
     slug: 'solo-concert-2026-12',
-    title: 'Earliest Footage',
+    title: 'First Song',
     subtitle: 'Solo Concert — 2026',
     category: 'solo-concert',
     year: 2026,
@@ -741,7 +713,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2026-12-1',
-        title: 'Earliest Footage',
+        title: 'First Song',
         duration: 79,
         audioSrc: audio('solo-concert-2026-12'),
       },
@@ -749,7 +721,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2025-11',
-    title: 'Floor-Length Gown',
+    title: 'Never Enough',
     subtitle: 'Solo Concert — 2025',
     category: 'solo-concert',
     year: 2025,
@@ -767,7 +739,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2025-11-1',
-        title: 'Floor-Length Gown',
+        title: 'Never Enough',
         duration: 187,
         audioSrc: audio('solo-concert-2025-11'),
       },
@@ -775,7 +747,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2025-10',
-    title: 'Handheld Mic, Red Curtain',
+    title: "You're Still the One",
     subtitle: 'Solo Concert — 2025',
     category: 'solo-concert',
     year: 2025,
@@ -793,7 +765,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2025-10-1',
-        title: 'Handheld Mic, Red Curtain',
+        title: "You're Still the One",
         duration: 143,
         audioSrc: audio('solo-concert-2025-10'),
       },
@@ -801,7 +773,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2024-09',
-    title: 'Blue Curtain, Grand Piano',
+    title: 'Skyfall',
     subtitle: 'Solo Concert — 2024',
     category: 'solo-concert',
     year: 2024,
@@ -819,7 +791,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2024-09-1',
-        title: 'Blue Curtain, Grand Piano',
+        title: 'Skyfall',
         duration: 92,
         audioSrc: audio('solo-concert-2024-09'),
       },
@@ -827,7 +799,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2023-08',
-    title: 'Piano Behind, Voice Front',
+    title: "Can't Help Falling in Love with You",
     subtitle: 'Solo Concert — 2023',
     category: 'solo-concert',
     year: 2023,
@@ -845,7 +817,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2023-08-1',
-        title: 'Piano Behind, Voice Front',
+        title: "Can't Help Falling in Love with You",
         duration: 188,
         audioSrc: audio('solo-concert-2023-08'),
       },
@@ -853,7 +825,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2023-07',
-    title: 'Open Air, Marquee Stage',
+    title: 'Skyfall (Live)',
     subtitle: 'Solo Concert — 2023',
     category: 'solo-concert',
     year: 2023,
@@ -872,7 +844,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2023-07-1',
-        title: 'Open Air, Marquee Stage',
+        title: 'Skyfall (Live)',
         duration: 267,
         audioSrc: audio('solo-concert-2023-07'),
       },
@@ -880,7 +852,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2022-06',
-    title: 'Music Stand, Floral Dress',
+    title: 'Lose Control',
     subtitle: 'Solo Concert — 2022',
     category: 'solo-concert',
     year: 2022,
@@ -898,7 +870,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2022-06-1',
-        title: 'Music Stand, Floral Dress',
+        title: 'Lose Control',
         duration: 232,
         audioSrc: audio('solo-concert-2022-06'),
       },
@@ -906,7 +878,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2020-05',
-    title: 'Indoors, Mid-Phrase',
+    title: 'The Second Star to the Right',
     subtitle: 'Solo Concert — 2020',
     category: 'solo-concert',
     year: 2020,
@@ -924,7 +896,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2020-05-1',
-        title: 'Indoors, Mid-Phrase',
+        title: 'The Second Star to the Right',
         duration: 224,
         audioSrc: audio('solo-concert-2020-05'),
       },
@@ -932,7 +904,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2019-04',
-    title: 'With Accompanist',
+    title: 'My Favorite Things',
     subtitle: 'Solo Concert — 2019',
     category: 'solo-concert',
     year: 2019,
@@ -950,7 +922,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2019-04-1',
-        title: 'With Accompanist',
+        title: 'My Favorite Things',
         duration: 94,
         audioSrc: audio('solo-concert-2019-04'),
       },
@@ -958,7 +930,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2018-03',
-    title: 'From the House',
+    title: 'Part of Your World',
     subtitle: 'Solo Concert — 2018',
     category: 'solo-concert',
     year: 2018,
@@ -976,7 +948,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2018-03-1',
-        title: 'From the House',
+        title: 'Part of Your World',
         duration: 184,
         audioSrc: audio('solo-concert-2018-03'),
       },
@@ -984,7 +956,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2018-02',
-    title: 'Denim Overalls',
+    title: 'Part of Your World',
     subtitle: 'Solo Concert — 2018',
     category: 'solo-concert',
     year: 2018,
@@ -1003,7 +975,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2018-02-1',
-        title: 'Denim Overalls',
+        title: 'Part of Your World',
         duration: 193,
         audioSrc: audio('solo-concert-2018-02'),
       },
@@ -1011,7 +983,7 @@ export const PERFORMANCES: Performance[] = [
   },
   {
     slug: 'solo-concert-2018-01',
-    title: 'Salon Room, Navy Gown',
+    title: 'My Mother Said',
     subtitle: 'Solo Concert — 2018',
     category: 'solo-concert',
     year: 2018,
@@ -1029,7 +1001,7 @@ export const PERFORMANCES: Performance[] = [
     tracks: [
       {
         id: 'solo-concert-2018-01-1',
-        title: 'Salon Room, Navy Gown',
+        title: 'My Mother Said',
         duration: 50,
         audioSrc: audio('solo-concert-2018-01'),
       },

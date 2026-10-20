@@ -66,10 +66,6 @@ export function usePortraitCopy() {
   return useSiteContent().portrait
 }
 
-export function useTestimonials() {
-  return useSiteContent().testimonials
-}
-
 export function useMusicCopy() {
   return useSiteContent().music
 }

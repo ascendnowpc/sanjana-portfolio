@@ -23,9 +23,9 @@ import {
 import type { MediaResult } from '@/components/edit/MediaDialog'
 
 /**
- * The archive — thirty-six pieces by default, every field of every one.
+ * The archive — thirty-five pieces by default, every field of every one.
  *
- * Shown as a list that opens one entry at a time rather than as thirty-six
+ * Shown as a list that opens one entry at a time rather than as thirty-five
  * stacked forms. Two reasons, and the second is the real one: a page with
  * every field of every piece mounted is thousands of inputs, and somebody
  * editing an entry is editing *that* entry — the other thirty-five are

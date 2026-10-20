@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useProfile, useUi } from '@/content/ContentProvider'
 import { useEdit } from '@/edit/EditProvider'
 import { EditableText } from '@/components/edit/Editable'
-import { ItemControls, RegionEdit } from '@/components/edit/ListEdit'
+import { RegionEdit } from '@/components/edit/ListEdit'
 import { Reveal } from '@/components/ui/Reveal'
 import { SplitText } from '@/components/ui/SplitText'
 
@@ -13,16 +13,6 @@ export default function Contact() {
   const profile = useProfile()
   const ui = useUi()
   const { editing } = useEdit()
-  const enquiryTypes = ui.contact.enquiryTypes
-  /**
-   * `null` means "whatever the first type is", rather than a copy of it.
-   *
-   * The list is editable, so the selected value has to survive its own label
-   * being rewritten from the panel: holding the string would leave the chip
-   * row with nothing lit the moment somebody fixes a typo in the first entry.
-   */
-  const [type, setType] = useState<string | null>(null)
-  const selected = type ?? enquiryTypes[0]
   const [status, setStatus] = useState<Status>('idle')
 
   /**
@@ -69,46 +59,6 @@ export default function Contact() {
           {/* ---------------- form ---------------- */}
           <Reveal>
             <form onSubmit={submit} className="max-w-2xl">
-              <fieldset className="mb-12">
-                <legend className="label mb-5 text-dust">
-                  <EditableText
-                    path={['ui', 'contact', 'enquiryLegend']}
-                    value={ui.contact.enquiryLegend}
-                  />
-                </legend>
-                <div className="flex flex-wrap items-center gap-3">
-                  {enquiryTypes.map((t, i) => {
-                    const on = selected === t
-                    return (
-                      <span key={`${t}-${i}`} className="inline-flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setType(t)}
-                          aria-pressed={on}
-                          className="border px-5 py-2.5 text-[0.62rem] tracking-[0.28em] uppercase transition-all duration-400"
-                          style={{
-                            borderColor: on ? '#ffffff' : '#2e2e2e',
-                            color: on ? 'var(--color-void)' : '#9a9a9a',
-                            background: on ? '#ffffff' : 'transparent',
-                          }}
-                        >
-                          <EditableText
-                            path={['ui', 'contact', 'enquiryTypes', i]}
-                            value={t}
-                            placeholder="Kind of enquiry"
-                          />
-                        </button>
-                        <ItemControls
-                          path={['ui', 'contact', 'enquiryTypes']}
-                          index={i}
-                          blank={() => 'Something else'}
-                        />
-                      </span>
-                    )
-                  })}
-                </div>
-              </fieldset>
-
               <div className="space-y-10">
                 <Field label={ui.contact.fields.name} name="name" required />
                 <Field
@@ -151,23 +101,6 @@ export default function Contact() {
           {/* ---------------- direct ---------------- */}
           <Reveal delay={0.1}>
             <aside className="space-y-12 border-t border-edge/50 pt-10 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-14">
-              <div>
-                <p className="label mb-4 text-dust">
-                  <EditableText
-                    path={['ui', 'contact', 'bookingLabel']}
-                    value={ui.contact.bookingLabel}
-                  />
-                </p>
-                <a
-                  href={`mailto:${profile.contact.booking}`}
-                  className="text-sm font-light text-chalk transition-colors hover:text-bloom"
-                >
-                  <EditableText
-                    path={['profile', 'contact', 'booking']}
-                    value={profile.contact.booking}
-                  />
-                </a>
-              </div>
               <div>
                 <p className="label mb-4 text-dust">
                   <EditableText

@@ -28,12 +28,12 @@ npm run preview
 | `/` | The immersive index — the 3D wall |
 | `/work` | The archive index — grid of frames or list of names |
 | `/work/:slug` | A performance: video, recording, credits, stills |
-| `/about` | Editorial bio, portrait strip, stats, press |
-| `/contact` | Booking enquiry form |
+| `/about` | Opening film and statement, portrait column, recordings and covers, portrait strip |
+| `/contact` | Contact form and email |
 | `/admin` | The panel — password, then every editable value on the site. Signing in here also turns on edit mode on every other page |
 
 `/work` reads `?category=` (`solo-concert`, `musical-theatre`,
-`classical-repertoire`, `hindi-singing`, `honor-choir`, `collaboration`) and
+`hindi-singing`, `honor-choir`, `collaboration`) and
 `?view=` (`grid`, the default, or `list`), so any state of the index is a
 link somebody can send.
 
@@ -110,13 +110,13 @@ The hover is the whole interaction. Pointing at one entry drops everything
 else to a sixteenth of its opacity and gives the survivor its footage — inside
 its own frame in grid view, and filling the viewport behind the type in list
 view, where a preview has nowhere else to go. Only the hovered entry is ever
-given a decoder; thirty-six simultaneous `<video>` elements is not a thing to
+given a decoder; thirty-five simultaneous `<video>` elements is not a thing to
 do to a browser. The nav never dims: the page goes down *under* it.
 
 Two details worth not undoing:
 
 - The section keys along the top sit inside the nav bar above ~1560px and drop
-  below it under that. Seven category names are considerably wider than the
+  below it under that. Six category names are considerably wider than the
   reference's four, and at narrower widths they collide with the site name on
   one side and the nav links on the other.
 - `IndexRow`'s three columns align on their **centres**, not their baselines.
@@ -163,17 +163,17 @@ shape and the length are measured, and every field that wants one of those is
 filled — in the browser, from one file.
 
 **In the panel at `/admin`.** The same content as a form. Better for what a page
-cannot show — a hex accent, the order of thirty-six performances, an alt text, a
+cannot show — a hex accent, the order of thirty-five performances, an alt text, a
 field with no value yet and so nothing on screen to click — and faster when the
 job is twelve entries rather than one word. Seven tabs:
 
 | Tab | What it edits |
 |---|---|
 | Profile | Name, role, tagline, bio, training, portraits, press, stats, contacts, social links |
-| About page | The opening statement and film, the portrait column, the testimonial cards |
-| Performances | All 36 archive entries — every field, plus their tracks, credits and stills |
+| About page | The opening statement and film, and the portrait column |
+| Performances | All 35 archive entries — every field, plus their tracks, credits and stills |
 | Musical covers | The second key of the About page's shelf: songs she did not write |
-| Disciplines | The six categories, their accents and cover art, and the recording the index opens on |
+| Disciplines | The five categories, their accents and cover art, and the recording the index opens on |
 | Site text | Every other word on the site: headings, buttons, filter keys, form labels, the welcome sentence, the sound question, the 404 page, and the labels a screen reader hears instead of an icon |
 | Access & data | The password, publishing, and export / import / reset |
 
@@ -248,7 +248,7 @@ video appears — in the tile on hover, and as the hero player on the page.
 
 **Copy.** Either edit `/admin` and export, or edit the defaults directly:
 `src/data/performances.ts` (the catalogue), `src/data/site.ts` (bio, links,
-press, testimonials), `src/data/categories.ts` (the six sections and their
+press), `src/data/categories.ts` (the five sections and their
 accents), `src/data/music.ts` (cover art, the index's own recording) and
 `src/data/ui.ts` (every other word on the site).
 

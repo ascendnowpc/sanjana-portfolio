@@ -16,8 +16,8 @@ create table if not exists performances (
   subtitle     text not null,
   category     text not null
                  check (category in ('solo-concert', 'musical-theatre',
-                                     'classical-repertoire', 'hindi-singing',
-                                     'honor-choir', 'collaboration')),
+                                     'hindi-singing', 'honor-choir',
+                                     'collaboration')),
   year         int  not null,
   venue        text not null,
   city         text not null,

@@ -1,6 +1,5 @@
-import type { PortraitCopy, Testimonial, UiCopy } from '@/types/content'
+import type { PortraitCopy, UiCopy } from '@/types/content'
 import {
-  Color,
   Group,
   MediaField,
   Repeater,
@@ -11,26 +10,20 @@ import {
 } from '@/components/admin/fields'
 
 /**
- * The About page: its opening film and statement, the portrait column, and the
- * testimonial run.
+ * The About page: its opening film and statement, and the portrait column.
  *
- * Kept as one tab rather than three because that is how the page reads — the
- * statement leads into the portrait, the portrait into the recordings, the
- * recordings into the quotes — and an editor rewriting the opening usually
- * wants to see what it opens onto.
+ * Kept as one tab rather than two because that is how the page reads — the
+ * statement leads into the portrait — and an editor rewriting the opening
+ * usually wants to see what it opens onto.
  */
 export function AboutSection({
   portrait,
   onPortraitChange,
-  testimonials,
-  onTestimonialsChange,
   ui,
   onUiChange,
 }: {
   portrait: PortraitCopy
   onPortraitChange: (next: PortraitCopy) => void
-  testimonials: Testimonial[]
-  onTestimonialsChange: (next: Testimonial[]) => void
   ui: UiCopy
   onUiChange: (next: UiCopy) => void
 }) {
@@ -133,88 +126,6 @@ export function AboutSection({
         />
       </Group>
 
-      <Group
-        title="Testimonials"
-        description="The horizontal run at the foot of the page. Three cards are over before a reader has understood that scrolling is what moves them, so five is the working minimum."
-      >
-        <Text
-          label="Section heading"
-          value={ui.testimonials.heading}
-          onChange={(v) =>
-            onUiChange({ ...ui, testimonials: { heading: v } })
-          }
-          hint="The huge word the cards travel across."
-        />
-        <Repeater
-          label="Cards"
-          items={testimonials}
-          onChange={onTestimonialsChange}
-          blank={(): Testimonial => ({
-            source: '',
-            role: '',
-            context: '',
-            quote: '',
-            portrait: '',
-            accent: '#f2b13c',
-          })}
-          addLabel="Add card"
-          title={(item) => item.source || 'Untitled card'}
-          copy={(item) => structuredClone(item)}
-          render={(item, setItem) => (
-            <div className="space-y-4">
-              <Row>
-                <Text
-                  label="Who is speaking"
-                  value={item.source}
-                  onChange={(v) => setItem({ ...item, source: v })}
-                />
-                <Text
-                  label="Who they are"
-                  value={item.role}
-                  onChange={(v) => setItem({ ...item, role: v })}
-                  hint="The grey line under the name."
-                />
-              </Row>
-              <Text
-                label="Context"
-                value={item.context}
-                onChange={(v) => setItem({ ...item, context: v })}
-                hint="The small label inside the card — the night, the run, the record."
-              />
-              <TextArea
-                label="Quote"
-                rows={4}
-                value={item.quote}
-                onChange={(v) => setItem({ ...item, quote: v })}
-              />
-              <Row>
-                <MediaField
-                  label="Still"
-                  value={item.portrait}
-                  onChange={(v) => setItem({ ...item, portrait: v })}
-                  upload={{ kind: 'portrait', clearable: true }}
-                  hint="Sits in the record’s label. A full https:// URL also works."
-                />
-                <Color
-                  label="Rim colour"
-                  value={item.accent}
-                  onChange={(v) => setItem({ ...item, accent: v })}
-                  hint="The two-pixel edge, and nothing else on the card."
-                />
-              </Row>
-              <Text
-                label="Focus"
-                mono
-                value={item.focus ?? ''}
-                onChange={(v) =>
-                  setItem({ ...item, focus: v || undefined })
-                }
-                hint="Optional object-position for the still, e.g. “50% 20%”. Leave empty to centre it."
-              />
-            </div>
-          )}
-        />
-      </Group>
     </div>
   )
 }

@@ -43,7 +43,6 @@ const VERSION = 1
 const REQUIRED_KEYS = [
   'profile',
   'portrait',
-  'testimonials',
   'categories',
   'performances',
   'covers',

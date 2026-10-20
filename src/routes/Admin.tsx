@@ -30,7 +30,7 @@ import { ProfileSection } from '@/components/admin/sections/ProfileSection'
  *
  * So the panel is no longer the only door, and that changes what it is *for*
  * rather than making it redundant. A form is better than a page for the things a
- * page cannot show: a hex accent, the order of thirty-six performances, an alt
+ * page cannot show: a hex accent, the order of thirty-five performances, an alt
  * text, which recording plays under the index, a field on a piece that has no
  * value yet and therefore nothing on screen to click. It is also simply faster
  * when the job is twelve entries rather than one word.
@@ -67,9 +67,9 @@ const TABS = [
     id: 'about',
     label: 'About page',
     blurb:
-      'The opening film and statement, the portrait column beside it, and the testimonial run at the foot.',
+      'The opening film and statement, and the portrait column beside it.',
     preview: '/about',
-    watch: (c: SiteContent) => [c.portrait, c.testimonials, c.ui.about],
+    watch: (c: SiteContent) => [c.portrait, c.ui.about],
   },
   {
     id: 'work',
@@ -466,8 +466,6 @@ function Panel({ live }: { live: SiteContent }) {
           <AboutSection
             portrait={draft.portrait}
             onPortraitChange={put('portrait')}
-            testimonials={draft.testimonials}
-            onTestimonialsChange={put('testimonials')}
             ui={draft.ui}
             onUiChange={put('ui')}
           />

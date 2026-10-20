@@ -4,7 +4,7 @@ import type { UiCopy } from '@/types/content'
  * Every fixed string on the site, in one place.
  *
  * These used to live where they were rendered — `'Grid View'` inside Work.tsx,
- * `'Say hello'` inside Contact.tsx, the seven words of the sound gate inside
+ * `'Reach out'` inside Contact.tsx, the seven words of the sound gate inside
  * SoundGate.tsx. That is the right place for a string nobody but a developer
  * will ever change, and the wrong place for a site whose owner should be able
  * to change all of it.
@@ -124,9 +124,9 @@ export const UI: UiCopy = {
   },
 
   about: {
-    // Two deliberate lines, not a wrap: at this weight the break is part of
-    // the composition. Adding a third line is supported and will simply stack.
-    headline: ['A voice for every', 'room it enters'],
+    // One entry a line. Short enough to hold one line at this weight; a
+    // second entry is supported and will simply stack under it.
+    headline: ['From the first note'],
     // The size is in the key on purpose — R2 sends an immutable one-year cache
     // header, so a re-cut has to arrive under a new name to be seen at all.
     film: '/media/video/about-intro-1080.mp4',
@@ -143,10 +143,6 @@ export const UI: UiCopy = {
   portrait: {
     label: 'Portrait',
     loading: 'Loading portrait — {percent}%',
-  },
-
-  testimonials: {
-    heading: 'Testimonials',
   },
 
   covers: {
@@ -191,14 +187,7 @@ export const UI: UiCopy = {
 
   contact: {
     eyebrow: 'Contact',
-    heading: 'Say hello',
-    enquiryLegend: 'Enquiry type',
-    enquiryTypes: [
-      'Solo concert',
-      'Theatre casting',
-      'Session vocals',
-      'Collaboration',
-    ],
+    heading: 'Reach out',
     fields: {
       name: 'Your name',
       email: 'Email',
@@ -210,7 +199,6 @@ export const UI: UiCopy = {
     sent: 'Received — thank you',
     demoNote:
       'This form is a front-end demo — nothing was sent. Wire it to Supabase or an email service before going live.',
-    bookingLabel: 'Booking',
     generalLabel: 'General',
     elsewhereLabel: 'Elsewhere',
     basedLabel: 'Based in',

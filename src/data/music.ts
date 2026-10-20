@@ -8,7 +8,7 @@ import type { CategoryId } from '@/types/content'
  * read straight out of the performance archive, so a card is never out of
  * step with the work it collects.
  *
- * All six disciplines now have real art. To add or replace one: drop the image
+ * All five disciplines now have real art. To add or replace one: drop the image
  * at `public/media/covers/<category>-4x5.jpg`, point the entry at
  * `/media/covers/<category>-4x5.jpg`, and it is live — the same key resolves
  * to the R2 bucket in production (see MEDIA.md). Any absolute https:// URL
@@ -37,7 +37,6 @@ export const MUSIC_COVERS: Partial<Record<CategoryId, string>> = {
   'hindi-singing': '/media/covers/hindi-singing-4x5.jpg',
   'honor-choir': '/media/covers/honor-choir-4x5.jpg',
   'collaboration': '/media/covers/collaboration-4x5.jpg',
-  'classical-repertoire': '/media/covers/classical-repertoire-4x5.jpg',
 }
 
 /**

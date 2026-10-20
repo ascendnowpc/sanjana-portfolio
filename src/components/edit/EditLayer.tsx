@@ -362,8 +362,6 @@ function EditDrawer() {
               <SECTIONS.about
                 portrait={content.portrait}
                 onPortraitChange={put('portrait')}
-                testimonials={content.testimonials}
-                onTestimonialsChange={put('testimonials')}
                 ui={content.ui}
                 onUiChange={put('ui')}
               />

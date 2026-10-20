@@ -26,7 +26,7 @@ type View = 'grid' | 'list'
 /**
  * The archive index.
  *
- * Two readings of the same thirty-six pieces, switched from the key at the
+ * Two readings of the same thirty-five pieces, switched from the key at the
  * foot of the page: a **list** that is nothing but names and their sections,
  * and a **grid** that is nothing but pictures, banded by section. Both are
  * built out of the same row (`IndexRow`), so a title sits in exactly the same
@@ -173,7 +173,7 @@ export default function Work() {
           every two of them, the tail of a short row, and the long run under
           the last frame — all of it ground the reference fills with a ruled
           lattice. Laying that lattice down flat would put a texture behind
-          thirty-six photographs and compete with every one of them, so it is
+          thirty-five photographs and compete with every one of them, so it is
           only ever lit in a soft circle around the cursor, and only while
           nothing on the page is. Sitting below the archive's own layer is what
           keeps it off the covers; see the component. */}
@@ -182,7 +182,7 @@ export default function Work() {
       {/* The section keys.
 
           Centred in the top bar on a wide screen, exactly as the reference has
-          them, and parked just under it below ~1560px, where seven category
+          them, and parked just under it below ~1560px, where six category
           names no longer clear the site name on one side and the nav links on
           the other. The wrapper takes no pointer events so it cannot swallow
           clicks meant for the page across the full width it spans. */}
@@ -268,7 +268,7 @@ export default function Work() {
                   // and what keeps the list flush with the grid's frames.
                   className={`block border-b ${
                     // Once a picture is up, the one surviving rule underlines
-                    // the row it belongs to. Leaving all thirty-six at full
+                    // the row it belongs to. Leaving all thirty-five at full
                     // strength lays a ladder across the footage.
                     hovered === p.slug ? 'on-scrim' : ''
                   }`}

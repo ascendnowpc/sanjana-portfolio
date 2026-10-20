@@ -46,7 +46,7 @@ const NARROW_PER_WIDE = 2
  * right one beside it, so no two rows ever line up.
  *
  * Which card lands in which column is not an alternation. A card's cover is
- * 4:5, so its height is mostly its column's width: split six cards evenly
+ * 4:5, so its height is mostly its column's width: split the cards evenly
  * and the wide side runs half a screen past the narrow one. See
  * NARROW_PER_WIDE.
  */

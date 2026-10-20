@@ -36,8 +36,8 @@ interface Props {
  * there is more underneath.
  *
  * Playback is the shared `useAudioEngine`, one instance a card. The audio
- * element preloads nothing: six cards mounting on the About page would
- * otherwise open six range requests before anyone has asked to hear anything.
+ * element preloads nothing: five cards mounting on the About page would
+ * otherwise open five range requests before anyone has asked to hear anything.
  *
  * Every lit thing here is `gilt` and nothing else — the frame of the sounding
  * card, the played part of the scrubber, the row playing right now. The point
@@ -446,7 +446,7 @@ export function AlbumCard({
           // source fetched without CORS. Media lives on R2, a different
           // origin from the site. See WaveformPlayer and infra/r2-cors.json.
           crossOrigin="anonymous"
-          // Six cards mount at once here. Nothing is fetched until a play is
+          // Five cards mount at once here. Nothing is fetched until a play is
           // asked for; the durations on screen come from the content, not
           // from metadata.
           preload="none"
