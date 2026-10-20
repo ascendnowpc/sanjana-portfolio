@@ -41,10 +41,15 @@ import PUBLISHED from '@/content/published.json'
  * Layer 4 is therefore a *draft*, and it is dropped once the deploy catches up
  * with it — see `readSaved`. Without that rule an editor who publishes would
  * go on seeing their own localStorage copy forever and could never tell
- * whether the publish had worked.
+ * whether the publish had worked. The same goes for a single edit: one the
+ * code has changed underneath since it was typed gives way to the code — see
+ * `reconcile`.
  */
 
 const KEY = 'sanjana.site-content.v1'
+
+/** Where a draft too old to reconcile is put, so it is out of the way but not lost. */
+const SET_ASIDE_KEY = 'sanjana.site-content.v1.set-aside'
 
 /** Bumped when a change to the shapes makes an older saved blob unreadable. */
 const VERSION = 1
@@ -53,12 +58,14 @@ interface Saved {
   version: number
   /** When these edits were written, so a later publish can supersede them. */
   savedAt?: number
-  /**
-   * Set on drafts that hold only the edits (see `prune`). One without it is
-   * an older whole-site snapshot.
-   */
-  pruned?: true
+  /** Only the edits — see `prune`. */
   content: DeepPartial<SiteContent>
+  /**
+   * What the deploy said at each place `content` changes, at the moment the
+   * draft was written. See `reconcile`. A draft without it was written before
+   * drafts kept one — see `readSaved`.
+   */
+  basis?: DeepPartial<SiteContent>
 }
 
 /** The shape of src/content/published.json. */
@@ -161,20 +168,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/**
- * Whether two pieces of content say the same thing. `loose` compares strings
- * with the emphasis markup taken out, for drafts written before it existed.
- */
-function same(a: unknown, b: unknown, loose: boolean): boolean {
-  if (typeof a === 'string' && typeof b === 'string') {
-    return loose ? a.replace(/\*/g, '') === b.replace(/\*/g, '') : a === b
-  }
+/** Whether two pieces of content say the same thing. */
+function same(a: unknown, b: unknown): boolean {
   if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((v, i) => same(v, b[i], loose))
+    return a.length === b.length && a.every((v, i) => same(v, b[i]))
   }
   if (isRecord(a) && isRecord(b)) {
     const keys = new Set([...Object.keys(a), ...Object.keys(b)])
-    for (const k of keys) if (!same(a[k], b[k], loose)) return false
+    for (const k of keys) if (!same(a[k], b[k])) return false
     return true
   }
   return Object.is(a, b)
@@ -191,12 +192,56 @@ function same(a: unknown, b: unknown, loose: boolean): boolean {
  * the next publish; a change to the copy shipped in a deploy simply never
  * appeared there. Keeping only what differs keeps the draft to the edits.
  */
-function prune(draft: unknown, base: unknown, loose = false): unknown {
-  if (same(draft, base, loose)) return undefined
+function prune(draft: unknown, base: unknown): unknown {
+  if (same(draft, base)) return undefined
   if (!isRecord(draft) || !isRecord(base)) return draft
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(draft)) {
-    const kept = prune(v, base[k], loose)
+    const kept = prune(v, base[k])
+    if (kept !== undefined) out[k] = kept
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+/**
+ * What `base` says at every place `edits` changes: the other half of a draft,
+ * written down beside it so a later read can tell whether the deploy has moved
+ * since. See `reconcile`.
+ */
+function basisOf(edits: unknown, base: unknown): unknown {
+  if (!isRecord(edits)) return base
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(edits)) {
+    const at = basisOf(v, isRecord(base) ? base[k] : undefined)
+    if (at !== undefined) out[k] = at
+  }
+  return out
+}
+
+/**
+ * The edits in `draft` that still stand against `base`, or `undefined` if none
+ * do.
+ *
+ * An edit is typed over whatever the deploy said at the time, which `basis`
+ * records. Where the deploy still says that, the edit stands. Where it has
+ * changed since — a commit renamed the song, or deleted the category the
+ * draft's copy of the list still carries — the deploy is the newer word and
+ * the edit gives way to it.
+ *
+ * Without this a draft outranked every later commit to anything it touched,
+ * and since a list is kept whole (see `merge`), editing one performance was
+ * enough to keep a category the code had since removed on screen in that
+ * browser, and nowhere else, for as long as the draft went unpublished.
+ */
+function reconcile(draft: unknown, basis: unknown, base: unknown): unknown {
+  if (!isRecord(draft)) return same(basis, base) ? draft : undefined
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(draft)) {
+    const kept = reconcile(
+      v,
+      isRecord(basis) ? basis[k] : undefined,
+      isRecord(base) ? base[k] : undefined,
+    )
     if (kept !== undefined) out[k] = kept
   }
   return Object.keys(out).length ? out : undefined
@@ -209,7 +254,8 @@ function prune(draft: unknown, base: unknown, loose = false): unknown {
  * published and shipped, so keeping it would mean showing the editor a local
  * copy of content that is now in the code — and hiding every change anybody
  * else published since. Dropping it is what makes "publish" feel like it did
- * something.
+ * something. A newer draft is kept edit by edit, minus any edit the code has
+ * changed underneath since — see `reconcile`.
  */
 function readSaved(): DeepPartial<SiteContent> | null {
   try {
@@ -221,11 +267,18 @@ function readSaved(): DeepPartial<SiteContent> | null {
       localStorage.removeItem(KEY)
       return null
     }
-    // An older draft is a whole-site snapshot, so it is pruned here too —
-    // which is what lets copy shipped since it was written show through it.
-    // It is compared loosely, ignoring the `*marked phrases*` markup: a
-    // snapshot can predate the markup, but it cannot have meant to remove it.
-    const edits = prune(parsed.content, DEFAULT_CONTENT, !parsed.pruned)
+    if (!parsed.basis) {
+      // Written before drafts kept a basis, so nothing says which of its
+      // values were edits and which were the code as it stood that day — and
+      // the older ones are whole-site snapshots, every value of which would
+      // outrank every commit since. Moved aside rather than shown or
+      // deleted: the site goes back to what the deploy says, and the edits
+      // are still in this browser if somebody wants them back.
+      localStorage.setItem(SET_ASIDE_KEY, raw)
+      localStorage.removeItem(KEY)
+      return null
+    }
+    const edits = reconcile(parsed.content, parsed.basis, DEFAULT_CONTENT)
     return (edits as DeepPartial<SiteContent> | undefined) ?? null
   } catch {
     // Private mode, a blocked origin, or a half-written blob. The site is
@@ -326,8 +379,8 @@ export function persistDraft(): { ok: boolean; error?: string } {
       JSON.stringify({
         version: VERSION,
         savedAt: Date.now(),
-        pruned: true,
         content: edits,
+        basis: basisOf(edits, DEFAULT_CONTENT) as DeepPartial<SiteContent>,
       } satisfies Saved),
     )
     return { ok: true }

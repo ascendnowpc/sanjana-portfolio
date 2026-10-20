@@ -38,6 +38,11 @@ Once a publish lands, the local draft is dropped — the deploy has caught up wi
 it, and keeping it would mean showing you a copy of content that is now in the
 code while hiding anything anybody else published since.
 
+The same rule holds one edit at a time. If a later deploy changes something you
+had edited and saved but not yet published, the deploy wins and your edit to that
+one thing is dropped; the rest of your draft stays. Otherwise a song renamed or a
+section removed in the code would keep appearing in your browser, and only there.
+
 ---
 
 ## Signing in
