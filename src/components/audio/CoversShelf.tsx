@@ -252,7 +252,7 @@ function CoverCard({
             />
           </label>
 
-          <span className="shrink-0 font-[family-name:var(--font-mono)] text-[0.62rem] text-mist tabular-nums">
+          <span className="shrink-0 text-[0.62rem] text-mist tabular-nums">
             {formatClock(time)} / {formatClock(duration)}
           </span>
         </div>

@@ -144,7 +144,7 @@ export function AlbumCard({
      read as grubby. Chalk at four strengths — frame, type, secondary, rule —
      and nothing tinted. */
   const ghost =
-    'font-mono text-[0.6rem] uppercase tracking-[0.2em] border border-chalk/45 px-3 py-2 transition-colors duration-400'
+    'text-[0.6rem] uppercase tracking-[0.2em] border border-chalk/45 px-3 py-2 transition-colors duration-400'
 
   return (
     <article
@@ -199,7 +199,7 @@ export function AlbumCard({
       >
         {track.title}
       </h3>
-      <p className="mt-2 font-mono text-[0.72rem] tracking-[0.14em] text-chalk/85 md:text-xs">
+      <p className="mt-2 text-[0.72rem] tracking-[0.14em] text-chalk/85 md:text-xs">
         {artist} <span className="text-chalk/45">/</span> {album}
       </p>
 
@@ -296,7 +296,7 @@ export function AlbumCard({
           />
         </div>
 
-        <p className="shrink-0 font-mono text-[0.62rem] text-chalk tabular-nums md:text-[0.68rem]">
+        <p className="shrink-0 text-[0.62rem] text-chalk tabular-nums md:text-[0.68rem]">
           {formatClock(time)} <span className="text-chalk/45">/</span>{' '}
           {formatClock(duration)}
         </p>
@@ -359,7 +359,7 @@ export function AlbumCard({
       </div>
 
       {missing && (
-        <p className="mt-3 font-mono text-[0.62rem] leading-relaxed text-chalk/55">
+        <p className="mt-3 text-[0.62rem] leading-relaxed text-chalk/55">
           {ui.music.audioMissing}
         </p>
       )}
@@ -391,7 +391,7 @@ export function AlbumCard({
                   className="group/row flex w-full items-center gap-4 py-3.5 text-left"
                 >
                   <span
-                    className={`w-5 shrink-0 font-mono text-[0.7rem] tabular-nums ${
+                    className={`w-5 shrink-0 text-[0.7rem] tabular-nums ${
                       current ? 'text-gilt' : 'text-chalk/60'
                     }`}
                   >
@@ -414,7 +414,7 @@ export function AlbumCard({
                   </span>
 
                   <span
-                    className={`min-w-0 flex-1 truncate font-mono text-[0.78rem] transition-colors duration-300 ${
+                    className={`min-w-0 flex-1 truncate text-[0.78rem] transition-colors duration-300 ${
                       current
                         ? 'text-gilt'
                         : 'text-chalk/85 group-hover/row:text-chalk'
@@ -424,7 +424,7 @@ export function AlbumCard({
                   </span>
 
                   <span
-                    className={`shrink-0 font-mono text-[0.72rem] tabular-nums ${
+                    className={`shrink-0 text-[0.72rem] tabular-nums ${
                       current ? 'text-gilt/70' : 'text-chalk/70'
                     }`}
                   >

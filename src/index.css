@@ -63,22 +63,32 @@
   --color-mist: #9a9a9a;
   --color-dust: #6b6b6b;
 
-  --font-display: "Cormorant Garamond", "Times New Roman", serif;
-  --font-poster: "Anton", "Arial Narrow", sans-serif;
-  /* The welcome sentence on the index, set the way the reference sets its
-     own: a flared, inscriptional capital — Zapf Humanist 601, which is
-     Bitstream's Optima. Optima ships with every Mac and iPhone, so most
-     visitors get the real design; Marcellus, loaded with the other faces, is
-     the closest open cut for everybody else. */
-  --font-welcome: "Optima", "Zapf Humanist 601", "Optima nova", "URW Classico",
-    "Marcellus", "Cormorant Garamond", serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* The archive index sets every small label in this rather than Inter. A
-     proportional sans with heavy tracking approximates a mono; it does not
-     read as one, and the reference's category labels and control keys are
-     unmistakably monospaced — the even column of a fixed advance is the
-     thing being copied, not just the width. */
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* One face for the whole site: the welcome sentence's flared, inscriptional
+     capital — Zapf Humanist 601, which is Bitstream's Optima. Optima ships
+     with every Mac and iPhone, so most visitors get the real design;
+     Marcellus, loaded from Google Fonts, is the closest open cut for
+     everybody else.
+
+     There used to be five: Cormorant for the wordmark and headings, Anton for
+     the About poster lines, this for the welcome, Inter for body copy and
+     IBM Plex Mono for the archive's keys. Side by side on one screen — a serif
+     wordmark beside mono keys over an Optima sentence — they read as five
+     sites rather than one. What separates a heading from a label now is size
+     and tracking, which is what the reference does with its single face.
+
+     Marcellus cannot be trusted with the figures, though: its zero is the
+     letter O and its one is a lowercase l, so the contact address read
+     "j3Onov" and a running clock read "OO:OO". Tenor Sans — a close cousin,
+     lining figures at cap height, an oval zero and a flagged one — is loaded
+     with its digits only (`text=` in index.html) and sits ahead of
+     Marcellus, so a digit comes from it and every other character falls
+     through. Optima has good figures of its own and is never reached past.
+
+     `--font-mono` is left at Tailwind's default on purpose. The only thing
+     still set in it is the editor's media keys and environment names, which
+     a visitor never sees and which have to be read character by character. */
+  --font-sans: "Optima", "Zapf Humanist 601", "Optima nova", "URW Classico",
+    "Tenor Sans", "Marcellus", ui-sans-serif, system-ui, sans-serif;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
@@ -98,8 +108,13 @@
     margin: 0;
     background: var(--color-void);
     color: var(--color-chalk);
-    font-family: var(--font-body);
+    font-family: var(--font-sans);
     font-weight: 300;
+    /* Marcellus comes in one weight. Left to itself the browser smears a
+       fake bold out of it for anything set semibold, which thickens the
+       strokes unevenly; the regular cut at the same size reads cleaner.
+       Optima has a real bold and still gets it. */
+    font-synthesis-weight: none;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
@@ -137,28 +152,27 @@
    Utilities
 ------------------------------------------------------------------- */
 
+/* The type utilities below carry spacing and case only. The face is the
+   site's one face (see --font-sans) and is inherited, never set here. */
+
 /* The wide-tracked, small-caps label used throughout the reference site. */
 @utility tracked {
-  font-family: var(--font-display);
   letter-spacing: 0.42em;
   text-transform: uppercase;
 }
 
-/* The welcome sentence's face and spacing. See --font-welcome. */
+/* The welcome sentence's spacing, a little closer than `tracked`. */
 @utility tracked-welcome {
-  font-family: var(--font-welcome);
   letter-spacing: 0.36em;
   text-transform: uppercase;
 }
 
 @utility tracked-tight {
-  font-family: var(--font-display);
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
 @utility label {
-  font-family: var(--font-body);
   font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.32em;
@@ -168,11 +182,14 @@
 /* The archive index's small type: category names, counts, and the lettering
    inside the control keys. Deliberately carries no font-size — every caller
    sets its own, and a size here would win or lose against theirs depending on
-   which utility Tailwind happened to emit first. */
+   which utility Tailwind happened to emit first.
+
+   The name is older than the face. This was IBM Plex Mono, whose fixed
+   advance is already open; set in the site's proportional face the same caps
+   need more air between them, hence the wider tracking. */
 @utility mono-label {
-  font-family: var(--font-mono);
   font-weight: 400;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 

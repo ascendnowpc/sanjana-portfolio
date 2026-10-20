@@ -68,33 +68,26 @@ export default function About() {
       <div className="relative z-10">
         {/* ---------------- 1. the room opens ---------------- */}
         <Overture src={ui.about.film} poster={ui.about.filmPoster}>
-          {/* One line per entry, not a wrap: at this weight a break is part of
+          {/* One line per entry, not a wrap: at this size a break is part of
               the composition, and letting the viewport choose it strands a
               single word on the last line on half the screens it renders at.
-              "From the first note" holds one line at the size below.
 
-              Leading is above 1, not the sub-1 a display line usually wants.
-              Anton's cap height is 0.86em — unusually tall in its em box — so a
-              line-height under that closes the channel entirely and the T of
-              BUILT lands on top of THE. 1.06 leaves a 0.2em gap, which is the
-              proportion the reference holds. Tracking is left a hair open for a
-              related reason: the face is already condensed, and pulling it
-              tighter fuses the verticals into a picket fence.
+              Set the way every other page's title is set — the site's one
+              face, `tracked` — rather than in a poster face of its own, so the
+              page opens in the same voice as the wordmark above it. At that
+              tracking "From the first note" would run off a phone and fill a
+              desktop edge to edge as one line, so it is two: "From the" over
+              "first note", broken where the phrase breaks.
 
-              When there are two lines, the second should sit *inside* the
-              first, the way the reference does it, so the block tapers instead
-              of squaring off. Two lines of the same length read as a slab.
-
-              The size was set off the earlier first line's real advance in
-              Anton (7.03em, plus tracking), so a line of that length lands at
-              roughly three quarters of the viewport rather than being tuned by
-              eye per screen. */}
+              The size is set off the longer line's real advance, about 9em
+              with its tracking, so it lands at roughly two thirds of the
+              viewport. The floor is what keeps it inside a 320px screen. */}
           <h1
-            className="font-[family-name:var(--font-poster)] leading-[1.06] tracking-[0.012em] text-white uppercase"
-            style={{ fontSize: 'clamp(2.3rem, 10.6vw, 16rem)' }}
+            className="tracked leading-[1.12] text-white"
+            style={{ fontSize: 'clamp(1.4rem, 7.4vw, 9rem)' }}
           >
             {/* One line per entry, with the breaks between them. The break is
-                part of the composition at this weight — see the note above —
+                part of the composition at this size — see the note above —
                 so it is authored rather than left to the viewport. */}
             {ui.about.headline.map((line, i) => (
               <span key={i}>
@@ -176,8 +169,8 @@ export default function About() {
                 past. */}
             <p
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1/2 text-center font-[family-name:var(--font-poster)] leading-[0.8] tracking-[0.01em] text-edge/60 uppercase select-none"
-              style={{ fontSize: 'clamp(4rem, 15vw, 14rem)' }}
+              className="tracked pointer-events-none absolute inset-x-0 bottom-0 translate-y-1/2 text-center leading-[0.8] text-edge/60 select-none"
+              style={{ fontSize: 'clamp(2.5rem, 9.5vw, 9.5rem)' }}
             >
               {profile.name}
             </p>
