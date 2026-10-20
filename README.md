@@ -140,9 +140,12 @@ the bars near the playhead reacting to a live `AnalyserNode`.
 
 Drop real files in and the same component switches to `file` mode untouched.
 
-The site plays nothing by itself: there is no background music and no sound
-question on arrival. Sound starts only when a visitor plays a film or a
-recording.
+The site plays nothing by itself. A **"Hear me sing"** button in the
+bottom-left corner of every page (`src/components/audio/HouseMusic.tsx`)
+offers one song — `music.houseClip`, picked under Disciplines in the panel —
+and only a press on it starts anything. It plays once and stops, carries on
+across pages while it plays, and fades out whenever a film or another
+recording on the page is sounding.
 
 ## Editing the site
 

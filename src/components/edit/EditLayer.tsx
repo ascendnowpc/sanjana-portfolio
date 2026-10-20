@@ -379,6 +379,10 @@ function EditDrawer() {
                 onCategoriesChange={put('categories')}
                 music={content.music}
                 onMusicChange={put('music')}
+                houseSlugs={content.performances.map((p) => ({
+                  value: p.slug,
+                  label: `${p.title} (${p.year})`,
+                }))}
               />
             )}
             {id === 'covers' && (

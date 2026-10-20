@@ -3,14 +3,17 @@ import {
   Color,
   Group,
   MediaField,
+  Num,
   Repeater,
   Row,
+  Select,
   Text,
   TextArea,
 } from '@/components/admin/fields'
 
 /**
- * The five disciplines and their cover art.
+ * The five disciplines, their cover art, and the song the "Hear me sing"
+ * button plays.
  *
  * A category is more load-bearing than it looks: its `id` is what every
  * performance files itself under, what the archive's filter puts in the query
@@ -23,11 +26,14 @@ export function CategoriesSection({
   onCategoriesChange,
   music,
   onMusicChange,
+  houseSlugs,
 }: {
   categories: Category[]
   onCategoriesChange: (next: Category[]) => void
   music: MusicCopy
   onMusicChange: (next: MusicCopy) => void
+  /** Every slug in the archive, for the house-clip picker. */
+  houseSlugs: { value: string; label: string }[]
 }) {
   return (
     <div className="space-y-6">
@@ -99,6 +105,45 @@ export function CategoriesSection({
         />
       </Group>
 
+      <Group
+        title="Hear me sing"
+        description="The song the button in the bottom-left corner of every page plays. Nothing plays until a visitor presses it, and it plays once, from Start to End. Named by performance rather than by file, so it stays pinned to something real in the archive."
+      >
+        <Select
+          label="Recording"
+          value={music.houseClip.slug}
+          options={houseSlugs}
+          onChange={(v) =>
+            onMusicChange({
+              ...music,
+              houseClip: { ...music.houseClip, slug: v },
+            })
+          }
+        />
+        <Row>
+          <Num
+            label="Start (seconds)"
+            value={music.houseClip.from}
+            onChange={(v) =>
+              onMusicChange({
+                ...music,
+                houseClip: { ...music.houseClip, from: v },
+              })
+            }
+          />
+          <Num
+            label="End (seconds)"
+            value={music.houseClip.to ?? 0}
+            onChange={(v) =>
+              onMusicChange({
+                ...music,
+                houseClip: { ...music.houseClip, to: v > 0 ? v : null },
+              })
+            }
+            hint="0 plays to the end of the file."
+          />
+        </Row>
+      </Group>
     </div>
   )
 }

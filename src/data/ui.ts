@@ -71,6 +71,13 @@ export const UI: UiCopy = {
     srHeading: 'All work',
   },
 
+  // The button in the bottom-left corner of every page. Nothing plays until it
+  // is pressed; while the song plays it shows the song's name instead.
+  sound: {
+    play: 'Hear me sing',
+    pause: 'Pause the song',
+  },
+
   work: {
     srTitle: 'Work — the archive',
     allFilter: 'All',

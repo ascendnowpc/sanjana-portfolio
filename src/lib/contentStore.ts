@@ -6,7 +6,7 @@ import type {
 import { PERFORMANCES } from '@/data/performances'
 import { CATEGORIES } from '@/data/categories'
 import { COVERS } from '@/data/covers'
-import { MUSIC_COVERS } from '@/data/music'
+import { MUSIC_COVERS, HOUSE_CLIP } from '@/data/music'
 import { PORTRAIT, PROFILE } from '@/data/site'
 import { UI } from '@/data/ui'
 import { getPerformances, getProfile } from './content'
@@ -91,6 +91,7 @@ const BUNDLED: SiteContent = {
   covers: COVERS,
   music: {
     covers: MUSIC_COVERS,
+    houseClip: { ...HOUSE_CLIP, to: HOUSE_CLIP.to ?? null },
   },
   ui: UI,
   /**
