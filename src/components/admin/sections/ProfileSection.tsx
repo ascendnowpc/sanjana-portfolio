@@ -165,7 +165,7 @@ export function ProfileSection({
 
       <Group
         title="Contact & links"
-        description="The address is written as a mailto link. The three profiles open in a new tab."
+        description="The address is written as a mailto link. The three profiles open in a new tab; leave one blank and its link is not shown, and with all three blank the Elsewhere heading goes too."
       >
         <Text
           label="General email"

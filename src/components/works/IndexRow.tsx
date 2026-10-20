@@ -65,8 +65,14 @@ export function IndexRow({
       {/* The name never truncates; only the descriptor after it does. A row
           reading "BEAUTY AND THE BEA…" has lost the one word the reader was
           scanning for, while "BEAUTY AND THE BEAST — UNDER THE…" has lost
-          nothing that matters. */}
-      <Tag className="flex min-w-0 items-end text-[clamp(1.3rem,2.3vw,2.15rem)] leading-[1.08] font-semibold tracking-[0.01em] text-white uppercase [font-variant-numeric:lining-nums]">
+          nothing that matters.
+
+          Regular weight, not semibold. The semibold was set for Cormorant,
+          whose semibold is still a light, high-contrast serif; Optima's bold
+          is a slab of black at this size, and a column of them read as
+          shouting. Upright white against italic grey already says which
+          half is the name. */}
+      <Tag className="flex min-w-0 items-end text-[clamp(1.3rem,2.3vw,2.15rem)] leading-[1.08] font-normal tracking-[0.01em] text-white uppercase [font-variant-numeric:lining-nums]">
         <span className="shrink-0 whitespace-nowrap">{lead}</span>
         {tail && (
           <span className="ml-[0.4em] min-w-0 truncate font-normal text-[#6e6e6e] italic">

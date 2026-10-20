@@ -18,7 +18,7 @@ export const UI: UiCopy = {
   meta: {
     title: 'SANJANA — Vocalist',
     description:
-      'Sanjana — vocalist, performer, and recording artist. Solo concerts, musical theatre, and studio sessions.',
+      'Sanjana — vocalist based in Antwerp, Belgium. Solo concerts, musical theatre, Hindi singing and honor choir.',
     themeColor: '#111111',
   },
 
@@ -177,16 +177,15 @@ export const UI: UiCopy = {
     heading: 'Reach out',
     fields: {
       name: 'Your name',
-      email: 'Email',
-      date: 'Date or window',
-      message: 'Tell me about the room',
+      email: 'Your email',
+      message: 'Your message',
     },
-    submit: 'Send enquiry',
+    submit: 'Send message',
     sending: 'Sending…',
-    sent: 'Received — thank you',
-    sentNote: 'Thank you — your message has been sent. I’ll reply to the address you gave.',
+    sent: 'Sent — thank you',
+    sentNote: 'Thank you for reaching out — your message is on its way. I’ll reply to the address you gave.',
     failedNote: 'Your message could not be sent. Please email me at {email} instead.',
-    generalLabel: 'General',
+    generalLabel: 'Email',
     elsewhereLabel: 'Elsewhere',
     basedLabel: 'Based in',
   },
@@ -198,9 +197,10 @@ export const UI: UiCopy = {
       { to: '/about', label: 'About' },
       { to: '/contact', label: 'Contact' },
     ],
+    emailHeading: 'Email',
     elsewhereHeading: 'Elsewhere',
     copyright: '© {year} {name}',
-    rights: 'All performances and recordings by arrangement.',
+    rights: 'All rights reserved.',
     adminLabel: 'Admin login',
   },
 

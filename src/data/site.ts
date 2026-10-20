@@ -4,7 +4,7 @@ import type { PortraitCopy, SiteProfile } from '@/types/content'
 export const PROFILE: SiteProfile = {
   name: 'SANJANA',
   role: 'Vocalist',
-  tagline: 'Solo concerts, musical theatre, and the takes that made the record.',
+  tagline: 'Solo concerts, musical theatre, Hindi singing and honor choir.',
   bioShort:
     'A performer who works in rooms rather than genres — arena, black box, chapel, garage.',
   bio: [
@@ -52,9 +52,11 @@ export const PROFILE: SiteProfile = {
   ],
   contact: {
     email: 'sanjana.j30nov@gmail.com',
-    instagram: 'https://instagram.com/',
-    youtube: 'https://youtube.com/',
-    spotify: 'https://open.spotify.com/',
+    // Blank on purpose: there are no profiles yet, and a blank address hides
+    // its link — and the "Elsewhere" heading over it — wherever it would show.
+    instagram: '',
+    youtube: '',
+    spotify: '',
   },
 }
 

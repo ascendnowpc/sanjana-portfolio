@@ -378,7 +378,6 @@ export interface UiCopy {
     fields: {
       name: string
       email: string
-      date: string
       message: string
     }
     submit: string
@@ -396,6 +395,9 @@ export interface UiCopy {
   footer: {
     siteHeading: string
     links: NavLinkCopy[]
+    /** Over the address in the footer's last column. */
+    emailHeading: string
+    /** Over the profile links; shown only when one of them is set. */
     elsewhereHeading: string
     /** `{year}`, `{name}` */
     copyright: string

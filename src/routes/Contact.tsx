@@ -16,6 +16,24 @@ export default function Contact() {
   const { editing } = useEdit()
   const [status, setStatus] = useState<Status>('idle')
 
+  const socials = [
+    {
+      label: ui.socials.instagram,
+      href: profile.contact.instagram,
+      path: ['ui', 'socials', 'instagram'] as (string | number)[],
+    },
+    {
+      label: ui.socials.youtube,
+      href: profile.contact.youtube,
+      path: ['ui', 'socials', 'youtube'] as (string | number)[],
+    },
+    {
+      label: ui.socials.spotify,
+      href: profile.contact.spotify,
+      path: ['ui', 'socials', 'spotify'] as (string | number)[],
+    },
+  ].filter((s) => s.href.trim())
+
   /** Delivered by api/contact.ts, which emails it on. */
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -72,15 +90,23 @@ export default function Contact() {
           {/* ---------------- form ---------------- */}
           <Reveal>
             <form onSubmit={submit} className="max-w-2xl">
+              {/* Who, how to answer, and what they want to say — a note, not
+                  a booking request, so nothing is asked for that a person
+                  writing one would not already know to put in it. */}
               <div className="space-y-10">
-                <Field label={ui.contact.fields.name} name="name" required />
+                <Field
+                  label={ui.contact.fields.name}
+                  name="name"
+                  autoComplete="name"
+                  required
+                />
                 <Field
                   label={ui.contact.fields.email}
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                 />
-                <Field label={ui.contact.fields.date} name="date" />
                 <Field
                   label={ui.contact.fields.message}
                   name="message"
@@ -149,43 +175,30 @@ export default function Contact() {
                   />
                 </a>
               </div>
-              <div>
-                <p className="label mb-4 text-dust">
-                  <EditableText
-                    path={['ui', 'contact', 'elsewhereLabel']}
-                    value={ui.contact.elsewhereLabel}
-                  />
-                </p>
-                <div className="flex flex-col gap-2.5">
-                  {[
-                    {
-                      label: ui.socials.instagram,
-                      href: profile.contact.instagram,
-                      path: ['ui', 'socials', 'instagram'] as (string | number)[],
-                    },
-                    {
-                      label: ui.socials.youtube,
-                      href: profile.contact.youtube,
-                      path: ['ui', 'socials', 'youtube'] as (string | number)[],
-                    },
-                    {
-                      label: ui.socials.spotify,
-                      href: profile.contact.spotify,
-                      path: ['ui', 'socials', 'spotify'] as (string | number)[],
-                    },
-                  ].map((s) => (
-                    <a
-                      key={s.path.join('.')}
-                      href={s.href}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="w-fit text-sm font-light text-mist transition-colors hover:text-bloom"
-                    >
-                      <EditableText path={s.path} value={s.label} />
-                    </a>
-                  ))}
+              {/* Only once there is a profile to point at — see the footer. */}
+              {socials.length > 0 && (
+                <div>
+                  <p className="label mb-4 text-dust">
+                    <EditableText
+                      path={['ui', 'contact', 'elsewhereLabel']}
+                      value={ui.contact.elsewhereLabel}
+                    />
+                  </p>
+                  <div className="flex flex-col gap-2.5">
+                    {socials.map((s) => (
+                      <a
+                        key={s.path.join('.')}
+                        href={s.href}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="w-fit text-sm font-light text-mist transition-colors hover:text-bloom"
+                      >
+                        <EditableText path={s.path} value={s.label} />
+                      </a>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               <div>
                 <p className="label mb-4 text-dust">
                   <EditableText
@@ -209,12 +222,20 @@ interface FieldProps {
   label: string
   name: string
   type?: string
+  autoComplete?: string
   required?: boolean
   textarea?: boolean
 }
 
 /** Underline-only input — the line lights up as it gains focus. */
-function Field({ label, name, type = 'text', required, textarea }: FieldProps) {
+function Field({
+  label,
+  name,
+  type = 'text',
+  autoComplete,
+  required,
+  textarea,
+}: FieldProps) {
   const shared =
     'peer w-full border-0 border-b border-edge bg-transparent pt-2 pb-3 text-sm font-light text-chalk placeholder-transparent transition-colors focus:border-bloom focus:outline-none'
 
@@ -234,6 +255,7 @@ function Field({ label, name, type = 'text', required, textarea }: FieldProps) {
           id={name}
           name={name}
           type={type}
+          autoComplete={autoComplete}
           placeholder={label}
           required={required}
           className={shared}

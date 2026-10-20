@@ -193,7 +193,7 @@ export function AlbumCard({
 
       {/* ---------------- now playing ---------------- */}
       <h3
-        className={`mt-5 font-semibold tracking-tight text-chalk ${
+        className={`mt-5 font-normal text-chalk ${
           featured ? 'text-2xl md:text-[1.75rem]' : 'text-xl md:text-2xl'
         }`}
       >

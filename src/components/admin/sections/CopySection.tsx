@@ -512,12 +512,11 @@ export function CopySection({
             onChange={field('contact', 'heading')}
           />
         </Row>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           {(
             [
               ['name', 'Name field'],
               ['email', 'Email field'],
-              ['date', 'Date field'],
               ['message', 'Message field'],
             ] as const
           ).map(([key, label]) => (
@@ -569,8 +568,8 @@ export function CopySection({
         <div className="grid gap-4 md:grid-cols-3">
           {(
             [
-              ['generalLabel', 'General'],
-              ['elsewhereLabel', 'Elsewhere'],
+              ['generalLabel', 'Email'],
+              ['elsewhereLabel', 'Elsewhere (only with a profile set)'],
               ['basedLabel', 'Based in'],
             ] as const
           ).map(([key, label]) => (
@@ -592,11 +591,17 @@ export function CopySection({
             onChange={field('footer', 'siteHeading')}
           />
           <Text
-            label="Elsewhere heading"
-            value={value.footer.elsewhereHeading}
-            onChange={field('footer', 'elsewhereHeading')}
+            label="Email heading"
+            value={value.footer.emailHeading}
+            onChange={field('footer', 'emailHeading')}
           />
         </Row>
+        <Text
+          label="Elsewhere heading"
+          value={value.footer.elsewhereHeading}
+          onChange={field('footer', 'elsewhereHeading')}
+          hint="Shown only once a profile address is set on the Profile tab."
+        />
         <LinkList
           label="Links"
           items={value.footer.links}
