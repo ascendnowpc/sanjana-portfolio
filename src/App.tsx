@@ -81,7 +81,10 @@ function Shell() {
   return (
     <>
       <ScrollToTop />
-      {!isAdmin && <Nav />}
+      {/* Not on the index: the reference's index carries no bar — its name
+          sits centred over the room and the links are the sentence at the
+          foot — so the index sets its own lettering (see Home.tsx). */}
+      {!isAdmin && !isHome && <Nav />}
 
       {/* Keyed on pathname so each page remounts and replays its entrance. */}
       <motion.main

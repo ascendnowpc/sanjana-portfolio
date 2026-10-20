@@ -67,7 +67,7 @@ export const UI: UiCopy = {
         { kind: 'link', text: 'Contact', to: '/contact' },
       ],
     ],
-    driftHint: 'Move your cursor to look around',
+    indexView: 'Index view',
     srHeading: 'All work',
   },
 

@@ -140,49 +140,76 @@ const DRIFT = 0.00042
 const SPIN_UP = 1.15
 
 /**
- * The opening move: the whole room at once, then a pull into it.
+ * The opening move: the room rising out of the dark a long way off, and
+ * rushing in.
  *
- * The reference opens on its catalogue seen from far enough back that every
- * frame is on screen at once — a lit haze of work, too small to read — and
- * then closes the distance until a handful of frames fill the view. It is the
- * one moment the site says how much there is before it starts showing it to
- * you, and the page used to skip it entirely and open already arrived.
+ * Timed off the reference recording, frame by frame. It opens on black with
+ * the welcome sentence already arriving; about half a second later the room
+ * shows as a faint, narrow cluster at the middle of the screen — the whole
+ * catalogue, far away — and closes in on the viewer, quick at first and
+ * settling, over a little under three seconds. There is no wide shot held
+ * before it: the pull starts the moment the room appears, and the room comes
+ * up out of black while it is already moving.
  *
- * It is a lens move, not a walk. The room is a shell of fixed bearings, so
- * there is nowhere to walk *to*; what changes is the focal length the shell is
- * drawn through, which scales both where a frame lands and how big it is. At
- * 0.38 the visible cone is nearly three times wider in each direction, which
- * puts every frame in the catalogue on screen — exactly the establishing shot,
- * and it costs one multiply per tile per frame.
+ * It is a walk, not a lens move. An earlier version widened the focal length
+ * instead, which scales the whole picture about its centre — every frame
+ * grows at the same rate and nothing passes anything. The reference is a
+ * camera travelling: the near frames on the flanks stream outward and past
+ * while the far ones in the middle barely change, which only a change of
+ * *position* gives. So the eye starts this far behind where it comes to rest,
+ * outside the shell — from there the front half of it is a bowl of frames,
+ * open toward the viewer, with its walls seen edge-on: the reference's
+ * corridor, far off — and travels forward into its place at the centre.
+ *
+ * The travel is set by how big the room *looks*, not by distance. Eased in
+ * distance, nearly all of the growth lands in the last few hundred
+ * milliseconds, because size goes as one over distance; eased in apparent
+ * size, it grows the way the reference's does — and the way the welcome
+ * sentence over it does, on the same curve, so the two arrive together.
  */
-const INTRO_ZOOM = 0.38
+/** How big the middle of the room looks when it first shows, against at rest. */
+const APPROACH_FROM = 0.16
 /**
- * A beat held wide before the pull begins, so the room registers as a whole.
+ * How far each frame's share of the approach may differ from the room's.
  *
- * Long enough now to read the welcome sentence in, too. It was 620ms, and with
- * the sentence retired at the handover below that gave it under two seconds on
- * screen — gone before a first-time visitor had finished its first line.
+ * Every frame hangs at about the same distance once the room has arrived,
+ * which seen from far off is a thin ring — not the reference's corridor, whose
+ * frames recede down it at every depth to a vanishing point. So while the eye
+ * is still travelling, each frame is held back by its own multiple of the
+ * remaining distance, between 1 − this and 1 + this: the room starts as a long
+ * corridor of pictures, the near ones stream out past the viewer faster than
+ * the far ones, and they all fold into the shell as the travel runs out.
  */
-const INTRO_HOLD_MS = 1800
+const APPROACH_STAGGER = 0.65
+/** The depth that apparent size is measured at: about where the middle of
+ *  the shell hangs. */
+const APPROACH_DEPTH = 1000
+/** Black before the room appears. The welcome sentence starts in it. */
+const INTRO_DELAY_MS = 400
 /** How long the pull itself takes. */
-const INTRO_MS = 3200
+const INTRO_MS = 2700
+/** Share of the pull the room takes to come up out of black. */
+const INTRO_FADE = 0.45
 /**
- * Progress at which the room is close enough that the welcome copy makes way.
- *
- * Not 1: the copy belongs to the wide shot, and by the time the last of the
- * pull is running the frames behind it are big enough to be read. Handing over
- * a little early means the sentence is gone before it is in the way, and the
- * two motions overlap instead of queueing.
+ * Held still after the pull, with the sentence still up, before the room is
+ * handed over: the reference lets it land and be read before anything else
+ * moves.
  */
-const INTRO_HANDOVER = 0.6
+const INTRO_SETTLE_MS = 450
 
-/** Milliseconds from the start of the intro to the handover — the span the
- *  welcome sentence has to itself. */
-const WELCOME_MS = INTRO_HOLD_MS + INTRO_MS * INTRO_HANDOVER
+/**
+ * Milliseconds from the start of the intro to the handover — when the welcome
+ * sentence goes and the page's own lettering arrives. Exported so the index
+ * can time the sentence against the same clock.
+ */
+export const WELCOME_MS = INTRO_DELAY_MS + INTRO_MS + INTRO_SETTLE_MS
+/** Milliseconds from the start of the intro to the end of the pull. */
+export const PULL_END_MS = INTRO_DELAY_MS + INTRO_MS
 
-/** Eased pull. Slow to leave, slow to arrive, quick through the middle. */
+/** Eased pull: quick at first, and a long settle into place. The welcome
+ *  sentence's growth was measured to this same quadratic. */
 function introEase(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+  return 1 - (1 - t) * (1 - t)
 }
 
 /**
@@ -288,11 +315,11 @@ const CAPTION_GAP = 34
 /** Roughly what a caption occupies, in px — a label, a title of a line or two
  *  and a sentence. Only used to work out which side of a frame it will fit on,
  *  so an approximation is enough. */
-const CAPTION_HEIGHT = 210
-/** Room left at each end of the screen. The wordmark along the top sits off to
- *  the left of a centred caption and can be tucked under; the links along the
- *  bottom are centred, and cannot. */
-const CAPTION_TOP_SAFE = 8
+const CAPTION_HEIGHT = 170
+/** Room left at each end of the screen. The name along the top and the links
+ *  along the bottom are both centred, over exactly where a caption goes, so
+ *  both are kept clear. */
+const CAPTION_TOP_SAFE = 110
 const CAPTION_BOTTOM_SAFE = 140
 
 const DIM_OTHERS = 0.62
@@ -370,18 +397,29 @@ interface Props {
     performance: Performance | null,
     anchor: CaptionAnchor,
   ) => void
-  /** Fires once, part-way through the opening pull — see INTRO_HANDOVER. The
-   *  index uses it to retire its welcome sentence as the room arrives. */
+  /** Fires once, at the handover — see WELCOME_MS. The index uses it to
+   *  retire its welcome sentence and bring in its own lettering. */
   onIntroDone?: () => void
   /**
-   * Called every frame of the intro with how far through the welcome it is,
-   * 0 → 1, reaching 1 exactly at the handover that fires `onIntroDone`.
+   * Called every frame of the intro with the milliseconds elapsed on its
+   * clock, up to WELCOME_MS.
    *
-   * The index uses it to send its welcome sentence back into the room and to
-   * lift the dimming off the wall behind it, on the same clock as the pull —
-   * so the words and the room move as one shot.
+   * The index uses it to grow its welcome sentence on the same clock as the
+   * pull, so the words and the room move as one shot.
    */
-  onIntroFrame?: (progress: number) => void
+  onIntroFrame?: (elapsed: number) => void
+  /**
+   * Hold the opening shot. The intro's clock does not run while this is true,
+   * so a pull that would otherwise play out behind a page still loading waits
+   * for it instead.
+   */
+  held?: boolean
+  /** Open already arrived: no pull and no handover — the room as it is left
+   *  once the intro is over. For a visitor coming back to the index. */
+  skipIntro?: boolean
+  /** Light no frame, wherever the cursor is resting — while it is over a
+   *  link on the overlay, which a caption would otherwise replace. */
+  suppressFocus?: boolean
 }
 
 /**
@@ -411,6 +449,9 @@ export function ImmersiveGallery({
   onFocusChange,
   onIntroDone,
   onIntroFrame,
+  held = false,
+  skipIntro = false,
+  suppressFocus = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const worldRef = useRef<HTMLDivElement>(null)
@@ -430,14 +471,22 @@ export function ImmersiveGallery({
 
   const repeats = isMobile ? 2 : DEFAULT_CLOUD.repeats
 
+  /** Whether the opening is being played at all. Decided once, on mount: a
+   *  visitor who has seen it, or who has asked for less motion, gets the room
+   *  as it is left afterwards. */
+  const [intro] = useState(() => !reduced && !skipIntro)
   /** True once the opening pull has arrived. Gates the decoders — see below —
    *  and is what the index waits on before retiring its welcome copy. */
-  const [arrived, setArrived] = useState(reduced)
+  const [arrived, setArrived] = useState(!intro)
   const arrivedRef = useRef(arrived)
   const onIntroDoneRef = useRef(onIntroDone)
   onIntroDoneRef.current = onIntroDone
   const onIntroFrameRef = useRef(onIntroFrame)
   onIntroFrameRef.current = onIntroFrame
+  const heldRef = useRef(held)
+  heldRef.current = held
+  const suppressFocusRef = useRef(suppressFocus)
+  suppressFocusRef.current = suppressFocus
   /** The last progress handed to `onIntroFrame`, so a finished intro stops
    *  calling it with the same number every frame. */
   const lastWelcome = useRef(-1)
@@ -504,7 +553,10 @@ export function ImmersiveGallery({
    * resumes the pull where it was rather than yanking the room back out to
    * arm's length and starting it again.
    */
-  const introClock = useRef(0)
+  const introClock = useRef(intro ? 0 : WELCOME_MS)
+  /** The room's own opacity, which the loop writes while it comes up out of
+   *  black. Kept so an unchanged value is not written again every frame. */
+  const worldAlpha = useRef(-1)
 
   /** Where the viewer is looking. Eased toward the target every frame. */
   const yaw = useRef(0)
@@ -817,16 +869,9 @@ export function ImmersiveGallery({
       setPlaying(playingRef.current)
     }
 
-    /**
-     * Screen offset, in px, of a point at this bearing off the view axis.
-     *
-     * Takes the lens rather than closing over it, because the lens is no
-     * longer constant: the opening pull works by widening it. Everything the
-     * projection produces — where a frame lands, how big it is, which frames
-     * are on screen at all — follows from this one number.
-     */
-    const project = (angle: number, lens: number) =>
-      lens * Math.tan(clamp(angle, -ANGLE_LIMIT, ANGLE_LIMIT))
+    /** Screen offset, in px, of a point at this bearing off the view axis. */
+    const project = (angle: number) =>
+      P * Math.tan(clamp(angle, -ANGLE_LIMIT, ANGLE_LIMIT))
 
     const frame = (now: number) => {
       const dt = last ? Math.min(64, now - last) : 16.667
@@ -838,31 +883,43 @@ export function ImmersiveGallery({
       const focus = hoveredRef.current
 
       /* ---- the opening pull ---- */
-      introClock.current += dt
-      const introT = reduced
-        ? 1
-        : clamp((introClock.current - INTRO_HOLD_MS) / INTRO_MS, 0, 1)
-      const intro = introEase(introT)
-      // The lens the whole frame is drawn through. Wide at the start, so the
-      // entire catalogue is on screen; the layout's own lens by the end.
-      const lens = P * (INTRO_ZOOM + (1 - INTRO_ZOOM) * intro)
-      const settled = introT >= 1
-      // Input is answered from the handover on, rather than from the very end.
-      // An eased pull spends its last fifth covering almost no distance, and a
-      // second of a room that will not answer the mouse because a movement
-      // nobody can see is still technically running is a second of a site that
-      // looks broken.
-      const live = introT >= INTRO_HANDOVER
-      const welcome = reduced ? 1 : clamp(introClock.current / WELCOME_MS, 0, 1)
-      if (welcome !== lastWelcome.current) {
-        lastWelcome.current = welcome
-        onIntroFrameRef.current?.(welcome)
+      // The clock stands still while the page is held — so nothing of the
+      // opening plays out behind a page that is still loading — and stops for
+      // good at the handover.
+      if (!heldRef.current && introClock.current < WELCOME_MS) {
+        introClock.current = Math.min(WELCOME_MS, introClock.current + dt)
       }
-      if (!arrivedRef.current && introT >= INTRO_HANDOVER) {
+      const clock = introClock.current
+      const introT = clamp((clock - INTRO_DELAY_MS) / INTRO_MS, 0, 1)
+      const pull = introEase(introT)
+      // How far behind its resting place the eye still is. The whole of the
+      // room's approach is this one number going to zero.
+      const seen = APPROACH_FROM + (1 - APPROACH_FROM) * pull
+      const dolly = APPROACH_DEPTH * (1 / seen - 1)
+      // Up out of black while it is already moving, rather than lit and then
+      // set going.
+      const rise = Math.round(smoothstep(0, INTRO_FADE, introT) * 100) / 100
+      if (rise !== worldAlpha.current) {
+        worldAlpha.current = rise
+        world.style.opacity = String(rise)
+      }
+      // Input is answered from the last stretch of the pull, rather than from
+      // the handover. An eased pull spends its tail covering almost no
+      // distance, and a room that will not answer the mouse because a movement
+      // nobody can see is still technically running looks broken.
+      const live = introT >= 0.85
+      if (clock !== lastWelcome.current) {
+        lastWelcome.current = clock
+        onIntroFrameRef.current?.(clock)
+      }
+      if (!arrivedRef.current && clock >= WELCOME_MS) {
         arrivedRef.current = true
         setArrived(true)
         onIntroDoneRef.current?.()
       }
+      // Nothing is read until the sentence has gone: a caption coming up
+      // under it would put two lots of words in the middle of the screen.
+      const settled = arrivedRef.current
 
       /* ---- how still is the pointer? ---- */
       const cur = pointer.client.current
@@ -996,22 +1053,51 @@ export function ImmersiveGallery({
         // eye; on a shell the flanks swing close, so it falls off sharply
         // toward the edges of vision and those tiles read large.
         const D = R * cosA * cosE
-        if (D < NEAR_CLIP) return conceal(entry)
+        // Distance from the eye, which during the opening is still somewhere
+        // behind the centre of the room — and further for some frames than
+        // others, which is what turns the shell into a corridor while the eye
+        // travels down it. See APPROACH_STAGGER.
+        const stagger = 1 + APPROACH_STAGGER * (tile.phase / Math.PI - 1)
+        const Z = D + dolly * stagger
+        if (Z < NEAR_CLIP) return conceal(entry)
+
+        const X = R * Math.sin(a) * cosE
+        const Y = -R * Math.sin(e)
 
         // Where the frame lands on screen, in closed form.
         //
-        // The projection is rectilinear — a point at bearing θ lands at
-        // P·tan(θ) from centre — and a tile of width w hung at radius R
+        // At rest the projection is rectilinear — a point at bearing θ lands
+        // at P·tan(θ) from centre — and a tile of width w hung at radius R
         // subtends ±atan(w / 2R·cos e) about its own bearing, so its edges are
         // just two more tangents. Height is the same about its elevation, with
         // the 1/cos a that a horizontal angle adds to everything vertical.
         // Nothing here has to be measured.
-        const phi = Math.atan2(tile.width / 2, R * cosE)
-        const psi = Math.atan2(tile.width / tile.aspect / 2, R)
-        const left = cx + project(a - phi, lens)
-        const right = cx + project(a + phi, lens)
-        const top = cy - project(e + psi, lens) / cosA
-        const bottom = cy - project(e - psi, lens) / cosA
+        //
+        // While the eye is still travelling in, bearings from the centre are
+        // not bearings from the eye, and the box is the plain pinhole one
+        // about the frame's centre instead. It only has to be good enough to
+        // cull with: nothing is hovered, and nothing plays, until the room
+        // has arrived.
+        let left: number
+        let right: number
+        let top: number
+        let bottom: number
+        if (dolly > 0.5) {
+          const s = P / Z
+          const hw = tile.width / 2
+          const hh = tile.width / tile.aspect / 2
+          left = cx + (X - hw) * s
+          right = cx + (X + hw) * s
+          top = cy + (Y - hh) * s
+          bottom = cy + (Y + hh) * s
+        } else {
+          const phi = Math.atan2(tile.width / 2, R * cosE)
+          const psi = Math.atan2(tile.width / tile.aspect / 2, R)
+          left = cx + project(a - phi)
+          right = cx + project(a + phi)
+          top = cy - project(e + psi) / cosA
+          bottom = cy - project(e - psi) / cosA
+        }
 
         // The real cull: a frame with no part of it near the viewport costs
         // nothing to skip, and skipping it is what keeps the number of tiles
@@ -1031,9 +1117,6 @@ export function ImmersiveGallery({
         entry.top = top
         entry.bottom = bottom
 
-        const X = R * Math.sin(a) * cosE
-        const Y = -R * Math.sin(e)
-
         // Deliberately not toggling `visibility`: that invalidates layout on
         // every change, and the loop would then be forcing a reflow every time
         // a frame crossed the edge of the screen. Opacity alone stays on the
@@ -1041,12 +1124,16 @@ export function ImmersiveGallery({
         if (entry.hidden) entry.hidden = false
 
         // Nearness, 0..1, used to rank who gets a decoder and who paints on
-        // top. Not a tunnel position any more — just "how big is this".
-        const depth = clamp(1 - D / (DEFAULT_CLOUD.maxRadius * 1.05), 0, 1)
+        // top. Not a tunnel position any more — just "how big is this". The
+        // far end of the scale reaches down the corridor while the opening is
+        // still travelling, so the frames strung along it overlap in order.
+        const reach =
+          DEFAULT_CLOUD.maxRadius * 1.05 + dolly * (1 + APPROACH_STAGGER)
+        const depth = clamp(1 - Z / reach, 0, 1)
         entry.depth = depth
 
-        // translateZ(P − D) puts the element exactly D from the eye under a
-        // perspective of P, so CSS scales it by P/D — the pinhole projection,
+        // translateZ(P − Z) puts the element exactly Z from the eye under a
+        // perspective of P, so CSS scales it by P/Z — the pinhole projection,
         // done by the compositor.
         //
         // The two rotations turn each frame to face the viewer, and their
@@ -1054,13 +1141,11 @@ export function ImmersiveGallery({
         // right has a > 0; rotateY(−a) swings its *right* edge toward the eye,
         // so the shell closes around the viewer like the inside of a drum.
         //
-        // `lens` rather than the layout's own focal length, and that single
-        // substitution is the entire opening pull: a shorter lens scales both
-        // the offset and the size by the same factor, which is a camera
-        // stepping back from a room whose furniture has not moved.
+        // Z rather than D is the entire opening: the same room, drawn from a
+        // point further back along the axis, which is a camera walking in.
         const transform =
-          `perspective(${lens.toFixed(1)}px) ` +
-          `translate3d(${X.toFixed(1)}px, ${Y.toFixed(1)}px, ${(lens - D).toFixed(1)}px) ` +
+          `perspective(${P}px) ` +
+          `translate3d(${X.toFixed(1)}px, ${Y.toFixed(1)}px, ${(P - Z).toFixed(1)}px) ` +
           `rotateY(${(-a).toFixed(4)}rad) ` +
           `rotateX(${(-e).toFixed(4)}rad)`
         // Composing the string is cheap; handing it to the style system is
@@ -1091,10 +1176,13 @@ export function ImmersiveGallery({
           root.style.opacity = String(alpha)
         }
 
-        // Light. The reference sits close to the footage's own brightness and
-        // only the far shell falls away; a heavy wash greys everything into a
-        // smudge where nothing separates from its neighbours.
-        const shading = clamp(0.24 - depth * 0.24, 0, 0.24)
+        // Light. Held well down, and further for the far shell. Measured
+        // against the reference recording, its room sits at about a quarter
+        // of the brightness this one did — a dark room with pictures in it,
+        // not a lit wall — which is also what lets the one frame being read
+        // stand out as the only thing lit. Not darker than this: these are
+        // stage photographs, and pushed further they go to mud.
+        const shading = clamp(0.3 + (1 - depth) * 0.18, 0.3, 0.48)
 
         // "Is this the frame being read", eased per tile. It has to be per
         // tile and not a single flag, because the frame that *loses* focus
@@ -1136,6 +1224,7 @@ export function ImmersiveGallery({
       const deflect = Math.max(Math.abs(pt.x), Math.abs(pt.y))
       if (
         !settled ||
+        suppressFocusRef.current ||
         isMobile ||
         speed > (focus ? FOCUS_KEEP_SPEED : FOCUS_TAKE_SPEED) ||
         deflect > (focus ? FOCUS_KEEP_DEFLECT : FOCUS_TAKE_DEFLECT)
@@ -1180,7 +1269,14 @@ export function ImmersiveGallery({
       {/* z-0 is load-bearing: it makes the wall its own stacking context, so
           the depth-derived z-index on each tile stays local and cannot paint
           over the scrims and vignette below. */}
-      <div ref={worldRef} className="absolute inset-0 z-0">
+      {/* Starts dark when the opening is to be played: the loop brings it up
+          out of black on the intro's clock, and this is only where it starts,
+          so the first paint is not a flash of the room before the pull. */}
+      <div
+        ref={worldRef}
+        className="absolute inset-0 z-0"
+        style={{ opacity: intro ? 0 : 1 }}
+      >
         {cloud.map((tile) => (
           <GalleryTile
             key={tile.key}
@@ -1199,8 +1295,8 @@ export function ImmersiveGallery({
 
           It used to be on permanently at full strength, which cost the wall a
           third of its light in the one place the eye starts. It has three
-          jobs now and a weight for each: full while the welcome sentence is
-          over the wide shot, nearly off once the room has arrived and the
+          jobs now and a weight for each: most of it while the welcome sentence
+          is over the opening, nearly off once the room has arrived and the
           sentence has gone, and a little of it back while a caption is up.
           Never enough to touch the frame being read — the tiles dim
           themselves for that, from the inside, so the lit one stays lit. */}
@@ -1209,7 +1305,7 @@ export function ImmersiveGallery({
         style={{
           background:
             'radial-gradient(ellipse 44% 36% at 50% 50%, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.34) 48%, transparent 76%)',
-          opacity: !arrived ? 1 : hovered ? 0.34 : 0.12,
+          opacity: !arrived ? 0.6 : hovered ? 0.34 : 0.12,
           transition: 'opacity 900ms var(--ease-out-expo)',
         }}
       />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useProfile } from '@/content/ContentProvider'
 import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
@@ -16,7 +17,11 @@ import { usePrefersReducedMotion } from '@/hooks/useMediaQuery'
 export function Preloader() {
   const profile = useProfile()
   const reduced = usePrefersReducedMotion()
-  const [done, setDone] = useState(reduced)
+  // Not over the index. Its opening already starts from black and waits for
+  // the same load before it begins (see usePageReady), so a curtain over it
+  // would only be a second title card in front of the first.
+  const { pathname } = useLocation()
+  const [done, setDone] = useState(() => reduced || pathname === '/')
 
   useEffect(() => {
     if (reduced) return
