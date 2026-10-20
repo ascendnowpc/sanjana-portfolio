@@ -10,6 +10,8 @@ export function Footer() {
   const ui = useUi()
   const { editing } = useEdit()
 
+  // Only the profiles that have an address. A link to instagram.com itself is
+  // worse than no link, so a blank one is left out rather than pointed there.
   const socials = [
     {
       label: ui.socials.instagram,
@@ -26,7 +28,7 @@ export function Footer() {
       href: profile.contact.spotify,
       path: ['ui', 'socials', 'spotify'] as const,
     },
-  ]
+  ].filter((s) => s.href.trim())
 
   return (
     <footer className="relative border-t border-edge/50 bg-void">
@@ -80,30 +82,41 @@ export function Footer() {
           <div className="flex flex-col gap-3">
             <p className="label mb-2 text-dust">
               <EditableText
-                path={['ui', 'footer', 'elsewhereHeading']}
-                value={ui.footer.elsewhereHeading}
+                path={['ui', 'footer', 'emailHeading']}
+                value={ui.footer.emailHeading}
               />
             </p>
-            {socials.map((s) => (
-              <a
-                key={s.path.join('.')}
-                href={s.href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="w-fit text-sm font-light text-mist transition-colors hover:text-bloom"
-              >
-                <EditableText path={s.path} value={s.label} />
-              </a>
-            ))}
             <a
               href={`mailto:${profile.contact.email}`}
-              className="mt-4 w-fit text-sm font-light text-bloom"
+              className="w-fit text-sm font-light text-bloom"
             >
               <EditableText
                 path={['profile', 'contact', 'email']}
                 value={profile.contact.email}
               />
             </a>
+
+            {socials.length > 0 && (
+              <>
+                <p className="label mt-8 mb-2 text-dust">
+                  <EditableText
+                    path={['ui', 'footer', 'elsewhereHeading']}
+                    value={ui.footer.elsewhereHeading}
+                  />
+                </p>
+                {socials.map((s) => (
+                  <a
+                    key={s.path.join('.')}
+                    href={s.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="w-fit text-sm font-light text-mist transition-colors hover:text-bloom"
+                  >
+                    <EditableText path={s.path} value={s.label} />
+                  </a>
+                ))}
+              </>
+            )}
           </div>
         </div>
 

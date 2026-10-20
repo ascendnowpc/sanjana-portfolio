@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { env, json, readJson } from './_lib.js'
+import { renderContactEmail } from './_email.js'
 
 /**
  * The contact form's delivery: one message, sent through a mailbox the site
@@ -25,7 +26,7 @@ import { env, json, readJson } from './_lib.js'
  * GET reports whether delivery is set up, the same way the other endpoints do.
  */
 
-const LIMITS = { name: 200, email: 320, date: 200, message: 5000 }
+const LIMITS = { name: 200, email: 320, message: 5000 }
 
 /** Deliberately loose: one @, something either side, a dot in the domain. */
 const EMAIL = /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[^\s@<>()",;:]+$/
@@ -91,7 +92,6 @@ export async function POST(request: Request): Promise<Response> {
 
   const name = line(body.name, LIMITS.name)
   const email = line(body.email, LIMITS.email)
-  const date = line(body.date, LIMITS.date)
   const message = block(body.message, LIMITS.message)
   if (!name || !EMAIL.test(email) || !message) {
     return json(
@@ -111,17 +111,22 @@ export async function POST(request: Request): Promise<Response> {
     disableUrlAccess: true,
   })
 
-  const lines = [`Name: ${name}`, `Email: ${email}`]
-  if (date) lines.push(`Date or window: ${date}`)
-  lines.push('', message)
+  const { subject, text, html } = renderContactEmail({
+    name,
+    email,
+    message,
+    site: new URL(request.url).host,
+    sentAt: new Date(),
+  })
 
   try {
     await transport.sendMail({
       from: { name: 'Website contact form', address: smtp.user },
       to: smtp.to,
       replyTo: { name, address: email },
-      subject: `Website message from ${name}`,
-      text: lines.join('\n'),
+      subject,
+      text,
+      html,
     })
   } catch (err) {
     // The reason belongs in the function log, not in front of a visitor: it
