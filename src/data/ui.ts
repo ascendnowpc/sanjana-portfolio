@@ -111,9 +111,9 @@ export const UI: UiCopy = {
   },
 
   about: {
-    // One entry a line. Short enough to hold one line at this weight; a
-    // second entry is supported and will simply stack under it.
-    headline: ['From the first note'],
+    // One entry a line, broken where the phrase breaks. The page sets these
+    // at the size of its longest line, so lines of similar length read best.
+    headline: ['From the', 'first note'],
     // The size is in the key on purpose — R2 sends an immutable one-year cache
     // header, so a re-cut has to arrive under a new name to be seen at all.
     film: '/media/video/about-intro-1080.mp4',

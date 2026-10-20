@@ -52,13 +52,13 @@ export function Shelf({ items }: { items: Performance[] }) {
     <section className="mx-auto max-w-[1160px] px-6 pt-32 pb-32 md:px-12 md:pt-44">
       <Reveal>
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-          {/* The same poster face the page opens on, at a fraction of the size.
+          {/* Set like the headline the page opens on, at a fraction of the size.
               Held small deliberately: at display scale it would compete with the
               sleeves it is labelling, and the job here is to name the shelf, not
               to start a second headline. */}
           <h2
-            className="font-[family-name:var(--font-poster)] leading-none tracking-[0.012em] text-chalk uppercase"
-            style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)' }}
+            className="tracked leading-none text-chalk"
+            style={{ fontSize: 'clamp(1.25rem, 2.4vw, 2rem)' }}
           >
             {tab === 'recordings' ? (
               <EditableText path={['ui', 'music', 'heading']} value={ui.music.heading} />

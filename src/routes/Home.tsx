@@ -66,7 +66,7 @@ const Small = ({ children }: { children: React.ReactNode }) => (
 
 /**
  * The welcome sentence's two sizes, in the reference's face — see
- * `--font-welcome`. A touch smaller than the words at the foot of the page,
+ * `--font-sans`. A touch smaller than the words at the foot of the page,
  * because the sentence starts in front of the screen and is drawn larger than
  * this to begin with.
  */

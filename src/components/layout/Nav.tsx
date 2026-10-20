@@ -54,7 +54,7 @@ export function Nav() {
           <div className={TROUGH}>
             <Link
               to="/"
-              // The wordmark keeps the serif and its wide tracking — it is the
+              // The wordmark keeps its wide tracking — it is the
               // one piece of lettering in the bar that is a name rather than a
               // key, and it sits directly on the well, not in a chip.
               className="tracked px-2.5 text-sm text-white transition-opacity duration-300 hover:opacity-70 md:px-3"

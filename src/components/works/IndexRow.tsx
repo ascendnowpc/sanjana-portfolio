@@ -66,7 +66,7 @@ export function IndexRow({
           reading "BEAUTY AND THE BEA…" has lost the one word the reader was
           scanning for, while "BEAUTY AND THE BEAST — UNDER THE…" has lost
           nothing that matters. */}
-      <Tag className="flex min-w-0 items-end font-display text-[clamp(1.3rem,2.3vw,2.15rem)] leading-[1.08] font-semibold tracking-[0.01em] text-white uppercase [font-variant-numeric:lining-nums]">
+      <Tag className="flex min-w-0 items-end text-[clamp(1.3rem,2.3vw,2.15rem)] leading-[1.08] font-semibold tracking-[0.01em] text-white uppercase [font-variant-numeric:lining-nums]">
         <span className="shrink-0 whitespace-nowrap">{lead}</span>
         {tail && (
           <span className="ml-[0.4em] min-w-0 truncate font-normal text-[#6e6e6e] italic">
