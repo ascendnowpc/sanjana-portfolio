@@ -249,7 +249,9 @@ export interface UiCopy {
     welcome: HomeToken[][]
     /** The sentence at the foot of the index, one array per line. */
     nav: HomeNavToken[][]
-    driftHint: string
+    /** The link in the middle of the room once it has arrived, to the
+     *  archive as a list. */
+    indexView: string
     /** Heading over the screen-reader-only index of every piece. */
     srHeading: string
   }

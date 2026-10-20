@@ -113,7 +113,7 @@ export function CopySection({
 
       <Group
         title="Front page"
-        description="The sentence that greets a visitor while the room is still far away, and the sentence at the foot of it that never leaves."
+        description="The sentence that greets a visitor while the room is still far away, and the sentence at the foot of it that stays once the room has arrived. The name and role at the top come from the Profile tab."
       >
         <WelcomeEditor
           lines={value.home.welcome}
@@ -125,10 +125,10 @@ export function CopySection({
         />
         <Row>
           <Text
-            label="Drift hint"
-            value={value.home.driftHint}
-            onChange={field('home', 'driftHint')}
-            hint="The line at the bottom right, telling a visitor what moves the room."
+            label="Index view link"
+            value={value.home.indexView}
+            onChange={field('home', 'indexView')}
+            hint="In the middle of the room once it has arrived; opens the Work page as a list."
           />
           <Text
             label="Hidden index heading"

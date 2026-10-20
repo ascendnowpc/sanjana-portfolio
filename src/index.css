@@ -63,11 +63,18 @@
   --color-mist: #9a9a9a;
   --color-dust: #6b6b6b;
 
-  /* One face for the whole site: the welcome sentence's flared, inscriptional
-     capital — Zapf Humanist 601, which is Bitstream's Optima. Optima ships
-     with every Mac and iPhone, so most visitors get the real design;
-     Marcellus, loaded from Google Fonts, is the closest open cut for
-     everybody else.
+  /* One face for the whole site, and it is the reference's: Optima — Zapf
+     Humanist 601 is Bitstream's cut of the same design. Optima ships with
+     every Mac and iPhone, so those visitors get the real thing.
+
+     Everybody else gets Belleza, loaded from Google Fonts. It was Marcellus,
+     and Marcellus is a Trajan-style capital with small serifs on every stem,
+     which put feet on the M and the R that the reference's lettering does
+     not have. Belleza is a flared sans in Optima's own manner — thickening
+     strokes, no serifs — and is the closest open design to it. Optima itself
+     is a licensed face; serving it to every device means buying a web
+     licence for it, at which point it goes at the head of this list as a
+     loaded font and nothing else changes.
 
      There used to be five: Cormorant for the wordmark and headings, Anton for
      the About poster lines, this for the welcome, Inter for body copy and
@@ -76,19 +83,20 @@
      sites rather than one. What separates a heading from a label now is size
      and tracking, which is what the reference does with its single face.
 
-     Marcellus cannot be trusted with the figures, though: its zero is the
-     letter O and its one is a lowercase l, so the contact address read
-     "j3Onov" and a running clock read "OO:OO". Tenor Sans — a close cousin,
-     lining figures at cap height, an oval zero and a flagged one — is loaded
-     with its digits only (`text=` in index.html) and sits ahead of
-     Marcellus, so a digit comes from it and every other character falls
-     through. Optima has good figures of its own and is never reached past.
+     The figures come from a third face. Belleza's are old-style — they sit
+     at x-height, so "2025" shrinks beside the capitals around it — where
+     Optima's are lining. Tenor Sans has lining figures at cap height, an
+     oval zero that cannot be read as an O and a flagged one that cannot be
+     read as an l; it is loaded with its digits only (`text=` in index.html)
+     and sits ahead of Belleza, so a digit comes from it and every other
+     character falls through. Optima has good figures of its own and is
+     never reached past.
 
      `--font-mono` is left at Tailwind's default on purpose. The only thing
      still set in it is the editor's media keys and environment names, which
      a visitor never sees and which have to be read character by character. */
   --font-sans: "Optima", "Zapf Humanist 601", "Optima nova", "URW Classico",
-    "Tenor Sans", "Marcellus", ui-sans-serif, system-ui, sans-serif;
+    "Tenor Sans", "Belleza", ui-sans-serif, system-ui, sans-serif;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
@@ -110,7 +118,7 @@
     color: var(--color-chalk);
     font-family: var(--font-sans);
     font-weight: 300;
-    /* Marcellus comes in one weight. Left to itself the browser smears a
+    /* Belleza comes in one weight. Left to itself the browser smears a
        fake bold out of it for anything set semibold, which thickens the
        strokes unevenly; the regular cut at the same size reads cleaner.
        Optima has a real bold and still gets it. */
@@ -347,6 +355,27 @@
   animation: letter-flow 1.9s ease-in-out infinite;
 }
 
+/* The index's lettering arriving — see Flicker.tsx. Each letter runs this on
+   its own delay and length. It steps rather than fades: a light catching is
+   on or off, and easing between the two turns the flicker into a dissolve.
+   `both` holds the letter dark through its delay and lit after its end. */
+@keyframes flicker-in {
+  0% { opacity: 0; }
+  12% { opacity: 0.85; }
+  24% { opacity: 0; }
+  40% { opacity: 0.6; }
+  52% { opacity: 0.08; }
+  70% { opacity: 1; }
+  82% { opacity: 0.35; }
+  100% { opacity: 1; }
+}
+
+.flicker-in {
+  animation-name: flicker-in;
+  animation-timing-function: steps(1, end);
+  animation-fill-mode: both;
+}
+
 /* A portrait frame's cover arriving after first paint — see GalleryTile. It
    is mounted when the still is ready, so it has no "before" to transition
    from; an entry animation is the only thing that can fade it in rather than
@@ -363,7 +392,8 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .grain::after,
-  .breathe {
+  .breathe,
+  .flicker-in {
     animation: none !important;
   }
   /* Dropped outright rather than shortened: the global duration override

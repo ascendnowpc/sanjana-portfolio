@@ -4,11 +4,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { Performance } from '@/types/content'
 import {
   ImmersiveGallery,
+  PULL_END_MS,
+  WELCOME_MS,
   type CaptionAnchor,
 } from '@/components/gallery/ImmersiveGallery'
 import { CursorLabel } from '@/components/gallery/CursorLabel'
 import { MagneticLink } from '@/components/ui/MagneticLink'
 import { SplitText } from '@/components/ui/SplitText'
+import { Flicker } from '@/components/ui/Flicker'
 import {
   useCategoryMap,
   usePerformances,
@@ -16,46 +19,67 @@ import {
   useUi,
 } from '@/content/ContentProvider'
 import { useEdit } from '@/edit/EditProvider'
-import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useIsMobile, usePrefersReducedMotion } from '@/hooks/useMediaQuery'
+import { usePageReady } from '@/hooks/usePageReady'
 import { fill } from '@/lib/copy'
-import { smoothstep } from '@/lib/utils'
+import { clamp, smoothstep } from '@/lib/utils'
 import { EditableText } from '@/components/edit/Editable'
 import { ItemControls, RegionEdit } from '@/components/edit/ListEdit'
 
 /**
- * The welcome sentence's trip into the room.
+ * The opening plays once a visit.
  *
- * It starts in front of the screen, drawn larger than it is set, and travels
- * back into the wall, the way the reference's own sentence does.
- *
- * Size is interpolated on a log scale rather than a straight line, because
- * that is how distance reads: halving in size looks like the same step back
- * whether it is from 1.3 to 0.65 or from 0.8 to 0.4. A straight line — or a
- * true 1/z from a point just in front of the lens — spends most of its change
- * in the first few hundred milliseconds, which is exactly when the sentence
- * wants to hold still long enough to be read.
+ * It is an arrival — the room seen from far off, closing in, the sentence
+ * saying whose it is — and arriving a second time, every time somebody comes
+ * back from a project page, turns it into a wait in front of the thing they
+ * came back for. Kept for the life of the tab: in memory, so it holds even
+ * where storage is refused, and in sessionStorage, so a reload in the same
+ * tab does not count as a first visit either.
  */
-/** Scale it starts at: a little in front of the screen. */
-const WELCOME_NEAR = 1.3
-/** The same on a phone, where the sentence already spans the screen at its
- *  set size and could not start much larger without losing its ends. */
-const WELCOME_NEAR_MOBILE = 1.08
-/** Scale it has got to by the handover, when it is gone. */
-const WELCOME_FAR = 0.4
-/** How dark the wall is held while the sentence is read. It lifts as the
- *  sentence recedes, and is gone by the time the sentence is. */
-const WELCOME_DIM = 0.8
+const INTRO_SEEN_KEY = 'sanjana.intro-seen'
+let introSeen = false
 
-/** How far back the sentence has gone, 0 → 1, for a given share of the
- *  welcome. Steeply eased in: it barely moves at first, so it can be read
- *  where it starts, and only picks up pace once it is on its way out. */
-const welcomeDepth = (progress: number) => Math.pow(progress, 2.5)
-
-/** The sentence's scale at a given share of the welcome. */
-function welcomeScale(progress: number, mobile: boolean) {
-  const near = mobile ? WELCOME_NEAR_MOBILE : WELCOME_NEAR
-  return near * Math.pow(WELCOME_FAR / near, welcomeDepth(progress))
+function hasSeenIntro() {
+  if (introSeen) return true
+  try {
+    return sessionStorage.getItem(INTRO_SEEN_KEY) === '1'
+  } catch {
+    return false
+  }
 }
+
+function markIntroSeen() {
+  introSeen = true
+  try {
+    sessionStorage.setItem(INTRO_SEEN_KEY, '1')
+  } catch {
+    // Private mode or storage refused: the in-memory flag still holds for
+    // the rest of this page load.
+  }
+}
+
+/**
+ * The welcome sentence's approach.
+ *
+ * Measured off the reference recording: the sentence arrives at a little under
+ * half the size it is set at and grows toward the viewer with the room — fast
+ * at first, settling — reaching its set size as the pull lands. Fitted against
+ * the width of its longest line across eight frames, a quadratic ease-out from
+ * 0.46 matches every one of them to within a few pixels.
+ */
+const WELCOME_FROM = 0.46
+/** How long the sentence takes to go, at the end of its time on screen. */
+const WELCOME_OUT_MS = 320
+
+function welcomeScale(elapsed: number) {
+  const u = clamp(elapsed / PULL_END_MS, 0, 1)
+  return WELCOME_FROM + (1 - WELCOME_FROM) * (1 - (1 - u) * (1 - u))
+}
+
+/** Seconds over which the welcome sentence's letters catch. */
+const WELCOME_FLICKER = 1.1
+/** Seconds over which the name's letters catch, once the room has arrived. */
+const NAME_FLICKER = 0.6
 
 /** Small connective word, sitting between the links at the foot. */
 const Small = ({ children }: { children: React.ReactNode }) => (
@@ -66,18 +90,17 @@ const Small = ({ children }: { children: React.ReactNode }) => (
 
 /**
  * The welcome sentence's two sizes, in the reference's face — see
- * `--font-sans`. A touch smaller than the words at the foot of the page,
- * because the sentence starts in front of the screen and is drawn larger than
- * this to begin with.
+ * `--font-sans`. The big words are set at the size of the links at the foot
+ * of the page, which is where the reference's own sentence lands.
  */
 const WelcomeBig = ({ children }: { children: React.ReactNode }) => (
-  <span className="tracked-welcome on-scrim text-[clamp(0.98rem,2.2vw,1.85rem)] text-chalk">
+  <span className="tracked-welcome on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk">
     {children}
   </span>
 )
 
 const WelcomeSmall = ({ children }: { children: React.ReactNode }) => (
-  <span className="tracked-welcome on-scrim text-[clamp(0.48rem,0.82vw,0.68rem)] text-mist">
+  <span className="tracked-welcome on-scrim text-[clamp(0.45rem,0.7vw,0.58rem)] text-mist">
     {children}
   </span>
 )
@@ -89,6 +112,17 @@ export default function Home() {
   const { editing } = useEdit()
   const categoryMap = useCategoryMap()
   const isMobile = useIsMobile()
+  const reduced = usePrefersReducedMotion()
+  /** The opening waits for the page: see usePageReady. */
+  const ready = usePageReady()
+
+  /**
+   * Whether this visit skips the opening, decided once on arrival.
+   *
+   * Editing always gets it: the welcome sentence is only on screen during the
+   * opening, and a sentence that never appears cannot be edited in place.
+   */
+  const [skipIntro] = useState(() => reduced || (!editing && hasSeenIntro()))
   const [focused, setFocused] = useState<Performance | null>(null)
   /** Where the caption sits, so it never lands on the frame it describes. */
   const [anchor, setAnchor] = useState<CaptionAnchor>({
@@ -105,52 +139,47 @@ export default function Home() {
     },
     [],
   )
-  /**
-   * Set once, part-way through the gallery's opening pull.
-   *
-   * The welcome sentence belongs to that wide establishing shot and to nothing
-   * after it: once the room has arrived, the work is the page, and a paragraph
-   * parked across the middle of it is just something to look past. So it is
-   * shown while the room is still far away and retired as it lands — the one
-   * thing it is for, done once.
-   */
-  const [arrived, setArrived] = useState(false)
-  const onIntroDone = useCallback(() => setArrived(true), [])
 
   /**
-   * The sentence travelling back into the room, and the wall behind it
-   * coming up out of the dark as it goes.
+   * Set at the handover, when the room has landed and been held a moment.
+   *
+   * The welcome sentence belongs to the opening and to nothing after it. Once
+   * the room has arrived it goes, and the page's own lettering comes in: the
+   * name at the top, the way into the index in the middle, the links at the
+   * foot — the reference's order, and its layout.
+   */
+  const [arrived, setArrived] = useState(skipIntro)
+  const onIntroDone = useCallback(() => {
+    markIntroSeen()
+    setArrived(true)
+  }, [])
+
+  /**
+   * The sentence coming toward the viewer with the room.
    *
    * Driven off the gallery's own intro clock, once a frame, by writing the
-   * two styles directly — a re-render sixty times a second to move one line
-   * of type would be a strange thing to add to a page already turning eighty
-   * pictures.
-   *
-   * The travel is eased *in*: it barely moves at first, so the sentence can
-   * be read where it starts, and it picks up pace only as it goes. The wall's
-   * dimming follows the same curve, so the room is held dark behind the words
-   * while they are being read and brightens as they leave.
+   * style directly — a re-render sixty times a second to move one line of
+   * type would be a strange thing to add to a page already turning eighty
+   * pictures. Its letters arriving is Flicker's job; this is only its size,
+   * and its going.
    */
   const welcomeRef = useRef<HTMLDivElement>(null)
-  const dimRef = useRef<HTMLDivElement>(null)
-  const mobileRef = useRef(isMobile)
-  mobileRef.current = isMobile
-  const onIntroFrame = useCallback((progress: number) => {
-    const depth = welcomeDepth(progress)
+  const onIntroFrame = useCallback((elapsed: number) => {
     const el = welcomeRef.current
-    if (el) {
-      const scale = welcomeScale(progress, mobileRef.current)
-      // In quickly, so the first thing seen is the whole sentence; out over
-      // the back half of its trip, so it thins into the room rather than
-      // being switched off.
-      const appear = smoothstep(0, 0.14, progress)
-      const vanish = 1 - smoothstep(0.45, 1, depth)
-      el.style.transform = `scale(${scale.toFixed(4)})`
-      el.style.opacity = (appear * vanish).toFixed(3)
-    }
-    const dim = dimRef.current
-    if (dim) dim.style.opacity = (WELCOME_DIM * (1 - depth)).toFixed(3)
+    if (!el) return
+    el.style.transform = `scale(${welcomeScale(elapsed).toFixed(4)})`
+    el.style.opacity = (
+      1 - smoothstep(WELCOME_MS - WELCOME_OUT_MS, WELCOME_MS, elapsed)
+    ).toFixed(3)
   }, [])
+
+  /**
+   * The link in the middle is in the middle of the room too, and the room
+   * lights whatever frame a resting cursor is over — which would swap the link
+   * for a caption the moment the pointer settled on it to click. Over the
+   * link, the room is told to leave it be.
+   */
+  const [overIndexLink, setOverIndexLink] = useState(false)
 
   // The index is a fixed, non-scrolling surface — travel is the scroll here.
   useEffect(() => {
@@ -161,6 +190,10 @@ export default function Home() {
     }
   }, [])
 
+  /** Lettering on the overlay is not hit-testable unless it is a field being
+   *  edited or a link: everything else lets the room be dragged through it. */
+  const live = arrived ? 'pointer-events-auto' : 'pointer-events-none'
+
   return (
     <div className="fixed inset-0 overflow-hidden bg-void">
       <ImmersiveGallery
@@ -168,26 +201,53 @@ export default function Home() {
         onFocusChange={onFocusChange}
         onIntroDone={onIntroDone}
         onIntroFrame={onIntroFrame}
+        held={!ready}
+        skipIntro={skipIntro}
+        suppressFocus={overIndexLink}
       />
 
-      {/* The wall held in the dark while the welcome is read, lifting as the
-          sentence goes back into it. Its opacity is written by
-          `onIntroFrame`; this is only where it starts. */}
-      {!arrived && (
-        <div
-          ref={dimRef}
-          className="pointer-events-none absolute inset-0 bg-void"
-          style={{ opacity: WELCOME_DIM }}
-        />
+      {/* ---------------- the name, along the top ----------------
+
+          Not the site's bar. The reference's index has none — its name and
+          what it does sit centred over the room, and the way to everything
+          else is the sentence at the foot — so the bar is left off this page
+          (see App.tsx) and this takes its place. The name flickers in as the
+          room lands; the role comes up under it after. */}
+      {arrived && (
+        <header
+          className={`absolute inset-x-0 top-[6.5vh] px-6 text-center ${
+            editing ? 'pointer-events-auto' : 'pointer-events-none'
+          }`}
+        >
+          <h1 className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk">
+            {editing ? (
+              <EditableText path={['profile', 'name']} value={profile.name} />
+            ) : skipIntro ? (
+              profile.name
+            ) : (
+              <Flicker text={profile.name} spread={NAME_FLICKER} />
+            )}
+          </h1>
+          <motion.p
+            className="tracked on-scrim mt-2 text-[clamp(0.5rem,0.85vw,0.7rem)] text-mist"
+            initial={skipIntro ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.9 }}
+          >
+            <EditableText path={['profile', 'role']} value={profile.role} />
+          </motion.p>
+        </header>
       )}
 
       {/* ---------------- centre overlay ----------------
 
-          Two things live here and they never overlap in time: the welcome
-          sentence, which belongs to the opening shot, and the caption for
-          whichever frame is being read, which belongs to everything after it.
+          Three things live here and never at the same time: the welcome
+          sentence, which belongs to the opening; the way into the index,
+          which is what the middle of the room says once it has arrived; and
+          the caption for whichever frame is being read, which takes the
+          middle over while it is.
 
-          Both are absolutely placed rather than sharing a flex slot, and the
+          All absolutely placed rather than sharing a flex slot, and the
           `AnimatePresence` has no `mode` on purpose. `mode="wait"` held the
           incoming caption until the outgoing one had finished leaving, so
           moving from one frame to the next left the middle of the screen empty
@@ -197,79 +257,76 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
         <AnimatePresence>
           {!arrived ? (
-            <motion.div
-              key="welcome"
-              // The layer over the gallery is `pointer-events-none` so the room
-              // can be dragged through it. A field that cannot be clicked is not
-              // a field, so editing takes the events back — and takes the drag
-              // with them, which is the right trade while words are being typed.
-              className={`absolute max-w-5xl px-6 text-center ${
-                editing ? 'pointer-events-auto' : ''
-              }`}
-              // Its whole trip is written by `onIntroFrame` onto the div
-              // inside. By the time this leaves, the sentence is already out of
-              // sight at the back of the room, so the exit only has to make sure
-              // nothing is left behind.
-              exit={{ opacity: 0, transition: { duration: 0.3 } }}
-            >
-              {/* One <p> a line, one word a token. The shape is in the copy
-                  rather than in this markup, so a line can be rewritten,
-                  lengthened or dropped from the panel without a deploy — and
-                  `{name}` is a slot, so the sentence cannot disagree with the
-                  wordmark above it. */}
-              <div
-                ref={welcomeRef}
-                className="flex flex-col gap-3 will-change-transform"
-                style={{
-                  opacity: 0,
-                  transform: `scale(${welcomeScale(0, isMobile).toFixed(4)})`,
-                }}
+            ready && (
+              <motion.div
+                key="welcome"
+                // The layer over the gallery is `pointer-events-none` so the
+                // room can be dragged through it. A field that cannot be
+                // clicked is not a field, so editing takes the events back.
+                className={`absolute max-w-5xl px-6 text-center ${
+                  editing ? 'pointer-events-auto' : ''
+                }`}
+                exit={{ opacity: 0, transition: { duration: 0.2 } }}
               >
-                {ui.home.welcome.map((line, li) => (
-                  <p
-                    key={li}
-                    className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1"
-                  >
-                    {line.map((token, ti) => {
-                      // Edit mode shows the template, not the filled string:
-                      // `{name}` is a slot the sentence has to keep, and a word
-                      // that had been substituted away could not be typed back.
-                      const shown = editing
-                        ? token.text
-                        : fill(token.text, { name: profile.name })
-                      const field = (
-                        <EditableText
-                          path={['ui', 'home', 'welcome', li, ti, 'text']}
-                          value={shown}
-                          placeholder="Word"
-                        />
-                      )
-                      return (
-                        <span key={ti} className="inline-flex items-baseline gap-1">
-                          {token.kind === 'big' ? (
-                            <WelcomeBig>{field}</WelcomeBig>
-                          ) : (
-                            <WelcomeSmall>{field}</WelcomeSmall>
-                          )}
-                          <ItemControls
-                            path={['ui', 'home', 'welcome', li]}
-                            index={ti}
-                            blank={() => ({ kind: token.kind, text: 'word' })}
+                {/* One <p> a line, one word a token. The shape is in the copy
+                    rather than in this markup, so a line can be rewritten,
+                    lengthened or dropped from the panel without a deploy — and
+                    `{name}` is a slot, so the sentence cannot disagree with
+                    the name above it. */}
+                <div
+                  ref={welcomeRef}
+                  className="flex flex-col gap-3 will-change-transform"
+                  style={{ transform: `scale(${WELCOME_FROM})` }}
+                >
+                  {ui.home.welcome.map((line, li) => (
+                    <p
+                      key={li}
+                      className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1"
+                    >
+                      {line.map((token, ti) => {
+                        // Edit mode shows the template, not the filled string:
+                        // `{name}` is a slot the sentence has to keep, and a
+                        // word that had been substituted away could not be
+                        // typed back.
+                        const shown = editing
+                          ? token.text
+                          : fill(token.text, { name: profile.name })
+                        const word = editing ? (
+                          <EditableText
+                            path={['ui', 'home', 'welcome', li, ti, 'text']}
+                            value={shown}
+                            placeholder="Word"
                           />
-                        </span>
-                      )
-                    })}
-                  </p>
-                ))}
-              </div>
-
-              {editing && (
-                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                  <RegionEdit drawer="copy" label="Index copy" />
-                  <RegionEdit drawer="categories" label="What plays under the index" />
+                        ) : (
+                          <Flicker text={shown} spread={WELCOME_FLICKER} />
+                        )
+                        return (
+                          <span key={ti} className="inline-flex items-baseline gap-1">
+                            {token.kind === 'big' ? (
+                              <WelcomeBig>{word}</WelcomeBig>
+                            ) : (
+                              <WelcomeSmall>{word}</WelcomeSmall>
+                            )}
+                            <ItemControls
+                              path={['ui', 'home', 'welcome', li]}
+                              index={ti}
+                              blank={() => ({ kind: token.kind, text: 'word' })}
+                            />
+                          </span>
+                        )
+                      })}
+                    </p>
+                  ))}
                 </div>
-              )}
-            </motion.div>
+
+                {editing && (
+                  <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                    <RegionEdit drawer="copy" label="Index copy" />
+                    <RegionEdit drawer="categories" label="What plays under the index" />
+                  </div>
+                )}
+              </motion.div>
+            )
           ) : focused ? (
             <motion.div
               key={focused.slug}
@@ -288,24 +345,60 @@ export default function Home() {
                   used to cycle the label through amber, pink and violet,
                   which is exactly the "strange colours" in the reference's
                   absence — everything there is one warm off-white. */}
-              <p className="label on-scrim mb-5 text-mist">
+              <p className="label on-scrim mb-3 text-mist">
                 {categoryMap[focused.category]?.label} — {focused.year}
               </p>
-              <h2 className="tracked on-scrim text-[clamp(1.4rem,4vw,3.1rem)] leading-[1.25] text-chalk">
+              {/* Set the way the reference sets its own: the title at about the
+                  size of the name over the room rather than as a headline,
+                  and the sentence under it in small, widely spaced capitals.
+                  A caption is a label for the picture, and at headline size it
+                  was bigger than the picture it was labelling. */}
+              <h2 className="tracked on-scrim text-[clamp(1rem,2.1vw,1.75rem)] leading-[1.3] text-chalk">
                 <SplitText text={focused.title} stagger={0.035} />
               </h2>
-              <p className="on-scrim mx-auto mt-6 max-w-xl text-[0.78rem] leading-relaxed font-light tracking-wider text-mist uppercase">
+              <p className="on-scrim mx-auto mt-4 max-w-2xl text-[0.62rem] leading-[1.9] tracking-[0.28em] text-mist uppercase">
                 {focused.blurb}
               </p>
               {/* No "learn more" here any more — it sits on the frame itself
                   now, where there is no doubt which picture it opens. */}
             </motion.div>
-          ) : null}
+          ) : (
+            <motion.div
+              key="index-view"
+              // Just under the middle, where the reference hangs it, with a
+              // hairline over it — a plumb line down into the room.
+              className="absolute top-1/2 left-1/2 -translate-x-1/2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+              transition={{ duration: 0.6, delay: skipIntro ? 0 : 0.25 }}
+            >
+              <Link
+                to="/work?view=list"
+                onPointerEnter={() => setOverIndexLink(true)}
+                onPointerLeave={() => setOverIndexLink(false)}
+                className="group pointer-events-auto flex flex-col items-center gap-2 px-4 py-2"
+              >
+                <span className="block h-4 w-px bg-chalk/55 transition-colors duration-300 group-hover:bg-bloom" />
+                <span className="tracked on-scrim text-[clamp(0.55rem,0.8vw,0.68rem)] whitespace-nowrap text-chalk/85 transition-colors duration-300 group-hover:text-bloom">
+                  <EditableText path={['ui', 'home', 'indexView']} value={ui.home.indexView} />
+                </span>
+              </Link>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
-      {/* ---------------- bottom nav, reference-style ---------------- */}
-      <div className="absolute inset-x-0 bottom-10 flex flex-col items-center gap-3 px-6 md:bottom-14">
+      {/* ---------------- bottom nav, reference-style ----------------
+
+          Not there during the opening: it arrives with the name, rising a
+          little as it comes up, once the room has landed. */}
+      <motion.div
+        className="absolute inset-x-0 bottom-10 flex flex-col items-center gap-3 px-6 md:bottom-14"
+        initial={false}
+        animate={{ opacity: arrived ? 1 : 0, y: arrived ? 0 : 12 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      >
         {ui.home.nav.map((line, li) => (
           <p
             key={li}
@@ -314,7 +407,7 @@ export default function Home() {
             {line.map((token, ti) => (
               <span key={ti} className="inline-flex items-baseline gap-1">
                 {token.kind === 'link' ? (
-                  <MagneticLink to={token.to ?? '/'} className="pointer-events-auto">
+                  <MagneticLink to={token.to ?? '/'} className={live}>
                     <span className="tracked on-scrim text-[clamp(0.85rem,1.7vw,1.35rem)] text-chalk transition-colors duration-300 hover:text-bloom">
                       <EditableText
                         path={['ui', 'home', 'nav', li, ti, 'text']}
@@ -335,14 +428,14 @@ export default function Home() {
                 <ItemControls
                   path={['ui', 'home', 'nav', li]}
                   index={ti}
-                  className="pointer-events-auto"
+                  className={live}
                   blank={() => ({ kind: 'small', text: 'and' })}
                 />
               </span>
             ))}
           </p>
         ))}
-      </div>
+      </motion.div>
 
       {/* ---------------- the invitation, on the cursor ----------------
 
@@ -351,26 +444,6 @@ export default function Home() {
       {!isMobile && (
         <CursorLabel text={ui.gallery.learnMore} visible={Boolean(focused)} />
       )}
-
-      {/* ---------------- drift hint ---------------- */}
-      <motion.div
-        className="pointer-events-none absolute right-6 bottom-10 hidden items-center gap-3 md:flex md:right-12"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: !arrived || focused ? 0 : 1 }}
-        transition={{ duration: 0.6, delay: focused ? 0 : 0.5 }}
-      >
-        {/* The cursor is the primary control now — the room turns while the
-            pointer is held away from the middle, and holds still when it comes
-            back. Dragging and scrolling still work, but they are no longer the
-            thing to tell someone about first. */}
-        <span className={`label text-dust ${editing ? 'pointer-events-auto' : ''}`}>
-          <EditableText
-            path={['ui', 'home', 'driftHint']}
-            value={ui.home.driftHint}
-          />
-        </span>
-        <span className="breathe block h-6 w-px bg-gradient-to-b from-transparent via-bloom to-transparent" />
-      </motion.div>
 
       {/* Tiles are decorative for assistive tech (they duplicate down the
           tunnel); this is the real, linear index of the same work. */}
