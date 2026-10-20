@@ -259,18 +259,21 @@ export const PERFORMANCES: Performance[] = [
     blurb: 'A Hindi solo sung in the atrium under the Class of 2025 balloons.',
     description: '',
     poster: poster('hindi-singing-2025-01'),
-    videoSrc: video('hindi-singing-2025-01'),
-    previewSrc: preview('hindi-singing-2025-01'),
+    // The full performance. It replaced a 1:18 excerpt, so the media sits
+    // under `-v2` keys: the bucket caches each key for a year, and the
+    // excerpt would go on playing at the old ones. The still is unchanged.
+    videoSrc: video('hindi-singing-2025-01-v2'),
+    previewSrc: preview('hindi-singing-2025-01-v2'),
     aspect: 1.7778,
     gallery: [poster('hindi-singing-2025-01')],
-    runtime: '1:18',
+    runtime: '3:06',
     credits: [],
     tracks: [
       {
         id: 'hindi-singing-2025-01-1',
         title: 'Class of 2025 — Hindi Solo',
-        duration: 75,
-        audioSrc: audio('hindi-singing-2025-01'),
+        duration: 186,
+        audioSrc: audio('hindi-singing-2025-01-v2'),
       },
     ],
   },
