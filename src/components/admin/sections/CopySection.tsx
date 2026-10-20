@@ -139,6 +139,25 @@ export function CopySection({
         </Row>
       </Group>
 
+      <Group
+        title="Hear me sing"
+        description="The button in the bottom-left corner of every page. Nothing plays until it is pressed; while the song plays, the button shows its name. Which song it plays is under Disciplines."
+      >
+        <Row>
+          <Text
+            label="Button"
+            value={value.sound.play}
+            onChange={field('sound', 'play')}
+          />
+          <Text
+            label="Pause (spoken)"
+            value={value.sound.pause}
+            onChange={field('sound', 'pause')}
+            hint="While the song plays the button shows its name, so this is what a screen reader is told pressing it does."
+          />
+        </Row>
+      </Group>
+
       <Group title="Archive page">
         <Row>
           <Text

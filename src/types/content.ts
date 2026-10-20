@@ -139,9 +139,23 @@ export interface PortraitCopy {
   beats: PortraitBeat[]
 }
 
+/**
+ * The song the "Hear me sing" button plays.
+ *
+ * Named by slug rather than by path so it stays pinned to a real performance
+ * in the archive; `from`/`to` cut an excerpt out of the take.
+ */
+export interface HouseClip {
+  slug: string
+  from: number
+  /** Seconds, or null to play to the end of the file. */
+  to: number | null
+}
+
 export interface MusicCopy {
   /** Cover art per category, keyed the same way `CATEGORIES` is. */
   covers: Partial<Record<CategoryId, string>>
+  houseClip: HouseClip
 }
 
 /**
@@ -238,6 +252,15 @@ export interface UiCopy {
     driftHint: string
     /** Heading over the screen-reader-only index of every piece. */
     srHeading: string
+  }
+
+  /** The button in the corner of every page that plays the site's song. */
+  sound: {
+    /** Its label, until it is pressed. */
+    play: string
+    /** What a screen reader is told it does while the song plays — the
+     *  label is then the song's name. */
+    pause: string
   }
 
   work: {

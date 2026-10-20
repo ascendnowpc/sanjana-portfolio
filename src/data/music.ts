@@ -38,3 +38,19 @@ export const MUSIC_COVERS: Partial<Record<CategoryId, string>> = {
   'honor-choir': '/media/covers/honor-choir-4x5.jpg',
   'collaboration': '/media/covers/collaboration-4x5.jpg',
 }
+
+/**
+ * The song the "Hear me sing" button plays, in the corner of every page.
+ * Nothing plays until somebody presses it.
+ *
+ * One entry, named by slug rather than by path, so it stays pinned to a real
+ * performance in the archive: swapping the song means changing this slug and
+ * nothing else. `from` / `to` cut an excerpt out of the take —
+ * left open here, so the recording plays from its own beginning and stops
+ * where it stops.
+ */
+export const HOUSE_CLIP = {
+  slug: 'solo-concert-2025-10',
+  from: 0,
+  to: undefined as number | undefined,
+}

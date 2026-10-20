@@ -8,6 +8,7 @@ import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { TransitionProvider } from '@/components/layout/TransitionProvider'
 import { Preloader } from '@/components/layout/Preloader'
 import { ContentProvider, useUi } from '@/content/ContentProvider'
+import { HouseMusicProvider } from '@/components/audio/HouseMusic'
 import { EditProvider, useEdit } from '@/edit/EditProvider'
 
 import Home from '@/routes/Home'
@@ -125,9 +126,13 @@ export default function App() {
         <EditProvider>
           <DocumentHead />
           <TransitionProvider>
-            <Preloader />
-            <Ambience />
-            <Shell />
+            {/* Above the pages, so a song somebody has started carries from
+                one to the next instead of stopping at every link. */}
+            <HouseMusicProvider>
+              <Preloader />
+              <Ambience />
+              <Shell />
+            </HouseMusicProvider>
           </TransitionProvider>
         </EditProvider>
       </BrowserRouter>

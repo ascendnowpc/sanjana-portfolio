@@ -91,7 +91,7 @@ const TABS = [
     id: 'categories',
     label: 'Disciplines',
     blurb:
-      'The disciplines pieces are filed under, and their cover art.',
+      'The disciplines pieces are filed under, their cover art, and the song the “Hear me sing” button plays.',
     preview: '/work',
     watch: (c: SiteContent) => [c.categories, c.music],
   },
@@ -313,6 +313,15 @@ function Panel({ live }: { live: SiteContent }) {
     URL.revokeObjectURL(url)
   }
 
+  const houseSlugs = useMemo(
+    () =>
+      draft.performances.map((p) => ({
+        value: p.slug,
+        label: `${p.title} (${p.year})`,
+      })),
+    [draft.performances],
+  )
+
   /**
    * Which sections are carrying unsaved work, so the nav can mark them.
    *
@@ -480,6 +489,7 @@ function Panel({ live }: { live: SiteContent }) {
             onCategoriesChange={put('categories')}
             music={draft.music}
             onMusicChange={put('music')}
+            houseSlugs={houseSlugs}
           />
         )}
 
