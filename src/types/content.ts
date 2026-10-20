@@ -402,7 +402,10 @@ export interface UiCopy {
     submit: string
     sending: string
     sent: string
-    demoNote: string
+    /** Under the button once the message has gone. */
+    sentNote: string
+    /** Under the button when it has not. `{email}` */
+    failedNote: string
     generalLabel: string
     elsewhereLabel: string
     basedLabel: string

@@ -289,7 +289,8 @@ src/
 ├── hooks/           useAudioEngine, usePointer, useMediaQuery
 └── types/           the content model everything speaks
 
-api/                 the two server functions, and the only two secrets
+api/                 the server functions, and the only secrets
+├── contact.ts       emails the contact form on
 ├── publish.ts       commits the content to this repository
 └── upload.ts        signs one PUT into the media bucket
 ```
@@ -320,5 +321,8 @@ becomes a plain navigation.
 
 - Only `/` ships in the main chunk; every other route is code-split.
 - The custom cursor is suppressed on coarse pointers and reduced-motion.
-- The contact form is front-end only. Wire it to Supabase or an email service
-  before going live — it says so on screen after submitting.
+- The contact form is delivered by `api/contact.ts`, which emails each message
+  through a Gmail account using an app password: set `SMTP_USER`, `SMTP_PASS`
+  and optionally `CONTACT_TO` in the deployment's environment (see
+  `.env.example`). Until they are set, sending fails and the page gives the
+  email address instead.

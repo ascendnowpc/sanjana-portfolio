@@ -599,13 +599,21 @@ export function CopySection({
             onChange={field('contact', 'sent')}
           />
         </div>
-        <TextArea
-          label="Note after sending"
-          rows={3}
-          value={value.contact.demoNote}
-          onChange={field('contact', 'demoNote')}
-          hint="The form has no back end yet — this is what it says so. Rewrite it when one is wired up."
-        />
+        <Row>
+          <TextArea
+            label="Note after sending"
+            rows={3}
+            value={value.contact.sentNote}
+            onChange={field('contact', 'sentNote')}
+          />
+          <TextArea
+            label="Note if sending fails"
+            rows={3}
+            value={value.contact.failedNote}
+            onChange={field('contact', 'failedNote')}
+            hint="Keep {email}: it is replaced with the general address."
+          />
+        </Row>
         <div className="grid gap-4 md:grid-cols-3">
           {(
             [

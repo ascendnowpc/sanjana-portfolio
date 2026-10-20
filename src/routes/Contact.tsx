@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useProfile, useUi } from '@/content/ContentProvider'
 import { useEdit } from '@/edit/EditProvider'
+import { fill } from '@/lib/copy'
 import { EditableText } from '@/components/edit/Editable'
 import { RegionEdit } from '@/components/edit/ListEdit'
 import { Reveal } from '@/components/ui/Reveal'
 import { SplitText } from '@/components/ui/SplitText'
 
-type Status = 'idle' | 'sending' | 'sent'
+type Status = 'idle' | 'sending' | 'sent' | 'failed'
 
 export default function Contact() {
   const profile = useProfile()
@@ -15,14 +16,26 @@ export default function Contact() {
   const { editing } = useEdit()
   const [status, setStatus] = useState<Status>('idle')
 
-  /**
-   * No backend is wired up yet — see DATABASE.md for the two-line Supabase
-   * insert (or a Formspree endpoint) that turns this into a live form.
-   */
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  /** Delivered by api/contact.ts, which emails it on. */
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const form = e.currentTarget
     setStatus('sending')
-    window.setTimeout(() => setStatus('sent'), 900)
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form))),
+      })
+      const body = (await res.json().catch(() => null)) as { ok?: boolean } | null
+      if (!res.ok || !body?.ok) throw new Error(`HTTP ${res.status}`)
+      form.reset()
+      setStatus('sent')
+    } catch {
+      // Back to a pressable button: what failed may well work a second time,
+      // and the note under it gives the address for when it does not.
+      setStatus('failed')
+    }
   }
 
   return (
@@ -71,28 +84,46 @@ export default function Contact() {
                 <Field
                   label={ui.contact.fields.message}
                   name="message"
+                  required
                   textarea
                 />
               </div>
 
+              {/* A trap for form-filling bots: off screen, out of the tab
+                  order and hidden from assistive tech, so only a script ever
+                  fills it in. api/contact.ts drops anything that does. Outside
+                  the fields above, whose spacing would otherwise count it. */}
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden
+                className="absolute -left-[9999px] h-px w-px opacity-0"
+              />
+
               <motion.button
                 type="submit"
-                disabled={status !== 'idle'}
+                disabled={status === 'sending' || status === 'sent'}
                 whileTap={{ scale: 0.98 }}
                 className="mt-14 w-full border border-edge px-10 py-4 text-[0.62rem] tracking-[0.34em] text-chalk uppercase transition-all duration-500 hover:border-bloom hover:bg-bloom hover:text-void disabled:opacity-60 sm:w-auto"
               >
-                {status === 'idle' && ui.contact.submit}
+                {(status === 'idle' || status === 'failed') && ui.contact.submit}
                 {status === 'sending' && ui.contact.sending}
                 {status === 'sent' && ui.contact.sent}
               </motion.button>
 
-              {status === 'sent' && (
+              {(status === 'sent' || status === 'failed') && (
                 <motion.p
+                  key={status}
+                  role="status"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-6 text-xs font-light text-mist"
                 >
-                  {ui.contact.demoNote}
+                  {status === 'sent'
+                    ? ui.contact.sentNote
+                    : fill(ui.contact.failedNote, { email: profile.contact.email })}
                 </motion.p>
               )}
             </form>
