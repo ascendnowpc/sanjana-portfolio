@@ -491,7 +491,9 @@ export default function WorkDetail() {
           <Link
             key={dir}
             to={`/work/${p.slug}`}
-            className="group relative overflow-hidden border-edge/50 px-6 py-16 transition-colors sm:not-last:border-r md:px-12"
+            // Stacked on a phone, so the rule between the two runs across
+            // rather than down.
+            className="group relative overflow-hidden border-edge/50 px-6 py-16 transition-colors not-last:border-b sm:not-last:border-r sm:not-last:border-b-0 md:px-12"
           >
             <img
               src={mediaUrl(p.poster)}

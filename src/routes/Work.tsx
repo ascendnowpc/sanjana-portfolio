@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { CategoryId, Performance } from '@/types/content'
@@ -137,6 +137,28 @@ export default function Work() {
 
   const clearHover = useCallback(() => setHovered(null), [])
 
+  /**
+   * The live section key, brought into view.
+   *
+   * On a phone the six keys are wider than the screen and the strip scrolls,
+   * so arriving on `?category=collaboration` showed "All" and the two after it
+   * — and not the one that was lit. Centred on it instead, inside the strip
+   * only; the page itself never moves. When every key fits there is nothing
+   * to scroll and this does nothing.
+   */
+  const strip = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = strip.current
+    const key = el?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (!el || !key) return
+    const box = el.getBoundingClientRect()
+    const at = key.getBoundingClientRect()
+    el.scrollTo({
+      left: el.scrollLeft + at.left - box.left - (box.width - at.width) / 2,
+      behavior: reduced ? 'auto' : 'smooth',
+    })
+  }, [active, reduced])
+
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params)
     if (value === null) next.delete(key)
@@ -186,14 +208,17 @@ export default function Work() {
           names no longer clear the site name on one side and the nav links on
           the other. The wrapper takes no pointer events so it cannot swallow
           clicks meant for the page across the full width it spans. */}
-      <div className="pointer-events-none fixed top-[86px] left-1/2 z-50 w-full -translate-x-1/2 px-4 min-[1560px]:top-[22px]">
+      <div className="pointer-events-none fixed top-[86px] left-1/2 z-50 w-full -translate-x-1/2 pr-[calc(1rem+env(safe-area-inset-right))] pl-[calc(1rem+env(safe-area-inset-left))] min-[1560px]:top-[22px]">
         {/* `safe center` so the keys stay centred when they fit and stay
             *reachable* when they do not — plain centring parks the overflow
             past the left edge with no way to scroll back to it. The fade on
             the right lands on empty space at any width where the whole set
             fits, and only shows up as an edge once there is something past
             it. */}
-        <div className="no-scrollbar pointer-events-none flex overflow-x-auto [justify-content:safe_center] [mask-image:linear-gradient(to_right,#000_0%,#000_calc(100%-3rem),transparent_100%)]">
+        <div
+          ref={strip}
+          className="no-scrollbar pointer-events-none flex overflow-x-auto [justify-content:safe_center] [mask-image:linear-gradient(to_right,#000_0%,#000_calc(100%-3rem),transparent_100%)]"
+        >
           <Segmented
             className="pointer-events-auto"
             options={categoryOptions}
@@ -260,8 +285,17 @@ export default function Work() {
                 <Link
                   key={p.slug}
                   to={`/work/${p.slug}`}
-                  onMouseEnter={() => setHovered(p.slug)}
-                  onFocus={() => setHovered(p.slug)}
+                  // A pointer, not a finger: a tap is already the click, and
+                  // lighting the row first only flashes its footage up under
+                  // a page that is about to go.
+                  onPointerEnter={(e) => {
+                    if (e.pointerType !== 'touch') setHovered(p.slug)
+                  }}
+                  // Keyboard focus only, for the same reason: a tap focuses
+                  // the link on Android. See WorkFrame.
+                  onFocus={(e) => {
+                    if (e.currentTarget.matches(':focus-visible')) setHovered(p.slug)
+                  }}
                   onBlur={() => setHovered(null)}
                   // Edge to edge, with the rule running the full width of the
                   // screen and only the type inset — the reference's ruling,
@@ -372,8 +406,11 @@ export default function Work() {
       </div>
 
       {/* The view key, floating at the foot of the screen — the one control
-          that is always within reach however far down the archive you are. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+          that is always within reach however far down the archive you are.
+          Clear of the phone's home bar, and moved to the right-hand corner on
+          the narrowest phones, where centred it runs into the "Hear me sing"
+          button in the left-hand one. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-50 flex justify-center px-4 max-[360px]:justify-end">
         <Segmented
           className="pointer-events-auto"
           options={viewOptions}

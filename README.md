@@ -318,6 +318,13 @@ becomes a plain navigation.
 
 - Only `/` ships in the main chunk; every other route is code-split.
 - The custom cursor is suppressed on coarse pointers and reduced-motion.
+- Phones. `index.html` sets `viewport-fit=cover`, so the page runs under the
+  notch and the home bar. Anything spanning the screen carries `safe-x` (see
+  `index.css`), and the controls pinned to the foot — "Hear me sing", the
+  archive's view switch — sit at least `env(safe-area-inset-bottom)` up. Form
+  fields are 16px below `md`, because iOS zooms in on any smaller field when it
+  is tapped. On `/work` a finger never triggers the hover: a tap opens the
+  piece, and only a mouse or keyboard focus lights a row.
 - The contact form is delivered by `api/contact.ts`, which emails each message
   through a Gmail account using an app password: set `SMTP_USER`, `SMTP_PASS`
   and optionally `CONTACT_TO` in the deployment's environment (see

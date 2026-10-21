@@ -204,10 +204,16 @@ function CoverCard({
         {/* The transport, over the bottom of the sleeve. It is always visible on
             the sounding card and on hover everywhere else: a control that only
             appears on hover is a control a touch screen cannot find, and a
-            playing card has to show its own state without being pointed at. */}
+            playing card has to show its own state without being pointed at.
+            Which is also why it is always up on a screen that cannot hover at
+            all: Tailwind's `hover:` only ever applies where a pointer can
+            hover, so on a phone the play button was there to be tapped and
+            never there to be seen. */}
         <div
           className={`absolute inset-x-0 bottom-0 flex items-center gap-3 bg-gradient-to-t from-void/95 to-transparent px-4 pt-10 pb-4 transition-opacity duration-500 ${
-            playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+            playing
+              ? 'opacity-100'
+              : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100'
           }`}
         >
           <button

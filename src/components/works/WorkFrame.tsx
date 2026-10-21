@@ -43,8 +43,17 @@ export const WorkFrame = memo(function WorkFrame({
   return (
     <button
       type="button"
-      onMouseEnter={() => onEnter(piece.slug)}
-      onFocus={() => onEnter(piece.slug)}
+      // Not for a finger. A tap is the click that opens the piece, and taking
+      // it as a hover first dropped the rest of the page to black for the
+      // half-second before the frame flew out.
+      onPointerEnter={(e) => {
+        if (e.pointerType !== 'touch') onEnter(piece.slug)
+      }}
+      // Keyboard focus only. Android focuses a button on tap, which would
+      // bring the same dimming back in through the other door.
+      onFocus={(e) => {
+        if (e.currentTarget.matches(':focus-visible')) onEnter(piece.slug)
+      }}
       onClick={(e) => onOpen(piece, e.currentTarget)}
       aria-label={`${piece.title} — ${piece.year}`}
       className="relative block aspect-video w-full cursor-pointer overflow-hidden bg-ink"
