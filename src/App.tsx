@@ -89,6 +89,7 @@ function Shell() {
       {/* Keyed on pathname so each page remounts and replays its entrance. */}
       <motion.main
         key={location.pathname}
+        className="safe-x"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}

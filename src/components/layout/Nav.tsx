@@ -41,6 +41,22 @@ export function Nav() {
 
   useEffect(() => setOpen(false), [pathname])
 
+  // While the sheet is up it is the page: a swipe on it must not scroll the
+  // one underneath, and Escape puts it away the way the button would.
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   const at = (to: string) => pathname === to || pathname.startsWith(`${to}/`)
 
   return (
@@ -49,7 +65,7 @@ export function Nav() {
           opaque wells with their own blur, so they hold against anything that
           scrolls under them, and a bar that grew a background at 24px was one
           more edge drawn across the top of a page built out of edges. */}
-      <header className="fixed inset-x-0 top-0 z-50">
+      <header className="safe-x fixed inset-x-0 top-0 z-50">
         <nav className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-5 md:px-12">
           <div className={TROUGH}>
             <Link
@@ -92,7 +108,10 @@ export function Nav() {
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? ui.nav.closeMenu : ui.nav.openMenu}
             aria-expanded={open}
-            className="flex h-8 w-8 flex-col items-end justify-center gap-1.5 md:hidden"
+            // A thumb-sized target (44px) drawn as the 32px the bar is laid
+            // out around: the negative margins hand the extra back, and the
+            // right padding keeps the lines where they were.
+            className="-my-1.5 -mr-1.5 flex h-11 w-11 flex-col items-end justify-center gap-1.5 pr-1.5 md:hidden"
           >
             <span
               className={cn(
@@ -113,7 +132,7 @@ export function Nav() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-void/95 backdrop-blur-2xl md:hidden"
+            className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 overscroll-contain bg-void/95 backdrop-blur-2xl md:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

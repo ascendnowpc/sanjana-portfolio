@@ -71,11 +71,19 @@ export function IndexRow({
           whose semibold is still a light, high-contrast serif; Optima's bold
           is a slab of black at this size, and a column of them read as
           shouting. Upright white against italic grey already says which
-          half is the name. */}
-      <Tag className="flex min-w-0 items-end text-[clamp(1.3rem,2.3vw,2.15rem)] leading-[1.08] font-normal tracking-[0.01em] text-white uppercase [font-variant-numeric:lining-nums]">
-        <span className="shrink-0 whitespace-nowrap">{lead}</span>
+          half is the name.
+
+          Except on a phone, where a name can be wider than the screen ("Can't
+          Help Falling in Love with You" is, at 390px) and holding it on one
+          line pushed the whole page sideways. There the name wraps instead,
+          and the descriptor — given no width of its own, only what is left —
+          stays on the name's last line when there is room and drops under it
+          when there is not. The gap is a column gap rather than a margin so a
+          dropped descriptor starts flush. */}
+      <Tag className="flex min-w-0 flex-wrap items-end gap-x-[0.4em] text-[clamp(1.3rem,2.3vw,2.15rem)] leading-[1.08] font-normal tracking-[0.01em] text-white uppercase [font-variant-numeric:lining-nums] md:flex-nowrap">
+        <span className="max-w-full md:shrink-0 md:whitespace-nowrap">{lead}</span>
         {tail && (
-          <span className="ml-[0.4em] min-w-0 truncate font-normal text-[#6e6e6e] italic">
+          <span className="min-w-0 grow basis-0 truncate font-normal text-[#6e6e6e] italic md:grow-0 md:basis-auto">
             {tail}
           </span>
         )}

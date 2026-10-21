@@ -201,6 +201,17 @@
   text-transform: uppercase;
 }
 
+/* The phone's own furniture: the notch and the rounded corners of a phone held
+   sideways. index.html asks for `viewport-fit=cover`, so the black runs under
+   them edge to edge — which also means nothing keeps the type out from under
+   them unless it is told to. This goes on the outermost box of anything that
+   spans the screen (the bar, the page, the footer), and is zero on every screen
+   without a notch, so it changes nothing anywhere else. */
+@utility safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 /* For the control strips, which scroll sideways on a narrow screen. A visible
    bar under a floating pill group would draw a second, heavier rectangle
    around it. */

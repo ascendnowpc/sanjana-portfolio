@@ -236,8 +236,11 @@ function Field({
   required,
   textarea,
 }: FieldProps) {
+  // 16px on a phone, not the 14px it is set at from `md` up: iOS zooms the
+  // whole page in on any field set smaller than that the moment it is tapped,
+  // and does not zoom back out when the field is left.
   const shared =
-    'peer w-full border-0 border-b border-edge bg-transparent pt-2 pb-3 text-sm font-light text-chalk placeholder-transparent transition-colors focus:border-bloom focus:outline-none'
+    'peer w-full border-0 border-b border-edge bg-transparent pt-2 pb-3 text-base font-light text-chalk placeholder-transparent transition-colors focus:border-bloom focus:outline-none md:text-sm'
 
   return (
     <div className="relative">

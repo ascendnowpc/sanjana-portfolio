@@ -219,7 +219,9 @@ function HouseMusic({ src, title, from, to, route }: Props) {
   if (broken) return null
 
   return (
-    <div className="pointer-events-none fixed bottom-5 left-5 z-[60] md:bottom-10 md:left-10">
+    // Kept clear of the home bar along the foot of a phone, and of the notch
+    // when it is held sideways — see `safe-x` in index.css.
+    <div className="pointer-events-none fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-[max(1.25rem,env(safe-area-inset-left))] z-[60] md:bottom-[max(2.5rem,env(safe-area-inset-bottom))] md:left-[max(2.5rem,env(safe-area-inset-left))]">
       <audio
         ref={ref}
         src={mediaUrl(src)}

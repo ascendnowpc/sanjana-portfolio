@@ -72,7 +72,9 @@ export function WorkBand({
     <div
       ref={grid}
       className="relative grid grid-cols-2 gap-x-[3px] gap-y-4 sm:grid-cols-3 md:gap-y-6 xl:grid-cols-4"
-      onMouseMove={(e) => {
+      onPointerMove={(e) => {
+        // A finger has no cursor for the word to ride.
+        if (e.pointerType === 'touch') return
         const box = grid.current?.getBoundingClientRect()
         const el = label.current
         if (!box || !el) return

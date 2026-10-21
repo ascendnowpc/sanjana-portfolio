@@ -180,7 +180,8 @@ function Login({ onSubmit }: { onSubmit: (password: string) => boolean }) {
               setValue(e.target.value)
               setError(false)
             }}
-            className="w-full border-0 border-b border-edge bg-transparent pb-3 text-sm font-light text-chalk transition-colors focus:border-bloom focus:outline-none"
+            // 16px on a phone, so iOS does not zoom in on it — see Contact.
+            className="w-full border-0 border-b border-edge bg-transparent pb-3 text-base font-light text-chalk transition-colors focus:border-bloom focus:outline-none md:text-sm"
           />
           {/* Announced, not just coloured: somebody using a screen reader gets
               the same "that was wrong" the sighted visitor does. */}
