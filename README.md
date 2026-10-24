@@ -1,4 +1,4 @@
-# SANJANA — vocalist portfolio
+# SANJANA — vocalist portfolio- by Sneha
 
 A portfolio site for a singer working across solo concerts, musical theatre and
 studio sessions. The landing page is an endless 3D wall of stage frames you fly
